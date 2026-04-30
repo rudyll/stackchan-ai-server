@@ -55,6 +55,11 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 
 	upstreamHdr := http.Header{}
 	for key, vals := range r.Header {
+		if strings.EqualFold(key, "Upgrade") ||
+			strings.EqualFold(key, "Connection") ||
+			strings.HasPrefix(strings.ToLower(key), "sec-websocket") {
+			continue
+		}
 		for _, v := range vals {
 			upstreamHdr.Add(key, v)
 		}
