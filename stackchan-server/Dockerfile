@@ -3,7 +3,7 @@ FROM golang:1.26-alpine AS builder
 
 WORKDIR /build
 COPY server/ .
-RUN go build -o stackchan-server .
+RUN go mod tidy && go build -o stackchan-server .
 
 # Runtime: HA base image (includes bashio for run.sh)
 FROM $BUILD_FROM
