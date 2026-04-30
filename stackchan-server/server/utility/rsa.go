@@ -26,9 +26,7 @@ var (
 )
 
 func init() {
-	if err := InitRSAKeys(); err != nil {
-		panic(err)
-	}
+	_ = InitRSAKeys() // keys are optional; proxy mode doesn't use RSA
 }
 
 // InitRSAKeys Initialize RSA keys from configuration file
@@ -45,18 +43,9 @@ func InitRSAKeys() error {
 	clientPublicKeyStr := g.Cfg().MustGet(ctx, "rsa.client.public").String()
 	clientPrivateKeyStr := g.Cfg().MustGet(ctx, "rsa.client.private").String()
 
-	// Check if keys are empty
-	if serverPublicKeyStr == "" {
-		return errors.New("server public key not found in config")
-	}
-	if serverPrivateKeyStr == "" {
-		return errors.New("server private key not found in config")
-	}
-	if clientPublicKeyStr == "" {
-		return errors.New("client public key not found in config")
-	}
-	if clientPrivateKeyStr == "" {
-		return errors.New("client private key not found in config")
+	// Keys are optional; skip initialization if any are missing
+	if serverPublicKeyStr == "" || serverPrivateKeyStr == "" || clientPublicKeyStr == "" || clientPrivateKeyStr == "" {
+		return nil
 	}
 
 	// Parse server public key
