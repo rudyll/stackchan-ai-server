@@ -96,6 +96,18 @@ func HandleOTA(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Strip firmware upgrade URL to prevent OTA from replacing our custom firmware.
+	// The device stays on our build; only websocket/token fields matter for operation.
+	if fwRaw, ok := payload["firmware"]; ok {
+		var fwCfg map[string]json.RawMessage
+		if err := json.Unmarshal(fwRaw, &fwCfg); err == nil {
+			emptyURL, _ := json.Marshal("")
+			fwCfg["url"] = emptyURL
+			newFwRaw, _ := json.Marshal(fwCfg)
+			payload["firmware"] = newFwRaw
+		}
+	}
+
 	modified, err := json.Marshal(payload)
 	if err != nil {
 		copyHeaders(w, resp)
