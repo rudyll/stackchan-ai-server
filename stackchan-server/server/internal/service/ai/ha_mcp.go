@@ -73,6 +73,13 @@ func newHAMCPClient(ctx context.Context) (*haMCPClient, error) {
 		return nil, fmt.Errorf("ha mcp initialize: %w", err)
 	}
 
+	// MCP spec requires an "initialized" notification after the initialize response.
+	initNotif, _ := json.Marshal(jsonRPC{JSONRPC: "2.0", Method: "notifications/initialized"})
+	if err := conn.WriteMessage(websocket.TextMessage, initNotif); err != nil {
+		conn.Close()
+		return nil, fmt.Errorf("ha mcp initialized notification: %w", err)
+	}
+
 	return c, nil
 }
 
