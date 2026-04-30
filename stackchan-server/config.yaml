@@ -1,0 +1,30 @@
+name: "StackChan AI Server"
+description: "Local AI proxy for StackChan: routes Xiaozhi WebSocket through HA with MCP tool injection"
+version: "1.0.0"
+slug: "stackchan_ai_server"
+init: false
+
+arch:
+  - aarch64
+  - amd64
+  - armv7
+  - armhf
+
+ports:
+  12800/tcp: 12800
+ports_description:
+  12800/tcp: "StackChan AI WebSocket & OTA proxy"
+
+# User fills these in the add-on UI instead of editing config.yaml manually.
+options:
+  local_host: "10.20.20.8"
+  ha_mcp_token: ""
+  upstream_ota_url: "https://api.tenclass.net/xiaozhi/ota/"
+
+schema:
+  local_host: str
+  ha_mcp_token: str
+  upstream_ota_url: str
+
+# Allow outbound internet access (needed to proxy Xiaozhi cloud).
+host_network: false

@@ -1,0 +1,52 @@
+# https://goframe.org/docs/web/server-config-file-template
+server:
+  address: ":12800"
+  openapiPath: "/api.json"
+  swaggerPath: "/swagger"
+
+# https://goframe.org/docs/core/glog-config
+logger:
+  path: "./logs"        # 日志目录（相对或绝对路径）
+  file: "{Y-m-d}.log"   # 按天滚动
+  level: "all"          # 日志级别：all | debug | info | warning | error
+  stdout: true          # 是否同时输出到控制台
+  rotateExpire: "7d"    # 日志保留时间
+  rotateBackup: 10      # 最多保留文件数
+  rotateSize: "50M"     # 单文件最大大小
+
+# https://goframe.org/docs/core/gdb-config-file
+database:
+  default:
+    link: ""
+
+
+jwt:
+  secret: ""
+
+admin:
+  users:
+    - username: ""
+      password: ""
+
+rsa:
+  server:
+    public:
+    private:
+  client:
+    public:
+    private:
+
+xiaozhi:
+  secret_key:
+  generate_license_token:
+
+ai:
+  # IP/hostname of this server, sent to device via OTA so it knows where to connect.
+  local_host: "192.168.1.100"
+  local_port: 12800
+  # Home Assistant MCP WebSocket URL (ha-mcp-for-stackchan integration).
+  ha_mcp_url: "ws://homeassistant.local:8123/api/ws_mcp_server/ws"
+  # HA Long-Lived Access Token (create in HA → Profile → Long-Lived Access Tokens).
+  ha_mcp_token: ""
+  # Upstream Xiaozhi OTA URL used to fetch real WebSocket credentials.
+  upstream_ota_url: "https://api.tenclass.net/xiaozhi/ota/"
