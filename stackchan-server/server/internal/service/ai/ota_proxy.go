@@ -96,6 +96,11 @@ func HandleOTA(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Strip MQTT config so the device uses WebSocket protocol instead.
+	// Without mqtt section, HasMqttConfig() returns false and the device
+	// falls through to HasWebsocketConfig() → uses our proxy WebSocket URL.
+	delete(payload, "mqtt")
+
 	// Strip firmware upgrade URL to prevent OTA from replacing our custom firmware.
 	// The device stays on our build; only websocket/token fields matter for operation.
 	if fwRaw, ok := payload["firmware"]; ok {
