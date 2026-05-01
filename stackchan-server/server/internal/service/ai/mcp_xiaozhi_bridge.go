@@ -59,15 +59,8 @@ func runBridgeSession(ctx context.Context, xiaozhiURL, haWSURL, haToken string) 
 	defer conn.Close()
 	g.Log().Infof(ctx, "Xiaozhi MCP bridge connected to %s", xiaozhiURL)
 
-	// Respond to server pings automatically (gorilla doesn't do this by default).
-	conn.SetPingHandler(func(data string) error {
-		return conn.WriteControl(websocket.PongMessage, []byte(data), time.Now().Add(5*time.Second))
-	})
-	// Reset read deadline on each pong so the ping loop below keeps things alive.
-	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
-	conn.SetPongHandler(func(string) error {
-		return conn.SetReadDeadline(time.Now().Add(60 * time.Second))
-	})
+	// No read deadline — the relay sends nothing until a device session is active.
+	// Gorilla's default ping handler already sends pong frames automatically.
 
 	// Write mutex — ping goroutine and message handler both write to conn.
 	var writeMu sync.Mutex
@@ -77,10 +70,11 @@ func runBridgeSession(ctx context.Context, xiaozhiURL, haWSURL, haToken string) 
 		return conn.WriteMessage(websocket.TextMessage, data)
 	}
 
-	// Send a WebSocket ping every 20 s to keep the relay from closing idle connections.
+	// Send a WebSocket ping every 50 s to keep the relay from closing idle connections.
+	// (Matches the interval used by the reference ha-mcp-for-xiaozhi implementation.)
 	pingStop := make(chan struct{})
 	go func() {
-		ticker := time.NewTicker(20 * time.Second)
+		ticker := time.NewTicker(50 * time.Second)
 		defer ticker.Stop()
 		for {
 			select {
@@ -100,7 +94,6 @@ func runBridgeSession(ctx context.Context, xiaozhiURL, haWSURL, haToken string) 
 		if err != nil {
 			return fmt.Errorf("read: %w", err)
 		}
-		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 
 		var req struct {
 			JSONRPC string          `json:"jsonrpc"`
