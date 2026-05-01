@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gogf/gf/v2/frame/g"
@@ -58,11 +59,48 @@ func runBridgeSession(ctx context.Context, xiaozhiURL, haWSURL, haToken string) 
 	defer conn.Close()
 	g.Log().Infof(ctx, "Xiaozhi MCP bridge connected to %s", xiaozhiURL)
 
+	// Respond to server pings automatically (gorilla doesn't do this by default).
+	conn.SetPingHandler(func(data string) error {
+		return conn.WriteControl(websocket.PongMessage, []byte(data), time.Now().Add(5*time.Second))
+	})
+	// Reset read deadline on each pong so the ping loop below keeps things alive.
+	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	conn.SetPongHandler(func(string) error {
+		return conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	})
+
+	// Write mutex — ping goroutine and message handler both write to conn.
+	var writeMu sync.Mutex
+	safeWrite := func(data []byte) error {
+		writeMu.Lock()
+		defer writeMu.Unlock()
+		return conn.WriteMessage(websocket.TextMessage, data)
+	}
+
+	// Send a WebSocket ping every 20 s to keep the relay from closing idle connections.
+	pingStop := make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(20 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				writeMu.Lock()
+				_ = conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(5*time.Second))
+				writeMu.Unlock()
+			case <-pingStop:
+				return
+			}
+		}
+	}()
+	defer close(pingStop)
+
 	for {
 		_, msgBytes, err := conn.ReadMessage()
 		if err != nil {
 			return fmt.Errorf("read: %w", err)
 		}
+		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 
 		var req struct {
 			JSONRPC string          `json:"jsonrpc"`
@@ -116,7 +154,7 @@ func runBridgeSession(ctx context.Context, xiaozhiURL, haWSURL, haToken string) 
 			resp = buildRPCError(req.ID, fmt.Sprintf("unknown method: %s", req.Method))
 		}
 
-		if err := conn.WriteMessage(websocket.TextMessage, resp); err != nil {
+		if err := safeWrite(resp); err != nil {
 			return fmt.Errorf("write: %w", err)
 		}
 	}
