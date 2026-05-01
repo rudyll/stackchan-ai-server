@@ -7,6 +7,7 @@ package ai
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -17,10 +18,13 @@ import (
 var otaCtx = gctx.New()
 
 // HandleOTA forwards the device's OTA check to the real Xiaozhi server,
-// then strips the firmware URL to prevent unwanted OTA updates.
+// strips MQTT config (forces device onto WebSocket so our proxy is used),
+// redirects the WebSocket URL to our local proxy, and strips firmware URL.
 func HandleOTA(w http.ResponseWriter, r *http.Request) {
 	cfg := g.Cfg()
 	upstreamURL := cfg.MustGet(otaCtx, "ai.upstream_ota_url", "https://api.tenclass.net/xiaozhi/ota/").String()
+	localHost := cfg.MustGet(otaCtx, "ai.local_host", "127.0.0.1").String()
+	localPort := cfg.MustGet(otaCtx, "ai.local_port", 12800).Int()
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -61,6 +65,36 @@ func HandleOTA(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(resp.StatusCode)
 		_, _ = w.Write(respBody)
 		return
+	}
+
+	// Strip MQTT config — without it HasMqttConfig() returns false, device falls
+	// through to WebSocket and uses our proxy URL below.
+	delete(payload, "mqtt")
+
+	// Redirect WebSocket URL to our local proxy so we can inject HA tools.
+	if wsRaw, ok := payload["websocket"]; ok {
+		var wsCfg map[string]json.RawMessage
+		if err := json.Unmarshal(wsRaw, &wsCfg); err == nil {
+			deviceID := r.Header.Get("Device-Id")
+			if deviceID != "" {
+				creds := upstreamCreds{Version: 3}
+				if urlRaw, ok := wsCfg["url"]; ok {
+					_ = json.Unmarshal(urlRaw, &creds.URL)
+				}
+				if tokRaw, ok := wsCfg["token"]; ok {
+					_ = json.Unmarshal(tokRaw, &creds.Token)
+				}
+				if verRaw, ok := wsCfg["version"]; ok {
+					_ = json.Unmarshal(verRaw, &creds.Version)
+				}
+				storeDeviceCreds(deviceID, creds)
+			}
+			localWsURL := fmt.Sprintf("ws://%s:%d/xiaozhi/ws", localHost, localPort)
+			urlBytes, _ := json.Marshal(localWsURL)
+			wsCfg["url"] = urlBytes
+			newWsRaw, _ := json.Marshal(wsCfg)
+			payload["websocket"] = newWsRaw
+		}
 	}
 
 	// Strip firmware URL to prevent unwanted OTA updates.

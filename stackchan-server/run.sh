@@ -1,8 +1,8 @@
 #!/usr/bin/with-contenv bashio
 
 # Read options set via the add-on UI.
+LOCAL_HOST=$(bashio::config 'local_host')
 HA_MCP_TOKEN=$(bashio::config 'ha_mcp_token')
-XIAOZHI_MCP_URL=$(bashio::config 'xiaozhi_mcp_url')
 UPSTREAM_OTA=$(bashio::config 'upstream_ota_url')
 
 # Write GoFrame config.yaml at runtime so the Go server picks it up.
@@ -38,15 +38,15 @@ xiaozhi:
   generate_license_token:
 
 ai:
-  # HA native WebSocket API — accessible inside the add-on via the supervisor network.
-  ha_ws_url: "ws://homeassistant:8123/api/websocket"
+  local_host: "${LOCAL_HOST}"
+  local_port: 12800
+  # ws_mcp_server WebSocket endpoint — accessible via the supervisor network.
+  ha_mcp_url: "ws://homeassistant:8123/api/ws_mcp_server/ws"
   ha_mcp_token: "${HA_MCP_TOKEN}"
-  # Xiaozhi MCP relay endpoint (wss://api.xiaozhi.me/mcp/?token=...).
-  xiaozhi_mcp_url: "${XIAOZHI_MCP_URL}"
   upstream_ota_url: "${UPSTREAM_OTA}"
 EOF
 
 bashio::log.info "Starting StackChan AI server on port 12800"
-bashio::log.info "Xiaozhi MCP bridge target: ${XIAOZHI_MCP_URL}"
+bashio::log.info "Local host advertised to devices: ${LOCAL_HOST}"
 
 exec /app/stackchan-server
