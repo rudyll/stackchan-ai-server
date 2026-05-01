@@ -1,5 +1,5 @@
 name: "StackChan AI Server"
-description: "Local AI proxy for StackChan: routes Xiaozhi WebSocket through HA with MCP tool injection"
+description: "StackChan AI server: OTA proxy (firmware update prevention) + Xiaozhi MCP bridge for Home Assistant control"
 version: "1.0.0"
 slug: "stackchan_ai_server"
 init: false
@@ -13,18 +13,18 @@ arch:
 ports:
   12800/tcp: 12800
 ports_description:
-  12800/tcp: "StackChan AI WebSocket & OTA proxy"
+  12800/tcp: "StackChan OTA proxy"
 
 # User fills these in the add-on UI instead of editing config.yaml manually.
 options:
-  local_host: "10.20.20.8"
   ha_mcp_token: ""
+  xiaozhi_mcp_url: ""
   upstream_ota_url: "https://api.tenclass.net/xiaozhi/ota/"
 
 schema:
-  local_host: str
   ha_mcp_token: str
+  xiaozhi_mcp_url: str
   upstream_ota_url: str
 
-# Allow outbound internet access (needed to proxy Xiaozhi cloud).
+# Allow outbound internet access (needed for Xiaozhi MCP relay).
 host_network: false

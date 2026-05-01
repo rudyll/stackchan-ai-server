@@ -44,7 +44,7 @@ var (
 
 			s.BindHandler("/stackChan/ws", web_socket.Handler)
 
-			// Xiaozhi AI proxy: OTA endpoint + WebSocket proxy with HA MCP injection.
+			// Xiaozhi AI proxy: OTA endpoint (firmware URL strip) + WebSocket proxy.
 			s.BindHandler("/xiaozhi/ota/", func(r *ghttp.Request) {
 				ai.HandleOTA(r.Response.Writer, r.Request)
 			})
@@ -54,6 +54,9 @@ var (
 
 			// heartBeat
 			boot.InitCron()
+
+			// Xiaozhi MCP bridge: connects to Xiaozhi relay as MCP server exposing HA tools.
+			ai.StartXiaozhiBridge()
 
 			///Configuration file access
 			s.Group("/file", func(group *ghttp.RouterGroup) {

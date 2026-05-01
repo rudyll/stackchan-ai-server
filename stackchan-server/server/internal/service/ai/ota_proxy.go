@@ -7,7 +7,6 @@ package ai
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -18,13 +17,10 @@ import (
 var otaCtx = gctx.New()
 
 // HandleOTA forwards the device's OTA check to the real Xiaozhi server,
-// extracts the WebSocket credentials, stores them keyed by Device-Id,
-// then rewrites the websocket URL to point at our local proxy before responding.
+// then strips the firmware URL to prevent unwanted OTA updates.
 func HandleOTA(w http.ResponseWriter, r *http.Request) {
 	cfg := g.Cfg()
 	upstreamURL := cfg.MustGet(otaCtx, "ai.upstream_ota_url", "https://api.tenclass.net/xiaozhi/ota/").String()
-	localHost := cfg.MustGet(otaCtx, "ai.local_host", "127.0.0.1").String()
-	localPort := cfg.MustGet(otaCtx, "ai.local_port", 12800).Int()
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -67,42 +63,7 @@ func HandleOTA(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if wsRaw, ok := payload["websocket"]; ok {
-		var wsCfg map[string]json.RawMessage
-		if err := json.Unmarshal(wsRaw, &wsCfg); err == nil {
-			// Extract real credentials for later use in the WS proxy.
-			deviceID := r.Header.Get("Device-Id")
-			if deviceID != "" {
-				creds := upstreamCreds{Version: 3}
-				if urlRaw, ok := wsCfg["url"]; ok {
-					_ = json.Unmarshal(urlRaw, &creds.URL)
-				}
-				if tokRaw, ok := wsCfg["token"]; ok {
-					_ = json.Unmarshal(tokRaw, &creds.Token)
-				}
-				if verRaw, ok := wsCfg["version"]; ok {
-					_ = json.Unmarshal(verRaw, &creds.Version)
-				}
-				storeDeviceCreds(deviceID, creds)
-			}
-
-			// Replace the websocket URL with our local proxy URL.
-			localWsURL := fmt.Sprintf("ws://%s:%d/xiaozhi/ws", localHost, localPort)
-			urlBytes, _ := json.Marshal(localWsURL)
-			wsCfg["url"] = urlBytes
-
-			newWsRaw, _ := json.Marshal(wsCfg)
-			payload["websocket"] = newWsRaw
-		}
-	}
-
-	// Strip MQTT config so the device uses WebSocket protocol instead.
-	// Without mqtt section, HasMqttConfig() returns false and the device
-	// falls through to HasWebsocketConfig() → uses our proxy WebSocket URL.
-	delete(payload, "mqtt")
-
-	// Strip firmware upgrade URL to prevent OTA from replacing our custom firmware.
-	// The device stays on our build; only websocket/token fields matter for operation.
+	// Strip firmware URL to prevent unwanted OTA updates.
 	if fwRaw, ok := payload["firmware"]; ok {
 		var fwCfg map[string]json.RawMessage
 		if err := json.Unmarshal(fwRaw, &fwCfg); err == nil {
