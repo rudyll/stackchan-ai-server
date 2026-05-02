@@ -1,6 +1,6 @@
 name: "StackChan AI Server"
-description: "StackChan AI server: OTA proxy (firmware update prevention) + Xiaozhi MCP bridge for Home Assistant control"
-version: "1.2.0"
+description: "StackChan AI server: OpenAI (Whisper + GPT + TTS) + Home Assistant device control"
+version: "2.0.0"
 slug: "stackchan_ai_server"
 init: false
 
@@ -13,18 +13,24 @@ arch:
 ports:
   12800/tcp: 12800
 ports_description:
-  12800/tcp: "StackChan OTA proxy"
+  12800/tcp: "StackChan WebSocket server"
 
 # User fills these in the add-on UI instead of editing config.yaml manually.
 options:
   local_host: "10.20.20.8"
   ha_mcp_token: ""
-  upstream_ota_url: "https://api.tenclass.net/xiaozhi/ota/"
+  openai_api_key: ""
+  openai_model: "gpt-4o-mini"
+  openai_tts_voice: "alloy"
+  system_prompt: "You are StackChan, a friendly desktop robot assistant. Keep replies concise."
 
 schema:
   local_host: str
   ha_mcp_token: str
-  upstream_ota_url: str
+  openai_api_key: str
+  openai_model: str
+  openai_tts_voice: str
+  system_prompt: str
 
-# Allow outbound internet access (needed for Xiaozhi MCP relay).
+# Allow outbound internet access (needed for OpenAI API).
 host_network: false

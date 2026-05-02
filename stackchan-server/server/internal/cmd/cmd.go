@@ -55,9 +55,6 @@ var (
 			// heartBeat
 			boot.InitCron()
 
-			// Xiaozhi MCP bridge: connects to Xiaozhi relay as MCP server exposing HA tools.
-			ai.StartXiaozhiBridge()
-
 			///Configuration file access
 			s.Group("/file", func(group *ghttp.RouterGroup) {
 				group.GET("/*filepath", func(r *ghttp.Request) {
