@@ -1,14 +1,18 @@
-#!/usr/bin/with-contenv bashio
+#!/bin/bash
+# HA supervisor always writes add-on options to /data/options.json.
+# Read with jq — no bashio dependency needed.
 
-# Read options set via the add-on UI.
-LOCAL_HOST=$(bashio::config 'local_host')
-HA_MCP_TOKEN=$(bashio::config 'ha_mcp_token')
-OPENAI_KEY=$(bashio::config 'openai_api_key')
-OPENAI_MODEL=$(bashio::config 'openai_model')
-OPENAI_VOICE=$(bashio::config 'openai_tts_voice')
-SYSTEM_PROMPT=$(bashio::config 'system_prompt')
+OPTIONS=/data/options.json
 
-# Write GoFrame config.yaml at runtime so the Go server picks it up.
+get() { jq -r --arg k "$1" --arg d "$2" '.[$k] // $d' "$OPTIONS"; }
+
+LOCAL_HOST=$(get local_host "127.0.0.1")
+HA_MCP_TOKEN=$(get ha_mcp_token "")
+OPENAI_KEY=$(get openai_api_key "")
+OPENAI_MODEL=$(get openai_model "gpt-4o-mini")
+OPENAI_VOICE=$(get openai_tts_voice "alloy")
+SYSTEM_PROMPT=$(get system_prompt "You are StackChan, a friendly desktop robot assistant. Keep replies concise.")
+
 mkdir -p /app/manifest/config
 cat > /app/manifest/config/config.yaml <<EOF
 server:
@@ -51,8 +55,7 @@ ai:
   system_prompt: "${SYSTEM_PROMPT}"
 EOF
 
-bashio::log.info "Starting StackChan AI server on port 12800"
-bashio::log.info "Local host advertised to devices: ${LOCAL_HOST}"
-bashio::log.info "OpenAI model: ${OPENAI_MODEL}"
+echo "INFO: Starting StackChan AI server on :12800"
+echo "INFO: local_host=${LOCAL_HOST}  model=${OPENAI_MODEL}"
 
 exec /app/stackchan-server

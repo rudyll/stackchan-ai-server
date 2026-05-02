@@ -1,17 +1,15 @@
-ARG BUILD_FROM
 FROM golang:1.23-alpine AS builder
 
 RUN apk add --no-cache gcc musl-dev opus-dev opusfile-dev pkgconf
 
 WORKDIR /build
-# Copy the Go server source
 COPY server/ .
 RUN CGO_ENABLED=1 go build -o stackchan-server .
 
-# ── Runtime image (HA base image) ──────────────────────────────────────────
-FROM $BUILD_FROM
+# ── Runtime: plain Alpine from Docker Hub (avoids ghcr.io) ─────────────────
+FROM alpine:3.20
 
-RUN apk add --no-cache opus
+RUN apk add --no-cache opus opusfile jq bash ca-certificates
 
 WORKDIR /app
 COPY --from=builder /build/stackchan-server .
