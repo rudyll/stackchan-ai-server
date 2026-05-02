@@ -1,6 +1,6 @@
 name: "StackChan AI Server"
 description: "StackChan AI server: OpenAI (Whisper + GPT + TTS) + Home Assistant device control"
-version: "2.0.0"
+version: "2.0.1"
 slug: "stackchan_ai_server"
 init: false
 
