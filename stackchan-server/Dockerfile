@@ -1,7 +1,7 @@
 ARG BUILD_FROM
 FROM golang:1.23-alpine AS builder
 
-RUN apk add --no-cache gcc musl-dev opus-dev pkg-config
+RUN apk add --no-cache gcc musl-dev opus-dev opusfile-dev pkgconf
 
 WORKDIR /build
 # Copy the Go server source
