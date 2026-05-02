@@ -1,6 +1,6 @@
 module stackChan
 
-go 1.26.2
+go 1.23
 
 require (
 	github.com/gogf/gf/contrib/drivers/mysql/v2 v2.10.0
