@@ -15,7 +15,7 @@ RUN apk add --no-cache opus
 
 WORKDIR /app
 COPY --from=builder /build/stackchan-server .
-COPY addon/run.sh /run.sh
+COPY run.sh /run.sh
 RUN chmod +x /run.sh
 
 CMD ["/run.sh"]
