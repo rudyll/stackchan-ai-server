@@ -26,9 +26,8 @@ var (
 )
 
 func init() {
-	if err := InitRSAKeys(); err != nil {
-		panic(err)
-	}
+	// RSA keys are optional — not used in local OpenAI mode.
+	_ = InitRSAKeys()
 }
 
 // InitRSAKeys Initialize RSA keys from configuration file
