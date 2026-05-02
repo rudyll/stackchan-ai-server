@@ -12,8 +12,10 @@ arch:
 
 ports:
   12800/tcp: 12800
+  443/tcp: 443
 ports_description:
   12800/tcp: "StackChan WebSocket server"
+  443/tcp: "OTA HTTPS intercept (api.tenclass.net DNS override)"
 
 # User fills these in the add-on UI instead of editing config.yaml manually.
 options:

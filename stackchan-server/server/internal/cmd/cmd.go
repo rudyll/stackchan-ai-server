@@ -55,6 +55,9 @@ var (
 			// heartBeat
 			boot.InitCron()
 
+			// HTTPS OTA intercept on :443 (for DNS override of api.tenclass.net)
+			ai.StartOTAHTTPS()
+
 			///Configuration file access
 			s.Group("/file", func(group *ghttp.RouterGroup) {
 				group.GET("/*filepath", func(r *ghttp.Request) {
