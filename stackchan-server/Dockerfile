@@ -4,7 +4,7 @@ RUN apk add --no-cache gcc musl-dev opus-dev opusfile-dev pkgconf
 
 WORKDIR /build
 COPY server/ .
-RUN CGO_ENABLED=1 go build -o stackchan-server .
+RUN go mod tidy && CGO_ENABLED=1 go build -o stackchan-server .
 
 # ── Runtime: plain Alpine from Docker Hub (avoids ghcr.io) ─────────────────
 FROM alpine:3.20
