@@ -55,22 +55,26 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 	voice := cfg.MustGet(ctx, "ai.openai_tts_voice", "alloy").String()
 	sysPrompt := cfg.MustGet(ctx, "ai.system_prompt", "You are StackChan, a friendly robot assistant.").String()
 
+	deviceID := r.Header.Get("Device-Id")
+	g.Log().Infof(ctx, "[WS] device=%s connecting HA at %s", deviceID, haURL)
 	ha, err := dialHAWebSocket(haURL, haToken)
 	if err != nil {
-		g.Log().Warningf(ctx, "HandleWS: HA connect failed: %v", err)
+		g.Log().Warningf(ctx, "[WS] device=%s HA connect failed: %v", deviceID, err)
 		conn.Close()
 		return
 	}
+	g.Log().Infof(ctx, "[WS] device=%s HA connected", deviceID)
 
 	s := &wsSession{
 		conn:     conn,
-		deviceID: r.Header.Get("Device-Id"),
+		deviceID: deviceID,
 		ha:       ha,
 		ai:       newOpenAIClient(apiKey, model, voice, sysPrompt),
 	}
 
 	go s.pingLoop(ctx)
 	s.run(ctx)
+	g.Log().Infof(ctx, "[WS] device=%s session closed", deviceID)
 	ha.Close()
 }
 
@@ -79,6 +83,7 @@ func (s *wsSession) run(ctx context.Context) {
 	for {
 		msgType, data, err := s.conn.ReadMessage()
 		if err != nil {
+			g.Log().Infof(ctx, "[WS] device=%s read error: %v", s.deviceID, err)
 			return
 		}
 
@@ -101,7 +106,10 @@ func (s *wsSession) run(ctx context.Context) {
 			continue
 		}
 
-		switch msg["type"] {
+		msgTypeStr, _ := msg["type"].(string)
+		g.Log().Infof(ctx, "[WS] device=%s recv type=%s", s.deviceID, msgTypeStr)
+
+		switch msgTypeStr {
 		case "hello":
 			s.handleHello(ctx)
 		case "listen":
@@ -114,7 +122,7 @@ func (s *wsSession) run(ctx context.Context) {
 
 func (s *wsSession) handleHello(ctx context.Context) {
 	sessionID := uuid.New().String()
-	_ = s.sendJSON(map[string]any{
+	err := s.sendJSON(map[string]any{
 		"type":       "hello",
 		"transport":  "websocket",
 		"session_id": sessionID,
@@ -123,7 +131,11 @@ func (s *wsSession) handleHello(ctx context.Context) {
 			"frame_duration": frameDurationMs,
 		},
 	})
-	g.Log().Infof(ctx, "WS simulator: device=%s session=%s", s.deviceID, sessionID)
+	if err != nil {
+		g.Log().Warningf(ctx, "[WS] device=%s hello send failed: %v", s.deviceID, err)
+		return
+	}
+	g.Log().Infof(ctx, "[WS] device=%s session=%s hello OK", s.deviceID, sessionID)
 }
 
 func (s *wsSession) handleListen(ctx context.Context, msg map[string]any) {
@@ -164,6 +176,7 @@ func (s *wsSession) runAIPipeline(ctx context.Context, frames [][]byte) {
 	if len(frames) == 0 {
 		return
 	}
+	g.Log().Infof(ctx, "[AI] device=%s pipeline start frames=%d", s.deviceID, len(frames))
 
 	// STT
 	pcm, err := decodeFramesToPCM(frames)
