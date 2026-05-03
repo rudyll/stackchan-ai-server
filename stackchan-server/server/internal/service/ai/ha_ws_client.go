@@ -190,3 +190,19 @@ func (c *haWSClient) CallService(domain, service, entityID string, data map[stri
 	}
 	return c.send(cmd)
 }
+
+// CallServiceWithTarget uses the modern HA target field, supporting entity_id, area_id, or device_id.
+func (c *haWSClient) CallServiceWithTarget(domain, service string, target map[string]any, data map[string]any) (json.RawMessage, error) {
+	cmd := map[string]any{
+		"type":    "call_service",
+		"domain":  domain,
+		"service": service,
+	}
+	if len(target) > 0 {
+		cmd["target"] = target
+	}
+	if len(data) > 0 {
+		cmd["service_data"] = data
+	}
+	return c.send(cmd)
+}

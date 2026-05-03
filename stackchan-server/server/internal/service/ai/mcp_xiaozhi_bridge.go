@@ -157,9 +157,6 @@ func haToolDefs() []map[string]any {
 	str := func(desc string) map[string]any {
 		return map[string]any{"type": "string", "description": desc}
 	}
-	num := func(desc string) map[string]any {
-		return map[string]any{"type": "number", "description": desc}
-	}
 	schema := func(props map[string]any, required ...string) map[string]any {
 		s := map[string]any{"type": "object", "properties": props}
 		if len(required) > 0 {
@@ -168,59 +165,56 @@ func haToolDefs() []map[string]any {
 		return s
 	}
 
+	// ha_call_services item schema — one service call in a batch.
+	callItemSchema := map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"domain":    str("Service domain: light, switch, climate, cover, fan, media_player, script, homeassistant, etc."),
+			"service":   str("Service name: turn_on, turn_off, toggle, set_temperature, volume_set, set_cover_position, play_media, etc."),
+			"entity_id": str("Target entity ID (e.g. light.living_room). Omit if using area_id."),
+			"area_id":   str("Target area ID from ha_list_areas. Controls all matching entities in that area."),
+			"data": map[string]any{
+				"type":                 "object",
+				"description":          "Extra service parameters, e.g. {\"brightness_pct\": 80} for lights, {\"temperature\": 26} for climate, {\"volume_level\": 0.5} for media_player.",
+				"additionalProperties": true,
+			},
+		},
+		"required": []string{"domain", "service"},
+	}
+
 	return []map[string]any{
 		{
 			"name":        "ha_list_areas",
-			"description": "List all areas (rooms/zones) in Home Assistant with their IDs and names.",
+			"description": "List all areas (rooms/zones) in Home Assistant with their IDs and names. Call this first when you need to target a room.",
 			"inputSchema": schema(map[string]any{}),
 		},
 		{
 			"name":        "ha_search_entities",
-			"description": "Search entities by keyword, area, or domain. Returns entity_id, friendly name, state, and area.",
+			"description": "Search entities by keyword, area, domain, or device_class. Returns entity_id, name, state, area, and attributes.",
 			"inputSchema": schema(map[string]any{
-				"keyword": str("Name or entity_id substring to search (case-insensitive)"),
-				"area_id": str("Filter by area ID (from ha_list_areas)"),
-				"domain":  str("Filter by domain: light, switch, sensor, climate, media_player, cover, fan, etc."),
+				"keyword":      str("Name or entity_id substring to search (case-insensitive)"),
+				"area_id":      str("Filter by area ID (from ha_list_areas)"),
+				"domain":       str("Filter by domain: light, switch, sensor, climate, media_player, cover, fan, input_boolean, etc."),
+				"device_class": str("Filter by device class: motion, door, window, temperature, humidity, moisture, illuminance, etc."),
 			}),
 		},
 		{
 			"name":        "ha_get_state",
-			"description": "Get current state and attributes of a specific entity.",
+			"description": "Get the current state and all attributes of a specific entity.",
 			"inputSchema": schema(map[string]any{
-				"entity_id": str("Entity ID (e.g. light.living_room)"),
+				"entity_id": str("Entity ID (e.g. light.living_room, climate.bedroom)"),
 			}, "entity_id"),
 		},
 		{
-			"name":        "ha_turn_on",
-			"description": "Turn on a device (light, switch, fan, script, etc.).",
+			"name":        "ha_call_services",
+			"description": "Execute one or more Home Assistant service calls for device control: turn on/off, set brightness, adjust temperature, control covers, play media, run scripts, etc. Supports area-wide control.",
 			"inputSchema": schema(map[string]any{
-				"entity_id": str("Entity ID to turn on"),
-			}, "entity_id"),
-		},
-		{
-			"name":        "ha_turn_off",
-			"description": "Turn off a device.",
-			"inputSchema": schema(map[string]any{
-				"entity_id": str("Entity ID to turn off"),
-			}, "entity_id"),
-		},
-		{
-			"name":        "ha_set_value",
-			"description": "Set a numeric value: light brightness (0-255), climate temperature (°C), media_player volume (0-1), cover position (0-100), fan speed percentage (0-100).",
-			"inputSchema": schema(map[string]any{
-				"entity_id": str("Entity ID"),
-				"value":     num("Numeric value appropriate for the entity type"),
-			}, "entity_id", "value"),
-		},
-		{
-			"name":        "ha_call_service",
-			"description": "Call any Home Assistant service directly.",
-			"inputSchema": schema(map[string]any{
-				"domain":    str("Service domain (e.g. light, media_player)"),
-				"service":   str("Service name (e.g. turn_on, play_media)"),
-				"entity_id": str("Target entity ID (optional)"),
-				"data":      str("JSON string of additional service data (optional)"),
-			}, "domain", "service"),
+				"calls": map[string]any{
+					"type":        "array",
+					"description": "List of service calls to execute. Can include multiple calls in one request.",
+					"items":       callItemSchema,
+				},
+			}, "calls"),
 		},
 	}
 }
@@ -250,8 +244,9 @@ func dispatchHATool(ha *haWSClient, name string, args map[string]any) (string, e
 		keyword := strings.ToLower(strVal("keyword"))
 		areaFilter := strVal("area_id")
 		domainFilter := strVal("domain")
+		deviceClassFilter := strings.ToLower(strVal("device_class"))
 
-		// Build area_id → area_name map
+		// Build area_id → area_name map.
 		areaNames := map[string]string{}
 		if areas, err := ha.GetAreas(); err == nil {
 			for _, a := range areas {
@@ -261,7 +256,7 @@ func dispatchHATool(ha *haWSClient, name string, args map[string]any) (string, e
 			}
 		}
 
-		// Build entity_id → area_id map from entity registry
+		// Build entity_id → area_id map from entity registry.
 		entityArea := map[string]string{}
 		if reg, err := ha.GetEntityRegistry(); err == nil {
 			for _, e := range reg {
@@ -293,6 +288,12 @@ func dispatchHATool(ha *haWSClient, name string, args map[string]any) (string, e
 			if areaFilter != "" && areaID != areaFilter {
 				continue
 			}
+			if deviceClassFilter != "" {
+				dc, _ := attrs["device_class"].(string)
+				if strings.ToLower(dc) != deviceClassFilter {
+					continue
+				}
+			}
 			if keyword != "" {
 				haystack := strings.ToLower(entityID + " " + friendlyName)
 				if !strings.Contains(haystack, keyword) {
@@ -300,13 +301,24 @@ func dispatchHATool(ha *haWSClient, name string, args map[string]any) (string, e
 				}
 			}
 
+			// Include a small subset of useful attributes so the LLM can reason about device state.
+			usefulAttrs := map[string]any{}
+			for _, k := range []string{"brightness", "color_temp_kelvin", "rgb_color", "temperature",
+				"current_temperature", "hvac_mode", "fan_mode", "volume_level", "media_title",
+				"position", "percentage", "device_class", "unit_of_measurement"} {
+				if v, ok := attrs[k]; ok {
+					usefulAttrs[k] = v
+				}
+			}
+
 			results = append(results, map[string]any{
-				"entity_id": entityID,
-				"name":      friendlyName,
-				"state":     state,
-				"domain":    domain,
-				"area_id":   areaID,
-				"area_name": areaNames[areaID],
+				"entity_id":  entityID,
+				"name":       friendlyName,
+				"state":      state,
+				"domain":     domain,
+				"area_id":    areaID,
+				"area_name":  areaNames[areaID],
+				"attributes": usefulAttrs,
 			})
 		}
 		return mustJSONStr(results), nil
@@ -322,6 +334,47 @@ func dispatchHATool(ha *haWSClient, name string, args map[string]any) (string, e
 		}
 		return mustJSONStr(state), nil
 
+	case "ha_call_services":
+		// Re-marshal and parse the calls array (LLM sends it as []interface{}).
+		callsJSON, _ := json.Marshal(args["calls"])
+		var calls []struct {
+			Domain   string         `json:"domain"`
+			Service  string         `json:"service"`
+			EntityID string         `json:"entity_id"`
+			AreaID   string         `json:"area_id"`
+			Data     map[string]any `json:"data"`
+		}
+		if err := json.Unmarshal(callsJSON, &calls); err != nil || len(calls) == 0 {
+			return "", fmt.Errorf("calls must be a non-empty array")
+		}
+
+		results := make([]string, 0, len(calls))
+		for _, call := range calls {
+			if call.Domain == "" || call.Service == "" {
+				results = append(results, "error: domain and service required")
+				continue
+			}
+			target := map[string]any{}
+			if call.EntityID != "" {
+				target["entity_id"] = call.EntityID
+			}
+			if call.AreaID != "" {
+				target["area_id"] = call.AreaID
+			}
+			_, err := ha.CallServiceWithTarget(call.Domain, call.Service, target, call.Data)
+			if err != nil {
+				results = append(results, fmt.Sprintf("%s.%s: error: %v", call.Domain, call.Service, err))
+			} else {
+				label := call.EntityID
+				if label == "" {
+					label = "area:" + call.AreaID
+				}
+				results = append(results, fmt.Sprintf("%s.%s %s: OK", call.Domain, call.Service, label))
+			}
+		}
+		return strings.Join(results, "\n"), nil
+
+	// Keep legacy single-call tools for backward compatibility with MCP bridge.
 	case "ha_turn_on":
 		entityID := strVal("entity_id")
 		if entityID == "" {
@@ -346,12 +399,9 @@ func dispatchHATool(ha *haWSClient, name string, args map[string]any) (string, e
 
 	case "ha_set_value":
 		entityID := strVal("entity_id")
-		if entityID == "" {
-			return "", fmt.Errorf("entity_id required")
-		}
 		value, ok := args["value"]
-		if !ok {
-			return "", fmt.Errorf("value required")
+		if entityID == "" || !ok {
+			return "", fmt.Errorf("entity_id and value required")
 		}
 		domain := strings.SplitN(entityID, ".", 2)[0]
 		var svcDomain, svcName string
