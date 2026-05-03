@@ -1,6 +1,6 @@
 name: "StackChan AI Server"
 description: "StackChan AI server: OpenAI Realtime API (gpt-realtime-1.5) + Home Assistant device control"
-version: "2.1.0"
+version: "2.1.1"
 slug: "stackchan_ai_server"
 init: false
 
@@ -30,8 +30,8 @@ schema:
   local_host: str
   ha_mcp_token: str
   openai_api_key: str
-  openai_realtime_model: str
-  openai_tts_voice: str
+  openai_realtime_model: list(gpt-realtime-1.5|gpt-realtime-mini|gpt-4o-realtime-preview)
+  openai_tts_voice: list(alloy|echo|fable|onyx|nova|shimmer|ash|coral|sage|verse)
   system_prompt: str
 
 # Allow outbound internet access (needed for OpenAI API).
