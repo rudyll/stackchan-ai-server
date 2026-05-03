@@ -62,6 +62,53 @@ func encodeOpusFrames(pcm []int16) ([][]byte, error) {
 	return frames, nil
 }
 
+// newOpusDecoder creates a reusable 16kHz mono decoder for streaming device input.
+func newOpusDecoder() (*opus.Decoder, error) {
+	return opus.NewDecoder(deviceSampleRate, frameChannels)
+}
+
+// decodeOpusFrame decodes one OPUS frame, preserving state across consecutive calls on the same decoder.
+func decodeOpusFrame(dec *opus.Decoder, frame []byte) ([]int16, error) {
+	pcmBuf := make([]int16, deviceFrameSamples*4)
+	n, err := dec.Decode(frame, pcmBuf)
+	if err != nil {
+		return nil, err
+	}
+	return pcmBuf[:n], nil
+}
+
+// opusStreamEncoder buffers 24kHz PCM and emits complete 60ms OPUS frames on Encode calls.
+type opusStreamEncoder struct {
+	enc *opus.Encoder
+	buf []int16
+}
+
+func newOpusStreamEncoder() (*opusStreamEncoder, error) {
+	enc, err := opus.NewEncoder(serverSampleRate, frameChannels, opus.AppVoIP)
+	if err != nil {
+		return nil, err
+	}
+	return &opusStreamEncoder{enc: enc}, nil
+}
+
+// Encode appends pcm to the internal buffer and returns any complete 60ms frames ready to send.
+func (e *opusStreamEncoder) Encode(pcm []int16) ([][]byte, error) {
+	e.buf = append(e.buf, pcm...)
+	outBuf := make([]byte, 4096)
+	var frames [][]byte
+	for len(e.buf) >= serverFrameSamples {
+		n, err := e.enc.Encode(e.buf[:serverFrameSamples], outBuf)
+		if err != nil {
+			return frames, fmt.Errorf("opus encode: %w", err)
+		}
+		frame := make([]byte, n)
+		copy(frame, outBuf[:n])
+		frames = append(frames, frame)
+		e.buf = e.buf[serverFrameSamples:]
+	}
+	return frames, nil
+}
+
 // pcmToWAV wraps int16 PCM in a WAV container for Whisper upload.
 func pcmToWAV(pcm []int16, sampleRate int) []byte {
 	dataSize := len(pcm) * 2

@@ -9,7 +9,7 @@ get() { jq -r --arg k "$1" --arg d "$2" '.[$k] // $d' "$OPTIONS"; }
 LOCAL_HOST=$(get local_host "127.0.0.1")
 HA_MCP_TOKEN=$(get ha_mcp_token "")
 OPENAI_KEY=$(get openai_api_key "")
-OPENAI_MODEL=$(get openai_model "gpt-4o-mini")
+OPENAI_RT_MODEL=$(get openai_realtime_model "gpt-realtime-1.5")
 OPENAI_VOICE=$(get openai_tts_voice "alloy")
 SYSTEM_PROMPT=$(get system_prompt "You are StackChan, a friendly desktop robot assistant. Keep replies concise.")
 
@@ -50,12 +50,12 @@ ai:
   ha_ws_url: "ws://homeassistant:8123/api/websocket"
   ha_mcp_token: "${HA_MCP_TOKEN}"
   openai_api_key: "${OPENAI_KEY}"
-  openai_model: "${OPENAI_MODEL}"
+  openai_realtime_model: "${OPENAI_RT_MODEL}"
   openai_tts_voice: "${OPENAI_VOICE}"
   system_prompt: "${SYSTEM_PROMPT}"
 EOF
 
 echo "INFO: Starting StackChan AI server on :12800"
-echo "INFO: local_host=${LOCAL_HOST}  model=${OPENAI_MODEL}"
+echo "INFO: local_host=${LOCAL_HOST}  realtime_model=${OPENAI_RT_MODEL}"
 
 exec /app/stackchan-server

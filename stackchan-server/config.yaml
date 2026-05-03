@@ -1,6 +1,6 @@
 name: "StackChan AI Server"
-description: "StackChan AI server: OpenAI (Whisper + GPT + TTS) + Home Assistant device control"
-version: "2.0.6"
+description: "StackChan AI server: OpenAI Realtime API (gpt-realtime-1.5) + Home Assistant device control"
+version: "2.1.0"
 slug: "stackchan_ai_server"
 init: false
 
@@ -22,7 +22,7 @@ options:
   local_host: "10.20.20.8"
   ha_mcp_token: ""
   openai_api_key: ""
-  openai_model: "gpt-4o-mini"
+  openai_realtime_model: "gpt-realtime-1.5"
   openai_tts_voice: "alloy"
   system_prompt: "You are StackChan, a friendly desktop robot assistant. Keep replies concise."
 
@@ -30,7 +30,7 @@ schema:
   local_host: str
   ha_mcp_token: str
   openai_api_key: str
-  openai_model: str
+  openai_realtime_model: str
   openai_tts_voice: str
   system_prompt: str
 

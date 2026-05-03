@@ -3,8 +3,16 @@ SPDX-FileCopyrightText: 2026 M5Stack Technology CO LTD
 SPDX-License-Identifier: MIT
 */
 
-// Package ai implements a Xiaozhi WebSocket protocol v3 simulator that routes
-// audio through OpenAI (Whisper → GPT → TTS) and device control through Home Assistant.
+// Package ai implements a Xiaozhi WebSocket protocol v3 simulator backed by
+// the OpenAI Realtime API (gpt-realtime-1.5).
+//
+// Audio path (streaming, no batching):
+//
+//	device OPUS (16kHz) → PCM → Realtime WS input buffer
+//	                              ↓  server VAD detects speech end
+//	                         Realtime WS output (PCM 24kHz, streaming)
+//	                              ↓
+//	                    opusStreamEncoder → device OPUS frames
 package ai
 
 import (
@@ -19,6 +27,7 @@ import (
 	"github.com/gogf/gf/v2/os/gctx"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	opus "gopkg.in/hraban/opus.v2"
 )
 
 var upgrader = websocket.Upgrader{
@@ -26,19 +35,20 @@ var upgrader = websocket.Upgrader{
 }
 
 type wsSession struct {
-	conn         *websocket.Conn
-	deviceID     string
-	opusIn       [][]byte          // accumulated OPUS frames from device
-	history      []chatMessage     // conversation history
-	ha           *haWSClient
-	ai           *openAIClient
-	mu           sync.Mutex        // protects opusIn, history, cancelAI, listenCancel
-	writeMu      sync.Mutex        // serialises WebSocket writes
-	cancelAI     context.CancelFunc
-	listenCancel context.CancelFunc // cancels the per-listen timeout goroutine
+	conn     *websocket.Conn
+	deviceID string
+	rt       *realtimeSession
+	opusDec  *opus.Decoder // device input decoder (16kHz, reset per utterance)
+
+	mu          sync.Mutex         // protects opusEnc and isListening
+	opusEnc     *opusStreamEncoder // non-nil only while model is speaking
+	isListening bool
+
+	writeMu sync.Mutex // serialises WebSocket writes
 }
 
-// HandleWS upgrades the connection and runs a Xiaozhi v3 protocol session.
+// HandleWS upgrades the connection and runs a Xiaozhi v3 protocol session
+// backed by OpenAI Realtime API.
 func HandleWS(w http.ResponseWriter, r *http.Request) {
 	ctx := gctx.New()
 	cfg := g.Cfg()
@@ -52,12 +62,13 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 	haURL := cfg.MustGet(ctx, "ai.ha_ws_url", "ws://homeassistant:8123/api/websocket").String()
 	haToken := cfg.MustGet(ctx, "ai.ha_mcp_token", "").String()
 	apiKey := cfg.MustGet(ctx, "ai.openai_api_key", "").String()
-	model := cfg.MustGet(ctx, "ai.openai_model", "gpt-4o-mini").String()
+	rtModel := cfg.MustGet(ctx, "ai.openai_realtime_model", "gpt-realtime-1.5").String()
 	voice := cfg.MustGet(ctx, "ai.openai_tts_voice", "alloy").String()
 	sysPrompt := cfg.MustGet(ctx, "ai.system_prompt", "You are StackChan, a friendly robot assistant.").String()
 
 	deviceID := r.Header.Get("Device-Id")
 	g.Log().Infof(ctx, "[WS] device=%s connecting HA at %s", deviceID, haURL)
+
 	ha, err := dialHAWebSocket(haURL, haToken)
 	if err != nil {
 		g.Log().Warningf(ctx, "[WS] device=%s HA connect failed: %v", deviceID, err)
@@ -66,16 +77,86 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 	}
 	g.Log().Infof(ctx, "[WS] device=%s HA connected", deviceID)
 
+	opusDec, err := newOpusDecoder()
+	if err != nil {
+		g.Log().Errorf(ctx, "[WS] device=%s opus decoder init: %v", deviceID, err)
+		conn.Close()
+		ha.Close()
+		return
+	}
+
 	s := &wsSession{
 		conn:     conn,
 		deviceID: deviceID,
-		ha:       ha,
-		ai:       newOpenAIClient(apiKey, model, voice, sysPrompt),
+		opusDec:  opusDec,
 	}
+
+	// Wire Realtime callbacks → device WebSocket writes.
+	rt, err := dialRealtimeSession(ctx, apiKey, rtModel, voice, sysPrompt, ha,
+
+		func(text string) { // onSTT: display what the user said on the device
+			_ = s.sendJSON(map[string]any{"type": "stt", "text": text})
+		},
+
+		func(text string) { // onText: LLM text reply (logged, device shows via TTS)
+			g.Log().Infof(ctx, "[WS] device=%s LLM: %q", deviceID, text)
+		},
+
+		func(pcm []int16) { // onAudio: stream 24kHz PCM → OPUS → device
+			s.mu.Lock()
+			enc := s.opusEnc
+			s.mu.Unlock()
+			if enc == nil {
+				return
+			}
+			frames, err := enc.Encode(pcm)
+			if err != nil {
+				g.Log().Warningf(ctx, "[WS] device=%s encode: %v", deviceID, err)
+				return
+			}
+			for _, frame := range frames {
+				if err := s.sendAudio(frame); err != nil {
+					return
+				}
+			}
+		},
+
+		func() { // onStart: model started generating
+			g.Log().Infof(ctx, "[WS] device=%s TTS start", deviceID)
+			enc, err := newOpusStreamEncoder()
+			if err != nil {
+				g.Log().Warningf(ctx, "[WS] device=%s encoder init: %v", deviceID, err)
+				return
+			}
+			s.mu.Lock()
+			s.opusEnc = enc
+			s.mu.Unlock()
+			_ = s.sendJSON(map[string]any{"type": "llm", "emotion": "neutral"})
+			_ = s.sendJSON(map[string]any{"type": "tts", "state": "start"})
+		},
+
+		func() { // onStop: model finished
+			g.Log().Infof(ctx, "[WS] device=%s TTS stop", deviceID)
+			s.mu.Lock()
+			s.opusEnc = nil
+			s.mu.Unlock()
+			_ = s.sendJSON(map[string]any{"type": "tts", "state": "stop"})
+		},
+	)
+	if err != nil {
+		g.Log().Errorf(ctx, "[WS] device=%s realtime connect: %v", deviceID, err)
+		conn.Close()
+		ha.Close()
+		return
+	}
+	s.rt = rt
+	g.Log().Infof(ctx, "[WS] device=%s realtime session ready model=%s", deviceID, rtModel)
 
 	go s.pingLoop(ctx)
 	s.run(ctx)
+
 	g.Log().Infof(ctx, "[WS] device=%s session closed", deviceID)
+	rt.Close()
 	ha.Close()
 }
 
@@ -94,18 +175,21 @@ func (s *wsSession) run(ctx context.Context) {
 				continue
 			}
 			payloadSize := int(binary.BigEndian.Uint16(data[2:4]))
-			if payloadSize > 0 && len(data) >= 4+payloadSize {
-				s.mu.Lock()
-				first := len(s.opusIn) == 0
-				s.opusIn = append(s.opusIn, data[4:4+payloadSize])
-				count := len(s.opusIn)
-				s.mu.Unlock()
-				if first {
-					g.Log().Infof(ctx, "[WS] device=%s first audio frame received", s.deviceID)
-				} else if count%50 == 0 {
-					g.Log().Infof(ctx, "[WS] device=%s buffered %d frames (~%ds)", s.deviceID, count, count*frameDurationMs/1000)
-				}
+			if payloadSize == 0 || len(data) < 4+payloadSize {
+				continue
 			}
+			s.mu.Lock()
+			listening := s.isListening
+			s.mu.Unlock()
+			if !listening {
+				continue
+			}
+			// Decode the OPUS frame with the persistent decoder and stream to Realtime.
+			pcm, err := decodeOpusFrame(s.opusDec, data[4:4+payloadSize])
+			if err != nil {
+				continue
+			}
+			_ = s.rt.AppendAudio(pcm)
 			continue
 		}
 
@@ -113,10 +197,8 @@ func (s *wsSession) run(ctx context.Context) {
 		if err := json.Unmarshal(data, &msg); err != nil {
 			continue
 		}
-
 		msgTypeStr, _ := msg["type"].(string)
-		state, _ := msg["state"].(string)
-		if state != "" {
+		if state, _ := msg["state"].(string); state != "" {
 			g.Log().Infof(ctx, "[WS] device=%s recv type=%s state=%s", s.deviceID, msgTypeStr, state)
 		} else {
 			g.Log().Infof(ctx, "[WS] device=%s recv type=%s", s.deviceID, msgTypeStr)
@@ -128,7 +210,12 @@ func (s *wsSession) run(ctx context.Context) {
 		case "listen":
 			s.handleListen(ctx, msg)
 		case "abort":
-			s.cancelInFlight()
+			// Wake word mid-response: cancel generation, unblock device.
+			_ = s.rt.CancelResponse()
+			s.mu.Lock()
+			s.opusEnc = nil
+			s.isListening = false
+			s.mu.Unlock()
 			_ = s.sendJSON(map[string]any{"type": "tts", "state": "stop"})
 		}
 	}
@@ -155,156 +242,36 @@ func (s *wsSession) handleHello(ctx context.Context) {
 func (s *wsSession) handleListen(ctx context.Context, msg map[string]any) {
 	state, _ := msg["state"].(string)
 	switch state {
+
 	case "detect":
-		// Acknowledge wake word: tell device TTS has stopped so it can start recording.
+		// Wake word detected while model may be speaking: cancel and unblock device VAD.
+		_ = s.rt.CancelResponse()
+		s.mu.Lock()
+		s.opusEnc = nil
+		s.mu.Unlock()
 		_ = s.sendJSON(map[string]any{"type": "tts", "state": "stop"})
 
 	case "start":
-		s.mu.Lock()
-		s.opusIn = nil
-		// Cancel any previous listen timeout.
-		if s.listenCancel != nil {
-			s.listenCancel()
+		// New utterance: reset the OPUS decoder to clear inter-frame state.
+		dec, err := newOpusDecoder()
+		if err != nil {
+			g.Log().Warningf(ctx, "[WS] device=%s decoder reset: %v", s.deviceID, err)
+		} else {
+			s.opusDec = dec
 		}
-		listenCtx, listenCancel := context.WithTimeout(ctx, 4*time.Second)
-		s.listenCancel = listenCancel
+		s.mu.Lock()
+		s.isListening = true
 		s.mu.Unlock()
-
-		// Auto-trigger pipeline if listen:stop never arrives within 8s.
-		go func() {
-			defer listenCancel()
-			<-listenCtx.Done()
-			if listenCtx.Err() != context.DeadlineExceeded {
-				return // cancelled normally by listen:stop
-			}
-			s.mu.Lock()
-			frames := make([][]byte, len(s.opusIn))
-			copy(frames, s.opusIn)
-			s.opusIn = nil
-			s.mu.Unlock()
-			if len(frames) == 0 {
-				g.Log().Infof(ctx, "[WS] device=%s listen timeout, no audio — skipping", s.deviceID)
-				return
-			}
-			g.Log().Infof(ctx, "[WS] device=%s listen timeout auto-trigger frames=%d", s.deviceID, len(frames))
-			s.cancelInFlight()
-			aiCtx, cancel := context.WithCancel(ctx)
-			s.mu.Lock()
-			s.cancelAI = cancel
-			s.mu.Unlock()
-			go s.runAIPipeline(aiCtx, frames)
-		}()
+		g.Log().Infof(ctx, "[WS] device=%s listening started", s.deviceID)
 
 	case "stop":
 		s.mu.Lock()
-		if s.listenCancel != nil {
-			s.listenCancel()
-			s.listenCancel = nil
-		}
-		frames := make([][]byte, len(s.opusIn))
-		copy(frames, s.opusIn)
-		s.opusIn = nil
+		s.isListening = false
 		s.mu.Unlock()
-
-		s.cancelInFlight()
-
-		aiCtx, cancel := context.WithCancel(ctx)
-		s.mu.Lock()
-		s.cancelAI = cancel
-		s.mu.Unlock()
-
-		go s.runAIPipeline(aiCtx, frames)
+		// Belt-and-suspenders commit in case server VAD hasn't fired yet.
+		_ = s.rt.CommitAudio()
+		g.Log().Infof(ctx, "[WS] device=%s listening stopped (committed)", s.deviceID)
 	}
-}
-
-func (s *wsSession) cancelInFlight() {
-	s.mu.Lock()
-	if s.cancelAI != nil {
-		s.cancelAI()
-		s.cancelAI = nil
-	}
-	s.mu.Unlock()
-}
-
-func (s *wsSession) runAIPipeline(ctx context.Context, frames [][]byte) {
-	if len(frames) == 0 {
-		return
-	}
-	g.Log().Infof(ctx, "[AI] device=%s pipeline start frames=%d", s.deviceID, len(frames))
-
-	// STT
-	pcm, err := decodeFramesToPCM(frames)
-	if err != nil || len(pcm) == 0 {
-		g.Log().Warningf(ctx, "[AI] device=%s decode error: %v", s.deviceID, err)
-		return
-	}
-	wav := pcmToWAV(pcm, deviceSampleRate)
-	text, err := s.ai.Transcribe(ctx, wav)
-	if err != nil || text == "" {
-		if ctx.Err() == nil {
-			g.Log().Warningf(ctx, "[AI] device=%s STT error: %v", s.deviceID, err)
-		}
-		return
-	}
-	g.Log().Infof(ctx, "[AI] device=%s STT: %q", s.deviceID, text)
-	_ = s.sendJSON(map[string]any{"type": "stt", "text": text})
-
-	// LLM
-	s.mu.Lock()
-	s.history = append(s.history, chatMessage{Role: "user", Content: text})
-	history := make([]chatMessage, len(s.history))
-	copy(history, s.history)
-	s.mu.Unlock()
-
-	reply, err := s.ai.Chat(ctx, history, s.ha)
-	if err != nil {
-		if ctx.Err() == nil {
-			g.Log().Warningf(ctx, "[AI] device=%s LLM error: %v", s.deviceID, err)
-		}
-		return
-	}
-	if reply == "" {
-		return
-	}
-	g.Log().Infof(ctx, "[AI] device=%s LLM reply: %q", s.deviceID, reply)
-
-	s.mu.Lock()
-	s.history = append(s.history, chatMessage{Role: "assistant", Content: reply})
-	s.mu.Unlock()
-
-	_ = s.sendJSON(map[string]any{"type": "llm", "emotion": "neutral"})
-
-	// TTS
-	_ = s.sendJSON(map[string]any{"type": "tts", "state": "start"})
-	_ = s.sendJSON(map[string]any{"type": "tts", "state": "sentence_start", "text": reply})
-
-	tpcm, err := s.ai.Speak(ctx, reply)
-	if err != nil {
-		if ctx.Err() == nil {
-			g.Log().Warningf(ctx, "[AI] device=%s TTS error: %v", s.deviceID, err)
-		}
-		_ = s.sendJSON(map[string]any{"type": "tts", "state": "stop"})
-		return
-	}
-
-	opusFrames, err := encodeOpusFrames(tpcm)
-	if err != nil {
-		g.Log().Warningf(ctx, "[AI] device=%s OPUS encode error: %v", s.deviceID, err)
-		_ = s.sendJSON(map[string]any{"type": "tts", "state": "stop"})
-		return
-	}
-
-	for _, frame := range opusFrames {
-		if ctx.Err() != nil {
-			break
-		}
-		if err := s.sendAudio(frame); err != nil {
-			break
-		}
-	}
-
-	_ = s.sendJSON(map[string]any{"type": "tts", "state": "stop"})
-	g.Log().Infof(ctx, "[AI] device=%s TTS done, sent %d frames", s.deviceID, len(opusFrames))
 }
 
 func (s *wsSession) sendJSON(v any) error {
@@ -318,7 +285,7 @@ func (s *wsSession) sendJSON(v any) error {
 }
 
 func (s *wsSession) sendAudio(frame []byte) error {
-	// BinaryProtocol3: [type=0x00][reserved=0x00][payload_size hi][payload_size lo][payload]
+	// BinaryProtocol3: [0x00][0x00][payload_size hi][payload_size lo][payload]
 	header := [4]byte{0x00, 0x00, byte(len(frame) >> 8), byte(len(frame))}
 	msg := append(header[:], frame...)
 	s.writeMu.Lock()
