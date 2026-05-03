@@ -154,11 +154,10 @@ python3 $IDF_PATH/components/partition_table/parttool.py \
 
 如果设备没有 Wi-Fi 信息（恢复出厂或首次烧录）：
 
-1. 开机后设备会创建一个 Wi-Fi 热点（名称类似 `Xiaozhi-XXXX` 或 `ESP_XXXX`）
-2. 用电脑或手机连接该热点
-3. 浏览器打开 `http://192.168.4.1`
-4. 填入家里的 Wi-Fi 名称和密码
-5. 设备重启后自动连接到你的网络
+1. 下载**小智**App（iOS / Android）
+2. 打开 App，按照"添加设备"流程操作
+3. App 通过蓝牙将 Wi-Fi 信息推送到设备
+4. 连网后，设备会使用你配置的 OTA 地址（通过 menuconfig 或 NVS 写入）连接本地插件，而不是小智云
 
 ---
 

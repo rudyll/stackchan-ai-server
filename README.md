@@ -154,11 +154,10 @@ python3 $IDF_PATH/components/partition_table/parttool.py \
 
 If the device has no Wi-Fi credentials (factory reset or first flash):
 
-1. Power on the device — it creates a Wi-Fi hotspot (named `Xiaozhi-XXXX` or `ESP_XXXX`)
-2. Connect your computer or phone to that hotspot
-3. Open `http://192.168.4.1` in a browser
-4. Enter your home Wi-Fi SSID and password
-5. Device reboots and connects to your network
+1. Download the **Xiaozhi** app (iOS / Android)
+2. Open the app and follow the "Add device" flow
+3. The app uses Bluetooth to push your Wi-Fi credentials to the device
+4. Once connected, the device will use the OTA URL you configured (via menuconfig or NVS) to reach your local add-on instead of the Xiaozhi cloud
 
 ---
 
