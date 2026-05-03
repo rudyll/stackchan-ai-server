@@ -116,6 +116,7 @@ func (s *wsSession) run(ctx context.Context) {
 			s.handleListen(ctx, msg)
 		case "abort":
 			s.cancelInFlight()
+			_ = s.sendJSON(map[string]any{"type": "tts", "state": "stop"})
 		}
 	}
 }
@@ -141,6 +142,10 @@ func (s *wsSession) handleHello(ctx context.Context) {
 func (s *wsSession) handleListen(ctx context.Context, msg map[string]any) {
 	state, _ := msg["state"].(string)
 	switch state {
+	case "detect":
+		// Acknowledge wake word: tell device TTS has stopped so it can start recording.
+		_ = s.sendJSON(map[string]any{"type": "tts", "state": "stop"})
+		g.Log().Infof(ctx, "[WS] device=%s wake word detected, sent tts:stop", s.deviceID)
 	case "start":
 		s.mu.Lock()
 		s.opusIn = nil
