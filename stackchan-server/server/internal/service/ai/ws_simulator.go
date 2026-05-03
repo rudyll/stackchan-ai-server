@@ -6,13 +6,20 @@ SPDX-License-Identifier: MIT
 // Package ai implements a Xiaozhi WebSocket protocol v3 simulator backed by
 // the OpenAI Realtime API (gpt-realtime-1.5).
 //
-// Audio path (streaming, no batching):
+// Audio path:
 //
 //	device OPUS (16kHz) → PCM → Realtime WS input buffer
 //	                              ↓  server VAD detects speech end
 //	                         Realtime WS output (PCM 24kHz, streaming)
 //	                              ↓
-//	                    opusStreamEncoder → device OPUS frames
+//	                    opusStreamEncoder → frameQueue (chan)
+//	                              ↓
+//	                    pacingLoop (60ms ticker) → device OPUS frames
+//
+// pacingLoop paces frame delivery at exactly one frame per 60ms, preventing
+// burst delivery that causes audio stuttering on the device.
+// A nil sentinel in frameQueue signals the end of a response; pacingLoop
+// sends tts:stop only after all queued frames have been delivered.
 package ai
 
 import (
@@ -34,6 +41,8 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
+const frameQueueSize = 200 // ~12 seconds of audio headroom
+
 type wsSession struct {
 	conn     *websocket.Conn
 	deviceID string
@@ -43,6 +52,10 @@ type wsSession struct {
 	mu          sync.Mutex         // protects opusEnc and isListening
 	opusEnc     *opusStreamEncoder // non-nil only while model is speaking
 	isListening bool
+
+	// frameQueue carries encoded OPUS frames to pacingLoop.
+	// A nil entry is a sentinel meaning "response ended — send tts:stop".
+	frameQueue chan []byte
 
 	writeMu sync.Mutex // serialises WebSocket writes
 }
@@ -86,23 +99,24 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s := &wsSession{
-		conn:     conn,
-		deviceID: deviceID,
-		opusDec:  opusDec,
+		conn:       conn,
+		deviceID:   deviceID,
+		opusDec:    opusDec,
+		frameQueue: make(chan []byte, frameQueueSize),
 	}
 
 	// Wire Realtime callbacks → device WebSocket writes.
 	rt, err := dialRealtimeSession(ctx, apiKey, rtModel, voice, sysPrompt, ha,
 
-		func(text string) { // onSTT: display what the user said on the device
+		func(text string) { // onSTT
 			_ = s.sendJSON(map[string]any{"type": "stt", "text": text})
 		},
 
-		func(text string) { // onText: LLM text reply (logged, device shows via TTS)
+		func(text string) { // onText
 			g.Log().Infof(ctx, "[WS] device=%s LLM: %q", deviceID, text)
 		},
 
-		func(pcm []int16) { // onAudio: stream 24kHz PCM → OPUS → device
+		func(pcm []int16) { // onAudio — encode and enqueue; pacingLoop sends at 60ms
 			s.mu.Lock()
 			enc := s.opusEnc
 			s.mu.Unlock()
@@ -115,14 +129,17 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			for _, frame := range frames {
-				if err := s.sendAudio(frame); err != nil {
-					return
+				select {
+				case s.frameQueue <- frame:
+				default:
+					g.Log().Warningf(ctx, "[WS] device=%s frame queue full, dropping frame", deviceID)
 				}
 			}
 		},
 
-		func() { // onStart: model started generating
+		func() { // onStart — model began generating
 			g.Log().Infof(ctx, "[WS] device=%s TTS start", deviceID)
+			s.drainFrameQueue() // clear any leftover frames from previous response
 			enc, err := newOpusStreamEncoder()
 			if err != nil {
 				g.Log().Warningf(ctx, "[WS] device=%s encoder init: %v", deviceID, err)
@@ -135,12 +152,15 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 			_ = s.sendJSON(map[string]any{"type": "tts", "state": "start"})
 		},
 
-		func() { // onStop: model finished
-			g.Log().Infof(ctx, "[WS] device=%s TTS stop", deviceID)
+		func() { // onStop — push nil sentinel; pacingLoop sends tts:stop after queue drains
+			g.Log().Infof(ctx, "[WS] device=%s TTS response done, draining queue", deviceID)
 			s.mu.Lock()
 			s.opusEnc = nil
 			s.mu.Unlock()
-			_ = s.sendJSON(map[string]any{"type": "tts", "state": "stop"})
+			select {
+			case s.frameQueue <- nil: // sentinel
+			default:
+			}
 		},
 	)
 	if err != nil {
@@ -152,12 +172,49 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 	s.rt = rt
 	g.Log().Infof(ctx, "[WS] device=%s realtime session ready model=%s", deviceID, rtModel)
 
+	go s.pacingLoop(ctx)
 	go s.pingLoop(ctx)
 	s.run(ctx)
 
 	g.Log().Infof(ctx, "[WS] device=%s session closed", deviceID)
 	rt.Close()
 	ha.Close()
+}
+
+// pacingLoop delivers OPUS frames to the device at a steady 60ms per frame.
+// A nil frame is a sentinel: send tts:stop and resume idle.
+func (s *wsSession) pacingLoop(ctx context.Context) {
+	ticker := time.NewTicker(frameDurationMs * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			select {
+			case frame := <-s.frameQueue:
+				if frame == nil {
+					// All frames delivered — tell device TTS is done.
+					_ = s.sendJSON(map[string]any{"type": "tts", "state": "stop"})
+				} else {
+					_ = s.sendAudio(frame)
+				}
+			default:
+				// Queue empty this tick — nothing to send.
+			}
+		}
+	}
+}
+
+// drainFrameQueue discards all pending frames (called on abort or new response start).
+func (s *wsSession) drainFrameQueue() {
+	for {
+		select {
+		case <-s.frameQueue:
+		default:
+			return
+		}
+	}
 }
 
 func (s *wsSession) run(ctx context.Context) {
@@ -184,7 +241,6 @@ func (s *wsSession) run(ctx context.Context) {
 			if !listening {
 				continue
 			}
-			// Decode the OPUS frame with the persistent decoder and stream to Realtime.
 			pcm, err := decodeOpusFrame(s.opusDec, data[4:4+payloadSize])
 			if err != nil {
 				continue
@@ -210,12 +266,12 @@ func (s *wsSession) run(ctx context.Context) {
 		case "listen":
 			s.handleListen(ctx, msg)
 		case "abort":
-			// Wake word mid-response: cancel generation, unblock device.
 			_ = s.rt.CancelResponse()
 			s.mu.Lock()
 			s.opusEnc = nil
 			s.isListening = false
 			s.mu.Unlock()
+			s.drainFrameQueue()
 			_ = s.sendJSON(map[string]any{"type": "tts", "state": "stop"})
 		}
 	}
@@ -244,15 +300,16 @@ func (s *wsSession) handleListen(ctx context.Context, msg map[string]any) {
 	switch state {
 
 	case "detect":
-		// Wake word detected while model may be speaking: cancel and unblock device VAD.
+		// Wake word: cancel in-progress response and unblock device VAD.
 		_ = s.rt.CancelResponse()
 		s.mu.Lock()
 		s.opusEnc = nil
 		s.mu.Unlock()
+		s.drainFrameQueue()
 		_ = s.sendJSON(map[string]any{"type": "tts", "state": "stop"})
 
 	case "start":
-		// New utterance: reset the OPUS decoder to clear inter-frame state.
+		// New utterance: reset the OPUS decoder for a clean stream.
 		dec, err := newOpusDecoder()
 		if err != nil {
 			g.Log().Warningf(ctx, "[WS] device=%s decoder reset: %v", s.deviceID, err)
@@ -268,7 +325,6 @@ func (s *wsSession) handleListen(ctx context.Context, msg map[string]any) {
 		s.mu.Lock()
 		s.isListening = false
 		s.mu.Unlock()
-		// Belt-and-suspenders commit in case server VAD hasn't fired yet.
 		_ = s.rt.CommitAudio()
 		g.Log().Infof(ctx, "[WS] device=%s listening stopped (committed)", s.deviceID)
 	}
