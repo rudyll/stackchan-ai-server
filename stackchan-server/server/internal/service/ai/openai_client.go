@@ -15,6 +15,10 @@ import (
 	"mime/multipart"
 	"net/http"
 	"strings"
+	"time"
+
+	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/os/gctx"
 )
 
 type openAIClient struct {
@@ -102,10 +106,12 @@ func (c *openAIClient) Transcribe(ctx context.Context, wavBytes []byte) (string,
 // Chat sends the conversation history to the model, handles HA tool calls in a loop,
 // and returns the final text reply.
 func (c *openAIClient) Chat(ctx context.Context, history []chatMessage, ha *haWSClient) (string, error) {
+	logCtx := gctx.New()
+	now := time.Now().Format("2006-01-02 15:04:05 MST")
+	sysContent := fmt.Sprintf("Current date/time: %s\n\n%s", now, c.sysPrompt)
+
 	msgs := make([]chatMessage, 0, len(history)+1)
-	if c.sysPrompt != "" {
-		msgs = append(msgs, chatMessage{Role: "system", Content: c.sysPrompt})
-	}
+	msgs = append(msgs, chatMessage{Role: "system", Content: sysContent})
 	msgs = append(msgs, history...)
 	tools := haOpenAITools()
 
@@ -142,10 +148,12 @@ func (c *openAIClient) Chat(ctx context.Context, history []chatMessage, ha *haWS
 		for _, tc := range choice.ToolCalls {
 			var args map[string]any
 			_ = json.Unmarshal([]byte(tc.Function.Arguments), &args)
+			g.Log().Infof(logCtx, "[HA] tool=%s args=%v", tc.Function.Name, args)
 			result, dispErr := dispatchHATool(ha, tc.Function.Name, args)
 			if dispErr != nil {
 				result = "error: " + dispErr.Error()
 			}
+			g.Log().Infof(logCtx, "[HA] tool=%s result=%s", tc.Function.Name, result)
 			msgs = append(msgs, chatMessage{
 				Role:       "tool",
 				Content:    result,

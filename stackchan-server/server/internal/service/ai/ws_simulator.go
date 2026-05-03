@@ -166,7 +166,7 @@ func (s *wsSession) handleListen(ctx context.Context, msg map[string]any) {
 		if s.listenCancel != nil {
 			s.listenCancel()
 		}
-		listenCtx, listenCancel := context.WithTimeout(ctx, 8*time.Second)
+		listenCtx, listenCancel := context.WithTimeout(ctx, 4*time.Second)
 		s.listenCancel = listenCancel
 		s.mu.Unlock()
 
