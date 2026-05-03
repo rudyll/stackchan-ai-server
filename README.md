@@ -2,6 +2,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+English | [中文](README.zh.md)
+
 Home Assistant add-on repository for StackChan — an AI voice assistant robot built on M5Stack CoreS3, using the unmodified [xiaozhi-esp32](https://github.com/78/xiaozhi-esp32) firmware.
 
 ## How It Works
