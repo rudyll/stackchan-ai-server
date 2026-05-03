@@ -71,8 +71,8 @@ Powered by **OpenAI Realtime API** (`gpt-realtime-1.5`) for low-latency speech-t
 | `local_host` | ✅ | LAN IP of your Home Assistant instance (e.g. `192.168.1.100`). The device uses this to connect. |
 | `ha_mcp_token` | ✅ | HA Long-Lived Access Token. Create one in **Profile → Security → Long-Lived Access Tokens**. |
 | `openai_api_key` | ✅ | Your OpenAI API key from [platform.openai.com](https://platform.openai.com). |
-| `openai_realtime_model` | | Realtime model to use. Default: `gpt-realtime-1.5`. |
-| `openai_tts_voice` | | TTS voice. Default: `alloy`. Female voices: `nova`, `shimmer`, `coral`, `sage`. |
+| `openai_realtime_model` | | Realtime model to use. Default: `gpt-realtime-1.5`. Mini (cheaper): `gpt-realtime-mini`, `gpt-4o-mini-realtime-preview`. |
+| `openai_tts_voice` | | TTS voice. Default: `alloy`. Female voices: `nova`, `shimmer`, `coral`, `sage`, `cedar`, `marin`, `cove`. |
 | `system_prompt` | | Custom personality/instructions for the assistant. |
 
 ---

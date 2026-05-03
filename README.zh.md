@@ -71,8 +71,8 @@ StackChan AI Server（本插件，运行在 HA 的 12800 端口）
 | `local_host` | ✅ | Home Assistant 的局域网 IP（如 `192.168.1.100`）。设备通过此 IP 连接。 |
 | `ha_mcp_token` | ✅ | HA 长期访问令牌。在 **个人资料 → 安全 → 长期访问令牌** 中创建。 |
 | `openai_api_key` | ✅ | OpenAI API Key，在 [platform.openai.com](https://platform.openai.com) 获取。 |
-| `openai_realtime_model` | | 使用的 Realtime 模型，默认 `gpt-realtime-1.5`。 |
-| `openai_tts_voice` | | TTS 语音，默认 `alloy`。女声推荐：`nova`、`shimmer`、`coral`、`sage`。 |
+| `openai_realtime_model` | | 使用的 Realtime 模型，默认 `gpt-realtime-1.5`。Mini（更便宜）：`gpt-realtime-mini`、`gpt-4o-mini-realtime-preview`。 |
+| `openai_tts_voice` | | TTS 语音，默认 `alloy`。女声推荐：`nova`、`shimmer`、`coral`、`sage`、`cedar`、`marin`、`cove`。 |
 | `system_prompt` | | 助手的自定义角色设定或指令。 |
 
 ---
