@@ -106,9 +106,7 @@ Use this if you're building the firmware yourself, or if your device is on firmw
    ```
    Replace `/dev/tty.usbserial-XXXX` with your device's serial port.
 
-### Method B — Write NVS key (no recompile, firmware v1.2.4 only)
-
-> ⚠️ **Firmware v1.2.4 only.** Firmware v1.2.6+ hardcodes the OTA URL and ignores this NVS key. If your device has auto-upgraded to v1.2.6, use Method A instead.
+### Method B — Write NVS key (no recompile)
 
 The firmware checks NVS (non-volatile storage) for an OTA URL before using its hardcoded default.
 
