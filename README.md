@@ -198,7 +198,7 @@ If the device has no Wi-Fi credentials (factory reset or first flash):
 
 ### After a firmware OTA upgrade
 
-If the device performs a firmware OTA upgrade, the NVS `ota_url` key is preserved — your local server address remains intact. However, if you used Method B (menuconfig), the baked-in OTA URL **will be overwritten** by the new firmware. In that case, redo Steps 3–4 of Method A to re-inject the NVS key.
+The official xiaozhi-esp32 OTA upgrade writes a full flash image, which **overwrites the NVS partition**. After any firmware upgrade you will need to re-inject the NVS key by redoing Steps 3–4 of Method A. This is still much faster than recompiling the firmware from source.
 
 ---
 

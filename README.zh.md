@@ -198,7 +198,7 @@ python3 $IDF_PATH/components/partition_table/parttool.py \
 
 ### 固件 OTA 升级后
 
-如果设备执行了固件 OTA 升级，NVS 中的 `ota_url` 键会被保留——本地服务器地址仍然有效。但如果你使用了方式 B（menuconfig 内置地址），新固件**会覆盖**原来的 OTA 地址。此时需重新执行方式 A 的第三、四步，重新写入 NVS。
+官方 xiaozhi-esp32 的 OTA 升级会写入完整的 flash 镜像，**NVS 分区也会被覆盖**。因此无论使用哪种方式，固件升级后都需要重新执行方式 A 的第三、四步，重新写入 NVS。这比重新编译固件要快得多。
 
 ---
 
