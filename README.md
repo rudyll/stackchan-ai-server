@@ -81,38 +81,36 @@ Powered by **OpenAI Realtime API** (`gpt-realtime-1.5`) for low-latency speech-t
 
 The device firmware needs to know your local server address instead of the Xiaozhi cloud. There are two ways to do this.
 
-### Method A — Compile from source (recommended)
+> **Which method should I use?**
+> Use **Method A (NVS)** for most cases — it survives firmware OTA upgrades and doesn't require recompiling.
+> Use **Method B (compile)** only if you want to make other firmware customisations at the same time.
 
-Use this if you're building the firmware yourself, or if your device is on firmware v1.2.6+.
+### Method A — Write NVS key (recommended)
 
-1. Clone and set up the [StackChan firmware](https://github.com/m5stack/StackChan/tree/main/firmware):
-   ```bash
-   git clone https://github.com/m5stack/StackChan.git
-   cd StackChan/firmware
-   python3 fetch_repos.py
-   ```
+The firmware checks NVS (non-volatile storage) for an OTA URL override before using its hardcoded default. This setting **persists across firmware OTA upgrades**, so you only need to do it once.
 
-2. Open menuconfig and set the OTA URL:
-   ```bash
-   idf.py menuconfig
-   ```
-   - Press `/` and search for `OTA_URL`
-   - Set it to `http://<YOUR_HA_IP>:12800/xiaozhi/ota/`
-   - Replace `<YOUR_HA_IP>` with your Home Assistant's LAN IP (same as `local_host` in the add-on config)
+#### Prerequisites
 
-3. Build and flash:
-   ```bash
-   idf.py set-target esp32s3
-   idf.py build
-   idf.py -p /dev/tty.usbserial-XXXX -b 921600 flash
-   ```
-   Replace `/dev/tty.usbserial-XXXX` with your device's serial port.
+You need ESP-IDF installed. Follow the [official installation guide](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/get-started/index.html) if you haven't done this yet.
 
-### Method B — Write NVS key (no recompile)
+**Every time you open a new terminal**, activate the ESP-IDF environment first — otherwise the `parttool.py` scripts will not be found.
 
-The firmware checks NVS (non-volatile storage) for an OTA URL before using its hardcoded default.
+- **macOS / Linux:**
+  ```bash
+  . $HOME/esp/esp-idf/export.sh
+  ```
+- **Windows (PowerShell):**
+  ```powershell
+  C:\esp\v6.0.1\esp-idf\export.ps1
+  ```
+- **Windows (Command Prompt):**
+  ```cmd
+  C:\esp\v6.0.1\esp-idf\export.bat
+  ```
 
-**Prerequisites:** ESP-IDF installed and activated (`source $IDF_PATH/export.sh` or `. $HOME/esp/esp-idf/export.sh`)
+Verify activation: `idf.py --version` should print the IDF version without errors.
+
+#### Steps
 
 **Step 1 — Find your NVS partition size:**
 ```bash
@@ -120,7 +118,7 @@ python3 $IDF_PATH/components/partition_table/parttool.py \
     --port /dev/tty.usbserial-XXXX \
     get_partition_info --partition-name nvs
 ```
-Note the `size` value shown (commonly `0x4000` or `0x6000`).
+Note the `size` value (commonly `0x4000` or `0x6000`). Replace `/dev/tty.usbserial-XXXX` with your device's serial port (see [Finding your serial port](#finding-your-serial-port) below).
 
 **Step 2 — Create the NVS data file:**
 ```bash
@@ -130,9 +128,9 @@ wifi,namespace,,
 ota_url,data,string,http://<YOUR_HA_IP>:12800/xiaozhi/ota/
 EOF
 ```
-Replace `<YOUR_HA_IP>` with your Home Assistant's LAN IP.
+Replace `<YOUR_HA_IP>` with your Home Assistant's LAN IP (same as `local_host` in the add-on config).
 
-**Step 3 — Generate the NVS binary** (replace `0x4000` with the size from Step 1):
+**Step 3 — Generate the NVS binary** (replace `0x4000` with the actual size from Step 1):
 ```bash
 python3 $IDF_PATH/components/nvs_flash/nvs_partition_generator/nvs_partition_gen.py \
     generate nvs.csv nvs.bin 0x4000
@@ -145,6 +143,45 @@ python3 $IDF_PATH/components/partition_table/parttool.py \
     write_partition --partition-name nvs --input nvs.bin
 ```
 
+### Method B — Compile from source
+
+Use this only if you need to make other firmware customisations. Note that the OTA URL baked in via `menuconfig` will be **overwritten if the device performs a firmware OTA upgrade** — in that case you will need to redo Step 3–4 of Method A anyway.
+
+#### Prerequisites
+
+Same ESP-IDF installation and environment activation as Method A above.
+
+#### Steps
+
+1. Clone and set up the [StackChan firmware](https://github.com/m5stack/StackChan/tree/main/firmware):
+   ```bash
+   git clone https://github.com/m5stack/StackChan.git
+   cd StackChan/firmware
+   python3 fetch_repos.py
+   ```
+
+2. Install third-party component dependencies:
+   ```bash
+   idf.py add-dependency "bblanchon/arduinojson"
+   idf.py update-dependencies
+   ```
+   **Do not skip this step** — it installs `ArduinoJson` and other components declared in `idf_component.yml`. Skipping it causes a `Failed to resolve component 'ArduinoJson'` error during build.
+
+3. Open menuconfig and set the OTA URL:
+   ```bash
+   idf.py menuconfig
+   ```
+   - Press `/` and search for `OTA_URL`
+   - Set it to `http://<YOUR_HA_IP>:12800/xiaozhi/ota/`
+   - Save and exit
+
+4. Build and flash:
+   ```bash
+   idf.py set-target esp32s3
+   idf.py build
+   idf.py -p /dev/tty.usbserial-XXXX -b 921600 flash
+   ```
+
 ### Finding your serial port
 
 - **macOS:** `ls /dev/tty.usb*`
@@ -154,10 +191,14 @@ python3 $IDF_PATH/components/partition_table/parttool.py \
 
 If the device has no Wi-Fi credentials (factory reset or first flash):
 
-1. Download the **Xiaozhi** app (iOS / Android)
+1. Download the **StackChan World** app (iOS / Android)
 2. Open the app and follow the "Add device" flow
 3. The app uses Bluetooth to push your Wi-Fi credentials to the device
-4. Once connected, the device will use the OTA URL you configured (via menuconfig or NVS) to reach your local add-on instead of the Xiaozhi cloud
+4. Once connected, the device will use the OTA URL you configured (via NVS or menuconfig) to reach your local add-on instead of the Xiaozhi cloud
+
+### After a firmware OTA upgrade
+
+If the device performs a firmware OTA upgrade, the NVS `ota_url` key is preserved — your local server address remains intact. However, if you used Method B (menuconfig), the baked-in OTA URL **will be overwritten** by the new firmware. In that case, redo Steps 3–4 of Method A to re-inject the NVS key.
 
 ---
 

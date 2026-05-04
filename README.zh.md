@@ -81,38 +81,36 @@ StackChan AI Server（本插件，运行在 HA 的 12800 端口）
 
 设备固件需要知道你的本地服务器地址，而不是小智云。有以下两种方式。
 
-### 方式 A — 从源码编译（推荐）
+> **选哪种方式？**
+> 大多数情况下使用**方式 A（NVS 写入）**——它在固件 OTA 升级后依然有效，无需重新编译。
+> 只有在需要同时进行其他固件定制时，才使用**方式 B（源码编译）**。
 
-适用于自行编译固件的情况。
+### 方式 A — 写入 NVS（推荐）
 
-1. 克隆并准备 [StackChan 固件](https://github.com/m5stack/StackChan/tree/main/firmware)：
-   ```bash
-   git clone https://github.com/m5stack/StackChan.git
-   cd StackChan/firmware
-   python3 fetch_repos.py
-   ```
+固件启动时会先检查 NVS（非易失性存储）中是否有 OTA 地址覆盖值，优先于内置默认值。此设置**在固件 OTA 升级后依然保留**，只需操作一次即可。
 
-2. 在 menuconfig 中设置 OTA 地址：
-   ```bash
-   idf.py menuconfig
-   ```
-   - 按 `/` 搜索 `OTA_URL`
-   - 改为 `http://<你的HA_IP>:12800/xiaozhi/ota/`
-   - 将 `<你的HA_IP>` 替换为 Home Assistant 的局域网 IP（与插件配置中的 `local_host` 相同）
+#### 前置条件
 
-3. 编译并烧录：
-   ```bash
-   idf.py set-target esp32s3
-   idf.py build
-   idf.py -p /dev/tty.usbserial-XXXX -b 921600 flash
-   ```
-   将 `/dev/tty.usbserial-XXXX` 替换为你的设备串口。
+需要先安装 ESP-IDF，参考[官方安装指南](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/get-started/index.html)。
 
-### 方式 B — 写入 NVS（无需重新编译）
+**每次打开新终端都必须先激活 ESP-IDF 环境**，否则 `parttool.py` 脚本将无法找到。
 
-固件启动时会先检查 NVS（非易失性存储）中是否有 OTA 地址，优先使用 NVS 中的值。
+- **macOS / Linux：**
+  ```bash
+  . $HOME/esp/esp-idf/export.sh
+  ```
+- **Windows（PowerShell）：**
+  ```powershell
+  C:\esp\v6.0.1\esp-idf\export.ps1
+  ```
+- **Windows（命令提示符）：**
+  ```cmd
+  C:\esp\v6.0.1\esp-idf\export.bat
+  ```
 
-**前提：** 已安装并激活 ESP-IDF（运行 `. $HOME/esp/esp-idf/export.sh`）
+验证激活状态：`idf.py --version` 能正常输出版本号即表示成功。
+
+#### 操作步骤
 
 **第一步 — 查询 NVS 分区大小：**
 ```bash
@@ -120,7 +118,7 @@ python3 $IDF_PATH/components/partition_table/parttool.py \
     --port /dev/tty.usbserial-XXXX \
     get_partition_info --partition-name nvs
 ```
-记录显示的 `size` 值（通常为 `0x4000` 或 `0x6000`）。
+记录显示的 `size` 值（通常为 `0x4000` 或 `0x6000`）。将 `/dev/tty.usbserial-XXXX` 替换为你的设备串口（参见下方[查找串口设备名](#查找串口设备名)）。
 
 **第二步 — 创建 NVS 数据文件：**
 ```bash
@@ -130,9 +128,9 @@ wifi,namespace,,
 ota_url,data,string,http://<你的HA_IP>:12800/xiaozhi/ota/
 EOF
 ```
-将 `<你的HA_IP>` 替换为 Home Assistant 的局域网 IP。
+将 `<你的HA_IP>` 替换为 Home Assistant 的局域网 IP（与插件配置中的 `local_host` 相同）。
 
-**第三步 — 生成 NVS 二进制文件**（将 `0x4000` 替换为第一步查到的大小）：
+**第三步 — 生成 NVS 二进制文件**（将 `0x4000` 替换为第一步查到的实际大小）：
 ```bash
 python3 $IDF_PATH/components/nvs_flash/nvs_partition_generator/nvs_partition_gen.py \
     generate nvs.csv nvs.bin 0x4000
@@ -145,6 +143,45 @@ python3 $IDF_PATH/components/partition_table/parttool.py \
     write_partition --partition-name nvs --input nvs.bin
 ```
 
+### 方式 B — 从源码编译
+
+仅在需要同时进行其他固件定制时使用此方式。注意，通过 `menuconfig` 内置的 OTA 地址**会在设备执行固件 OTA 升级时被覆盖**——届时仍需重做方式 A 的第三、四步。
+
+#### 前置条件
+
+与方式 A 相同，需要安装并激活 ESP-IDF 环境（见上文）。
+
+#### 操作步骤
+
+1. 克隆并准备 [StackChan 固件](https://github.com/m5stack/StackChan/tree/main/firmware)：
+   ```bash
+   git clone https://github.com/m5stack/StackChan.git
+   cd StackChan/firmware
+   python3 fetch_repos.py
+   ```
+
+2. 安装第三方组件依赖：
+   ```bash
+   idf.py add-dependency "bblanchon/arduinojson"
+   idf.py update-dependencies
+   ```
+   **不要跳过此步骤**——它会安装 `ArduinoJson` 及 `idf_component.yml` 中声明的其他组件。跳过此步骤会导致编译时报 `Failed to resolve component 'ArduinoJson'` 错误。
+
+3. 在 menuconfig 中设置 OTA 地址：
+   ```bash
+   idf.py menuconfig
+   ```
+   - 按 `/` 搜索 `OTA_URL`
+   - 改为 `http://<你的HA_IP>:12800/xiaozhi/ota/`
+   - 保存并退出
+
+4. 编译并烧录：
+   ```bash
+   idf.py set-target esp32s3
+   idf.py build
+   idf.py -p /dev/tty.usbserial-XXXX -b 921600 flash
+   ```
+
 ### 查找串口设备名
 
 - **macOS：** `ls /dev/tty.usb*`
@@ -154,10 +191,14 @@ python3 $IDF_PATH/components/partition_table/parttool.py \
 
 如果设备没有 Wi-Fi 信息（恢复出厂或首次烧录）：
 
-1. 下载**小智**App（iOS / Android）
+1. 下载 **StackChan World** App（iOS / Android）
 2. 打开 App，按照"添加设备"流程操作
 3. App 通过蓝牙将 Wi-Fi 信息推送到设备
-4. 连网后，设备会使用你配置的 OTA 地址（通过 menuconfig 或 NVS 写入）连接本地插件，而不是小智云
+4. 连网后，设备会使用你配置的 OTA 地址（通过 NVS 写入或 menuconfig）连接本地插件，而不是小智云
+
+### 固件 OTA 升级后
+
+如果设备执行了固件 OTA 升级，NVS 中的 `ota_url` 键会被保留——本地服务器地址仍然有效。但如果你使用了方式 B（menuconfig 内置地址），新固件**会覆盖**原来的 OTA 地址。此时需重新执行方式 A 的第三、四步，重新写入 NVS。
 
 ---
 
