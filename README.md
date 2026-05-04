@@ -82,8 +82,12 @@ Powered by **OpenAI Realtime API** (`gpt-realtime-1.5`) for low-latency speech-t
 The device firmware needs to know your local server address instead of the Xiaozhi cloud. There are two ways to do this.
 
 > **Which method should I use?**
-> Use **Method A (NVS)** for most cases — it survives firmware OTA upgrades and doesn't require recompiling.
+> Use **Method A (NVS)** for most cases — re-injection is just two commands and doesn't require recompiling.
 > Use **Method B (compile)** only if you want to make other firmware customisations at the same time.
+>
+> ⚠️ **Important:** The official xiaozhi-esp32 OTA upgrade writes a full flash image and **overwrites the NVS partition**. After any firmware upgrade you will need to re-inject the NVS key (Steps 3–4 of Method A). This is still much faster than recompiling.
+>
+> 💡 **Shortcut:** Run `python3 flash_nvs.py` for an interactive guided injector that handles all four steps automatically (English / 中文).
 
 ### Method A — Write NVS key (recommended)
 
