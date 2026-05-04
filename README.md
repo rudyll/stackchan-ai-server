@@ -4,7 +4,20 @@
 
 English | [中文](README.zh.md)
 
-Home Assistant add-on repository for StackChan — an AI voice assistant robot built on M5Stack CoreS3, using the unmodified [xiaozhi-esp32](https://github.com/78/xiaozhi-esp32) firmware.
+## About
+
+**StackChan HA Add-ons** turns your [StackChan](https://github.com/m5stack/StackChan) desktop robot into an AI voice assistant integrated with your smart home — no Xiaozhi account needed.
+
+StackChan is a palm-sized robot built on the M5Stack CoreS3 (ESP32-S3). It ships with the open-source [xiaozhi-esp32](https://github.com/78/xiaozhi-esp32) firmware, which normally relies on the Xiaozhi cloud for speech recognition, language model, and text-to-speech. This add-on replaces that with a Home Assistant add-on: your voice data goes to **OpenAI** instead of Xiaozhi, and Home Assistant stays entirely on your local network.
+
+The device firmware is **never modified** — the add-on speaks the same Xiaozhi WebSocket protocol v3 the device already expects. Voice commands are processed by the **OpenAI Realtime API** (streaming speech-to-speech, ~0.5–1.5 s latency), and the robot can control any Home Assistant device by voice.
+
+**Key features:**
+- ~0.5–1.5 s end-to-end latency via OpenAI Realtime API streaming
+- Controls lights, climate, covers, media players, and scripts by voice
+- Area-based control ("turn off all lights in the living room")
+- No Xiaozhi account — audio is processed by OpenAI, HA stays on your LAN
+- Easy installation as a standard Home Assistant add-on
 
 ## How It Works
 

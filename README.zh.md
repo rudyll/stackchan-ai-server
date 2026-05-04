@@ -4,7 +4,20 @@
 
 [English](README.md) | 中文
 
-适用于 StackChan 的 Home Assistant 插件仓库。StackChan 是基于 M5Stack CoreS3 的 AI 语音助手机器人，使用未经修改的 [xiaozhi-esp32](https://github.com/78/xiaozhi-esp32) 固件。
+## 项目介绍
+
+**StackChan HA Add-ons** 让你的 [StackChan](https://github.com/m5stack/StackChan) 桌面机器人成为与智能家居深度集成的 AI 语音助手——无需小智账号。
+
+StackChan 是基于 M5Stack CoreS3（ESP32-S3）的掌心大小机器人，出厂搭载开源的 [xiaozhi-esp32](https://github.com/78/xiaozhi-esp32) 固件，该固件原本依赖小智云提供语音识别、语言模型和语音合成服务。本插件将小智云替换为 Home Assistant 插件：语音数据发往 **OpenAI** 而非小智，Home Assistant 则完全运行在你的本地网络中。
+
+**设备固件无需任何修改**——插件使用设备已支持的 Xiaozhi WebSocket 协议 v3 进行通信。语音指令由 **OpenAI Realtime API** 处理（流式语音对话，延迟约 0.5–1.5 秒），机器人可通过语音控制任意 Home Assistant 设备。
+
+**核心功能：**
+- 基于 OpenAI Realtime API 流式传输，端到端延迟约 0.5–1.5 秒
+- 语音控制灯光、空调、窗帘、媒体播放器及脚本
+- 支持区域控制（如"把客厅所有灯关掉"）
+- 无需小智账号——语音由 OpenAI 处理，HA 保留在本地局域网
+- 作为标准 Home Assistant 插件一键安装
 
 ## 工作原理
 
