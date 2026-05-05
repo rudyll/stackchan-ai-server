@@ -10,7 +10,7 @@
 
 StackChan 是基于 M5Stack CoreS3（ESP32-S3）的掌心大小机器人，出厂搭载开源的 [xiaozhi-esp32](https://github.com/78/xiaozhi-esp32) 固件，该固件原本依赖小智云提供语音识别、语言模型和语音合成服务。本插件将小智云替换为 Home Assistant 插件：语音数据发往 **OpenAI** 而非小智，Home Assistant 则完全运行在你的本地网络中。
 
-**设备固件无需任何修改**——插件使用设备已支持的 Xiaozhi WebSocket 协议 v3 进行通信。语音指令由 **OpenAI Realtime API** 处理（流式语音对话，延迟约 0.5–1.5 秒），机器人可通过语音控制任意 Home Assistant 设备。
+**设备固件无需任何修改**——插件使用设备已支持的 Xiaozhi WebSocket 协议 v3 进行通信。语音指令由 **OpenAI Realtime API** 或 **Google Gemini Live API** 处理（流式语音对话，延迟约 0.5–1.5 秒，可在插件 UI 中切换），机器人可通过语音控制任意 Home Assistant 设备。
 
 **核心功能：**
 - 基于 OpenAI Realtime API 流式传输，端到端延迟约 0.5–1.5 秒
@@ -79,14 +79,22 @@ StackChan AI Server（本插件，运行在 HA 的 12800 端口）
 
 ## 配置项
 
+通过 `ai_provider` 选择**其中一个** AI 后端，只需填入对应的 API Key，另一家的字段可留空。
+
 | 选项 | 必填 | 说明 |
 |------|------|------|
 | `local_host` | ✅ | Home Assistant 的局域网 IP（如 `192.168.1.100`）。设备通过此 IP 连接。 |
 | `ha_mcp_token` | ✅ | HA 长期访问令牌。在 **个人资料 → 安全 → 长期访问令牌** 中创建。 |
-| `openai_api_key` | ✅ | OpenAI API Key，在 [platform.openai.com](https://platform.openai.com) 获取。 |
-| `openai_realtime_model` | | 使用的 Realtime 模型，默认 `gpt-realtime-1.5`。Mini（更便宜）：`gpt-realtime-mini`、`gpt-4o-mini-realtime-preview`。 |
-| `openai_tts_voice` | | TTS 语音，默认 `alloy`。女声推荐：`nova`、`shimmer`、`coral`、`sage`、`cedar`、`marin`、`cove`。 |
+| `ai_provider` | ✅ | `openai`（默认）或 `gemini`。选择由谁处理语音 + LLM + TTS。 |
 | `system_prompt` | | 助手的自定义角色设定或指令。 |
+| **OpenAI**（当 `ai_provider=openai`） | | |
+| `openai_api_key` | ✅ | OpenAI API Key，在 [platform.openai.com](https://platform.openai.com) 获取。 |
+| `openai_realtime_model` | | Realtime 模型，默认 `gpt-realtime-1.5`。Mini（更便宜）：`gpt-realtime-mini`、`gpt-4o-mini-realtime-preview`。 |
+| `openai_tts_voice` | | TTS 语音，默认 `alloy`。女声推荐：`nova`、`shimmer`、`coral`、`sage`、`cedar`、`marin`、`cove`。 |
+| **Gemini**（当 `ai_provider=gemini`） | | |
+| `gemini_api_key` | ✅ | Google AI Studio API Key，在 [aistudio.google.com](https://aistudio.google.com/app/apikey) 获取。 |
+| `gemini_model` | | Gemini Live 模型，默认 `gemini-2.5-flash-preview-native-audio-dialog`。 |
+| `gemini_voice` | | TTS 语音，默认 `Aoede`。可选：`Aoede`、`Charon`、`Fenrir`、`Kore`、`Puck`。 |
 
 ---
 

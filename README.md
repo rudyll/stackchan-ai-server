@@ -10,7 +10,7 @@ English | [中文](README.zh.md)
 
 StackChan is a palm-sized robot built on the M5Stack CoreS3 (ESP32-S3). It ships with the open-source [xiaozhi-esp32](https://github.com/78/xiaozhi-esp32) firmware, which normally relies on the Xiaozhi cloud for speech recognition, language model, and text-to-speech. This add-on replaces that with a Home Assistant add-on: your voice data goes to **OpenAI** instead of Xiaozhi, and Home Assistant stays entirely on your local network.
 
-The device firmware is **never modified** — the add-on speaks the same Xiaozhi WebSocket protocol v3 the device already expects. Voice commands are processed by the **OpenAI Realtime API** (streaming speech-to-speech, ~0.5–1.5 s latency), and the robot can control any Home Assistant device by voice.
+The device firmware is **never modified** — the add-on speaks the same Xiaozhi WebSocket protocol v3 the device already expects. Voice commands are processed by either **OpenAI Realtime API** or **Google Gemini Live API** (streaming speech-to-speech, ~0.5–1.5 s latency, switchable from the add-on UI), and the robot can control any Home Assistant device by voice.
 
 **Key features:**
 - ~0.5–1.5 s end-to-end latency via OpenAI Realtime API streaming
@@ -79,14 +79,22 @@ Powered by **OpenAI Realtime API** (`gpt-realtime-1.5`) for low-latency speech-t
 
 ## Configuration
 
+Pick **one** AI provider via `ai_provider` and fill in only its API key. The other provider's fields can stay blank.
+
 | Option | Required | Description |
 |--------|----------|-------------|
 | `local_host` | ✅ | LAN IP of your Home Assistant instance (e.g. `192.168.1.100`). The device uses this to connect. |
 | `ha_mcp_token` | ✅ | HA Long-Lived Access Token. Create one in **Profile → Security → Long-Lived Access Tokens**. |
-| `openai_api_key` | ✅ | Your OpenAI API key from [platform.openai.com](https://platform.openai.com). |
-| `openai_realtime_model` | | Realtime model to use. Default: `gpt-realtime-1.5`. Mini (cheaper): `gpt-realtime-mini`, `gpt-4o-mini-realtime-preview`. |
-| `openai_tts_voice` | | TTS voice. Default: `alloy`. Female voices: `nova`, `shimmer`, `coral`, `sage`, `cedar`, `marin`, `cove`. |
+| `ai_provider` | ✅ | `openai` (default) or `gemini`. Selects which backend handles speech + LLM + TTS. |
 | `system_prompt` | | Custom personality/instructions for the assistant. |
+| **OpenAI** (when `ai_provider=openai`) | | |
+| `openai_api_key` | ✅ | Your OpenAI API key from [platform.openai.com](https://platform.openai.com). |
+| `openai_realtime_model` | | Realtime model. Default: `gpt-realtime-1.5`. Mini (cheaper): `gpt-realtime-mini`, `gpt-4o-mini-realtime-preview`. |
+| `openai_tts_voice` | | TTS voice. Default: `alloy`. Female voices: `nova`, `shimmer`, `coral`, `sage`, `cedar`, `marin`, `cove`. |
+| **Gemini** (when `ai_provider=gemini`) | | |
+| `gemini_api_key` | ✅ | Your Google AI Studio API key from [aistudio.google.com](https://aistudio.google.com/app/apikey). |
+| `gemini_model` | | Gemini Live model. Default: `gemini-2.5-flash-preview-native-audio-dialog`. |
+| `gemini_voice` | | TTS voice. Default: `Aoede`. Options: `Aoede`, `Charon`, `Fenrir`, `Kore`, `Puck`. |
 
 ---
 

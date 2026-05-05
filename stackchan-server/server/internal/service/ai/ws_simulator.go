@@ -46,7 +46,7 @@ const frameQueueSize = 200 // ~12 seconds of audio headroom
 type wsSession struct {
 	conn     *websocket.Conn
 	deviceID string
-	rt       *realtimeSession
+	rt       RealtimeSession
 	opusDec  *opus.Decoder // device input decoder (16kHz, reset per utterance)
 
 	mu          sync.Mutex         // protects opusEnc and isListening
@@ -74,10 +74,7 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 
 	haURL := cfg.MustGet(ctx, "ai.ha_ws_url", "ws://homeassistant:8123/api/websocket").String()
 	haToken := cfg.MustGet(ctx, "ai.ha_mcp_token", "").String()
-	apiKey := cfg.MustGet(ctx, "ai.openai_api_key", "").String()
-	rtModel := cfg.MustGet(ctx, "ai.openai_realtime_model", "gpt-realtime-1.5").String()
-	voice := cfg.MustGet(ctx, "ai.openai_tts_voice", "alloy").String()
-	sysPrompt := cfg.MustGet(ctx, "ai.system_prompt", "You are StackChan, a friendly robot assistant.").String()
+	provider := cfg.MustGet(ctx, "ai.provider", "openai").String()
 
 	deviceID := r.Header.Get("Device-Id")
 	g.Log().Infof(ctx, "[WS] device=%s connecting HA at %s", deviceID, haURL)
@@ -105,18 +102,18 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 		frameQueue: make(chan []byte, frameQueueSize),
 	}
 
-	// Wire Realtime callbacks → device WebSocket writes.
-	rt, err := dialRealtimeSession(ctx, apiKey, rtModel, voice, sysPrompt, ha,
-
-		func(text string) { // onSTT
+	// Wire provider callbacks → device WebSocket writes. Same callbacks for any
+	// backend (OpenAI Realtime, Gemini Live, ...) — see provider.go.
+	cb := RealtimeCallbacks{
+		OnSTT: func(text string) {
 			_ = s.sendJSON(map[string]any{"type": "stt", "text": text})
 		},
 
-		func(text string) { // onText
+		OnText: func(text string) {
 			g.Log().Infof(ctx, "[WS] device=%s LLM: %q", deviceID, text)
 		},
 
-		func(pcm []int16) { // onAudio — encode and enqueue; pacingLoop sends at 60ms
+		OnAudio: func(pcm []int16) { // encode and enqueue; pacingLoop sends at 60ms
 			s.mu.Lock()
 			enc := s.opusEnc
 			s.mu.Unlock()
@@ -137,7 +134,7 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 			}
 		},
 
-		func() { // onStart — model began generating
+		OnStart: func() {
 			g.Log().Infof(ctx, "[WS] device=%s TTS start", deviceID)
 			s.drainFrameQueue() // clear any leftover frames from previous response
 			enc, err := newOpusStreamEncoder()
@@ -152,7 +149,7 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 			_ = s.sendJSON(map[string]any{"type": "tts", "state": "start"})
 		},
 
-		func() { // onStop — push nil sentinel; pacingLoop sends tts:stop after queue drains
+		OnStop: func() { // push nil sentinel; pacingLoop sends tts:stop after queue drains
 			g.Log().Infof(ctx, "[WS] device=%s TTS response done, draining queue", deviceID)
 			s.mu.Lock()
 			s.opusEnc = nil
@@ -162,15 +159,17 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 			default:
 			}
 		},
-	)
+	}
+
+	rt, err := dialProvider(ctx, ha, cb)
 	if err != nil {
-		g.Log().Errorf(ctx, "[WS] device=%s realtime connect: %v", deviceID, err)
+		g.Log().Errorf(ctx, "[WS] device=%s provider connect: %v", deviceID, err)
 		conn.Close()
 		ha.Close()
 		return
 	}
 	s.rt = rt
-	g.Log().Infof(ctx, "[WS] device=%s realtime session ready model=%s", deviceID, rtModel)
+	g.Log().Infof(ctx, "[WS] device=%s realtime session ready provider=%s", deviceID, provider)
 
 	go s.pacingLoop(ctx)
 	go s.pingLoop(ctx)

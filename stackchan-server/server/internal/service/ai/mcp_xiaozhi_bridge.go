@@ -219,6 +219,23 @@ func haToolDefs() []map[string]any {
 	}
 }
 
+// haGeminiTools converts haToolDefs() into Gemini Live's tool schema:
+// a single tool entry containing an array of functionDeclarations.
+// Schema is otherwise the same JSON-schema shape OpenAI uses, just keyed as
+// "parameters" and wrapped under {functionDeclarations: [...]}.
+func haGeminiTools() []map[string]any {
+	defs := haToolDefs()
+	decls := make([]map[string]any, 0, len(defs))
+	for _, t := range defs {
+		decls = append(decls, map[string]any{
+			"name":        t["name"],
+			"description": t["description"],
+			"parameters":  t["inputSchema"],
+		})
+	}
+	return []map[string]any{{"functionDeclarations": decls}}
+}
+
 func dispatchHATool(ha *haWSClient, name string, args map[string]any) (string, error) {
 	strVal := func(key string) string {
 		v, _ := args[key].(string)

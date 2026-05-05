@@ -26,33 +26,29 @@ import (
 
 const realtimeEndpoint = "wss://api.openai.com/v1/realtime"
 
-// realtimeSession manages one OpenAI Realtime WS connection.
+// openaiRealtimeSession manages one OpenAI Realtime WS connection.
 // It is long-lived: one per device WS connection, so conversation history is
 // maintained automatically by the model across multiple speak-listen cycles.
-type realtimeSession struct {
+//
+// Implements the RealtimeSession interface (provider.go).
+type openaiRealtimeSession struct {
 	conn    *websocket.Conn
 	ha      *haWSClient
 	writeMu sync.Mutex
 	logCtx  context.Context
 
-	// Callbacks are set once at creation and called from the readLoop goroutine.
-	onSTT   func(string) // transcription complete
-	onText  func(string) // LLM text reply (for logging)
-	onAudio func([]int16) // 24kHz PCM chunk from model
-	onStart func()        // model began responding (send tts:start)
-	onStop  func()        // model finished responding (send tts:stop)
+	cb RealtimeCallbacks
 }
 
-// dialRealtimeSession connects to the OpenAI Realtime API, configures the session,
-// and starts the background read loop. Callbacks drive the wsSession output.
-func dialRealtimeSession(
+// dialOpenAIRealtimeSession connects to the OpenAI Realtime API, configures
+// the session, and starts the background read loop. Callbacks drive the
+// wsSession output.
+func dialOpenAIRealtimeSession(
 	ctx context.Context,
 	apiKey, model, voice, sysPrompt string,
 	ha *haWSClient,
-	onSTT, onText func(string),
-	onAudio func([]int16),
-	onStart, onStop func(),
-) (*realtimeSession, error) {
+	cb RealtimeCallbacks,
+) (RealtimeSession, error) {
 	hdr := http.Header{
 		"Authorization": []string{"Bearer " + apiKey},
 		"OpenAI-Beta":   []string{"realtime=v1"},
@@ -62,15 +58,11 @@ func dialRealtimeSession(
 		return nil, fmt.Errorf("realtime dial: %w", err)
 	}
 
-	s := &realtimeSession{
-		conn:    conn,
-		ha:      ha,
-		logCtx:  gctx.New(),
-		onSTT:   onSTT,
-		onText:  onText,
-		onAudio: onAudio,
-		onStart: onStart,
-		onStop:  onStop,
+	s := &openaiRealtimeSession{
+		conn:   conn,
+		ha:     ha,
+		logCtx: gctx.New(),
+		cb:     cb,
 	}
 
 	// Inject current time so the model can answer time/date queries.
@@ -109,7 +101,7 @@ func dialRealtimeSession(
 }
 
 // AppendAudio sends a PCM16 16kHz mono chunk to the Realtime input buffer.
-func (s *realtimeSession) AppendAudio(pcm []int16) error {
+func (s *openaiRealtimeSession) AppendAudio(pcm []int16) error {
 	buf := make([]byte, len(pcm)*2)
 	for i, v := range pcm {
 		binary.LittleEndian.PutUint16(buf[i*2:], uint16(v))
@@ -122,28 +114,28 @@ func (s *realtimeSession) AppendAudio(pcm []int16) error {
 
 // CommitAudio manually commits the audio buffer.
 // Called on listen:stop as belt-and-suspenders alongside server VAD.
-func (s *realtimeSession) CommitAudio() error {
+func (s *openaiRealtimeSession) CommitAudio() error {
 	return s.send(map[string]any{"type": "input_audio_buffer.commit"})
 }
 
 // CancelResponse interrupts an in-progress response (e.g. on wake word / abort).
-func (s *realtimeSession) CancelResponse() error {
+func (s *openaiRealtimeSession) CancelResponse() error {
 	return s.send(map[string]any{"type": "response.cancel"})
 }
 
 // Close shuts down the Realtime WS connection.
-func (s *realtimeSession) Close() {
+func (s *openaiRealtimeSession) Close() {
 	s.conn.Close()
 }
 
-func (s *realtimeSession) send(v any) error {
+func (s *openaiRealtimeSession) send(v any) error {
 	data, _ := json.Marshal(v)
 	s.writeMu.Lock()
 	defer s.writeMu.Unlock()
 	return s.conn.WriteMessage(websocket.TextMessage, data)
 }
 
-func (s *realtimeSession) readLoop(ctx context.Context) {
+func (s *openaiRealtimeSession) readLoop(ctx context.Context) {
 	var textBuf strings.Builder
 
 	for {
@@ -175,16 +167,16 @@ func (s *realtimeSession) readLoop(ctx context.Context) {
 			transcript, _ := evt["transcript"].(string)
 			if t := strings.TrimSpace(transcript); t != "" {
 				g.Log().Infof(s.logCtx, "[RT] STT: %q", t)
-				if s.onSTT != nil {
-					s.onSTT(t)
+				if s.cb.OnSTT != nil {
+					s.cb.OnSTT(t)
 				}
 			}
 
 		case "response.created":
 			g.Log().Infof(s.logCtx, "[RT] response started")
 			textBuf.Reset()
-			if s.onStart != nil {
-				s.onStart()
+			if s.cb.OnStart != nil {
+				s.cb.OnStart()
 			}
 
 		case "response.audio.delta":
@@ -200,8 +192,8 @@ func (s *realtimeSession) readLoop(ctx context.Context) {
 			for i := range pcm {
 				pcm[i] = int16(binary.LittleEndian.Uint16(pcmBytes[i*2:]))
 			}
-			if s.onAudio != nil {
-				s.onAudio(pcm)
+			if s.cb.OnAudio != nil {
+				s.cb.OnAudio(pcm)
 			}
 
 		case "response.text.delta":
@@ -211,8 +203,8 @@ func (s *realtimeSession) readLoop(ctx context.Context) {
 		case "response.text.done":
 			if text := strings.TrimSpace(textBuf.String()); text != "" {
 				g.Log().Infof(s.logCtx, "[RT] LLM: %q", text)
-				if s.onText != nil {
-					s.onText(text)
+				if s.cb.OnText != nil {
+					s.cb.OnText(text)
 				}
 			}
 			textBuf.Reset()
@@ -250,8 +242,8 @@ func (s *realtimeSession) readLoop(ctx context.Context) {
 
 		case "response.done":
 			g.Log().Infof(s.logCtx, "[RT] response done")
-			if s.onStop != nil {
-				s.onStop()
+			if s.cb.OnStop != nil {
+				s.cb.OnStop()
 			}
 
 		case "error":

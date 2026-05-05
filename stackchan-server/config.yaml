@@ -1,6 +1,6 @@
 name: "StackChan AI Server"
-description: "StackChan AI server: OpenAI Realtime API (gpt-realtime-1.5) + Home Assistant device control"
-version: "2.1.2"
+description: "StackChan AI server: OpenAI Realtime / Gemini Live + Home Assistant device control"
+version: "2.2.0"
 slug: "stackchan_ai_server"
 init: false
 
@@ -21,17 +21,25 @@ ports_description:
 options:
   local_host: "10.20.20.8"
   ha_mcp_token: ""
+  ai_provider: "openai"
   openai_api_key: ""
   openai_realtime_model: "gpt-realtime-1.5"
   openai_tts_voice: "alloy"
+  gemini_api_key: ""
+  gemini_model: "gemini-2.5-flash-preview-native-audio-dialog"
+  gemini_voice: "Aoede"
   system_prompt: "You are StackChan, a friendly desktop robot assistant. Keep replies concise."
 
 schema:
   local_host: str
   ha_mcp_token: str
-  openai_api_key: str
+  ai_provider: list(openai|gemini)
+  openai_api_key: str?
   openai_realtime_model: list(gpt-realtime-1.5|gpt-realtime-mini|gpt-4o-realtime-preview|gpt-4o-mini-realtime-preview)
   openai_tts_voice: list(alloy|echo|fable|onyx|nova|shimmer|ash|coral|sage|verse|cedar|marin|cove)
+  gemini_api_key: str?
+  gemini_model: list(gemini-2.5-flash-preview-native-audio-dialog)
+  gemini_voice: list(Aoede|Charon|Fenrir|Kore|Puck)
   system_prompt: str
 
 # Allow outbound internet access (needed for OpenAI API).
