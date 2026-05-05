@@ -8,15 +8,16 @@
 
 **StackChan HA Add-ons** 让你的 [StackChan](https://github.com/m5stack/StackChan) 桌面机器人成为与智能家居深度集成的 AI 语音助手——无需小智账号。
 
-StackChan 是基于 M5Stack CoreS3（ESP32-S3）的掌心大小机器人，出厂搭载开源的 [xiaozhi-esp32](https://github.com/78/xiaozhi-esp32) 固件，该固件原本依赖小智云提供语音识别、语言模型和语音合成服务。本插件将小智云替换为 Home Assistant 插件：语音数据发往 **OpenAI** 而非小智，Home Assistant 则完全运行在你的本地网络中。
+StackChan 是基于 M5Stack CoreS3（ESP32-S3）的掌心大小机器人，出厂搭载开源的 [xiaozhi-esp32](https://github.com/78/xiaozhi-esp32) 固件，该固件原本依赖小智云提供语音识别、语言模型和语音合成服务。本插件将小智云替换为 Home Assistant 插件：语音数据可选发往 **OpenAI** 或 **Google Gemini**（任选其一）而非小智，Home Assistant 则完全运行在你的本地网络中。
 
 **设备固件无需任何修改**——插件使用设备已支持的 Xiaozhi WebSocket 协议 v3 进行通信。语音指令由 **OpenAI Realtime API** 或 **Google Gemini Live API** 处理（流式语音对话，延迟约 0.5–1.5 秒，可在插件 UI 中切换），机器人可通过语音控制任意 Home Assistant 设备。
 
 **核心功能：**
-- 基于 OpenAI Realtime API 流式传输，端到端延迟约 0.5–1.5 秒
+- 可选 AI 后端：**OpenAI Realtime API** 或 **Google Gemini Live API**，插件 UI 一键切换
+- 流式语音传输，端到端延迟约 0.5–1.5 秒
 - 语音控制灯光、空调、窗帘、媒体播放器及脚本
 - 支持区域控制（如"把客厅所有灯关掉"）
-- 无需小智账号——语音由 OpenAI 处理，HA 保留在本地局域网
+- 无需小智账号——语音由 OpenAI / Gemini 处理，HA 保留在本地局域网
 - 作为标准 Home Assistant 插件一键安装
 
 ## 工作原理
@@ -30,21 +31,23 @@ StackChan ESP32-S3（未修改的 xiaozhi-esp32 固件）
 StackChan AI Server（本插件，运行在 HA 的 12800 端口）
     ├─ /xiaozhi/ota/  → 返回本地 WebSocket 地址
     └─ /xiaozhi/ws    → WebSocket 会话
-         ├─ OpenAI Realtime API（STT + LLM + TTS，流式）
+         ├─ OpenAI Realtime API  ─┐
+         │                        ├─ STT + LLM + TTS，流式（任选其一）
+         └─ Gemini Live API     ──┘
          └─ Home Assistant WebSocket API（设备控制）
 ```
 
 **音频流水线（流式，延迟约 0.5–1.5 秒）：**
 
 ```
-设备 OPUS（16kHz）→ PCM → OpenAI Realtime API
+设备 OPUS（16kHz）→ PCM → OpenAI Realtime / Gemini Live
                               ↓ 服务端 VAD 检测到说话结束
                          流式 PCM 回复（24kHz）
                               ↓
                          OPUS 编码 → 设备扬声器
 ```
 
-无需小智账号，除 OpenAI 外无其他云端依赖。
+无需小智账号，除你选择的后端（OpenAI 或 Google）外无其他云端依赖。
 
 ---
 
@@ -52,9 +55,10 @@ StackChan AI Server（本插件，运行在 HA 的 12800 端口）
 
 ### StackChan AI Server
 
-基于 **OpenAI Realtime API**（`gpt-realtime-1.5`）实现低延迟语音对话，并通过自然语言控制 Home Assistant 设备。
+低延迟语音对话，可选 **OpenAI Realtime API**（`gpt-realtime-1.5`）或 **Google Gemini Live API**（`gemini-2.5-flash-preview-native-audio-dialog`），在插件 UI 中切换。两种后端都支持自然语言控制 Home Assistant 设备。
 
 **功能特性：**
+- AI 后端可切换：OpenAI Realtime / Gemini Live（下拉选择）
 - 约 0.5–1.5 秒响应延迟（服务端 VAD + 流式音频）
 - 语音控制 HA 设备：灯光、空调、窗帘、媒体播放器、脚本等
 - 支持区域控制（如"把客厅所有灯关掉"）

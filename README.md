@@ -8,15 +8,16 @@ English | [中文](README.zh.md)
 
 **StackChan HA Add-ons** turns your [StackChan](https://github.com/m5stack/StackChan) desktop robot into an AI voice assistant integrated with your smart home — no Xiaozhi account needed.
 
-StackChan is a palm-sized robot built on the M5Stack CoreS3 (ESP32-S3). It ships with the open-source [xiaozhi-esp32](https://github.com/78/xiaozhi-esp32) firmware, which normally relies on the Xiaozhi cloud for speech recognition, language model, and text-to-speech. This add-on replaces that with a Home Assistant add-on: your voice data goes to **OpenAI** instead of Xiaozhi, and Home Assistant stays entirely on your local network.
+StackChan is a palm-sized robot built on the M5Stack CoreS3 (ESP32-S3). It ships with the open-source [xiaozhi-esp32](https://github.com/78/xiaozhi-esp32) firmware, which normally relies on the Xiaozhi cloud for speech recognition, language model, and text-to-speech. This add-on replaces that with a Home Assistant add-on: your voice data goes to **OpenAI** or **Google Gemini** (your pick) instead of Xiaozhi, and Home Assistant stays entirely on your local network.
 
 The device firmware is **never modified** — the add-on speaks the same Xiaozhi WebSocket protocol v3 the device already expects. Voice commands are processed by either **OpenAI Realtime API** or **Google Gemini Live API** (streaming speech-to-speech, ~0.5–1.5 s latency, switchable from the add-on UI), and the robot can control any Home Assistant device by voice.
 
 **Key features:**
-- ~0.5–1.5 s end-to-end latency via OpenAI Realtime API streaming
+- Choice of provider: **OpenAI Realtime API** or **Google Gemini Live API**, switchable in the add-on UI
+- ~0.5–1.5 s end-to-end latency via streaming speech-to-speech
 - Controls lights, climate, covers, media players, and scripts by voice
 - Area-based control ("turn off all lights in the living room")
-- No Xiaozhi account — audio is processed by OpenAI, HA stays on your LAN
+- No Xiaozhi account — audio is processed by OpenAI/Gemini, HA stays on your LAN
 - Easy installation as a standard Home Assistant add-on
 
 ## How It Works
@@ -30,21 +31,23 @@ StackChan ESP32-S3  (unmodified xiaozhi-esp32 firmware)
 StackChan AI Server  (this add-on, on your HA at port 12800)
     ├─ /xiaozhi/ota/  → returns local WebSocket address
     └─ /xiaozhi/ws    → WebSocket session
-         ├─ OpenAI Realtime API (STT + LLM + TTS, streaming)
+         ├─ OpenAI Realtime API  ─┐
+         │                        ├─ STT + LLM + TTS, streaming (pick one)
+         └─ Gemini Live API     ──┘
          └─ Home Assistant WebSocket API (device control)
 ```
 
 **Audio pipeline (streaming, ~0.5–1.5s latency):**
 
 ```
-Device OPUS (16kHz) → PCM → OpenAI Realtime API
+Device OPUS (16kHz) → PCM → OpenAI Realtime / Gemini Live
                               ↓ server VAD detects speech end
                          Streaming PCM response (24kHz)
                               ↓
                          OPUS encode → Device speaker
 ```
 
-No Xiaozhi account needed. No cloud dependency except OpenAI.
+No Xiaozhi account needed. The only cloud dependency is your chosen provider (OpenAI or Google).
 
 ---
 
@@ -52,9 +55,10 @@ No Xiaozhi account needed. No cloud dependency except OpenAI.
 
 ### StackChan AI Server
 
-Powered by **OpenAI Realtime API** (`gpt-realtime-1.5`) for low-latency speech-to-speech conversation, with Home Assistant device control via natural language.
+Low-latency speech-to-speech conversation powered by **OpenAI Realtime API** (`gpt-realtime-1.5`) **or Google Gemini Live API** (`gemini-2.5-flash-preview-native-audio-dialog`) — pick your provider in the add-on UI. Both options give natural-language control of Home Assistant devices.
 
 **Features:**
+- Switchable AI provider: OpenAI Realtime / Gemini Live (dropdown)
 - ~0.5–1.5s response latency (server-side VAD, streaming audio)
 - Controls HA devices by voice: lights, climate, covers, media players, scripts
 - Area-based control ("turn off all lights in the living room")
