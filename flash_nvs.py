@@ -126,23 +126,22 @@ def run(cmd, lang):
     return result.stdout
 
 def parse_nvs_size(output):
-    """Extract size value from parttool.py get_partition_info output."""
-    for line in output.splitlines():
-        line = line.strip()
-        # Output may be a single hex value or "size: 0x4000"
-        if line.startswith("0x") or line.startswith("0X"):
-            return int(line, 16)
-        if "size" in line.lower():
-            parts = line.split()
-            for p in parts:
-                if p.startswith("0x") or p.startswith("0X"):
-                    return int(p, 16)
-    # fallback: find any hex-looking token
+    """Extract NVS partition size from parttool.py get_partition_info output.
+
+    With `--info size` parttool prints just '0x4000'.
+    Without it, the line is '0x9000 0x4000' (offset size) — pick the LAST
+    hex token, since size always follows offset.
+    """
     import re
-    m = re.search(r"0[xX][0-9a-fA-F]+", output)
-    if m:
-        return int(m.group(), 16)
-    return None
+    hex_tokens = re.findall(r"0[xX][0-9a-fA-F]+", output)
+    if not hex_tokens:
+        return None
+    # NVS size is at most 0x100000 (1 MiB) in any sane partition table; the
+    # offset is usually 0x9000+. If we got two tokens, the smaller one is size.
+    if len(hex_tokens) == 1:
+        return int(hex_tokens[0], 16)
+    # Two+ tokens: parttool's "offset size" → last token is size.
+    return int(hex_tokens[-1], 16)
 
 # ── main flow ────────────────────────────────────────────────────────────────
 
@@ -210,11 +209,14 @@ def main():
         csv_path = os.path.join(tmpdir, "nvs.csv")
         bin_path = os.path.join(tmpdir, "nvs.bin")
 
-        # Step 1: query NVS partition size
+        # Step 1: query NVS partition size.
+        # `--info size` makes parttool emit just the size; without it parttool
+        # prints "<offset> <size>" on one line which is fiddly to parse.
         print("\n" + t(lang, "querying"))
         out = run([sys.executable, parttool,
                    "--port", port,
-                   "get_partition_info", "--partition-name", "nvs"], lang)
+                   "get_partition_info", "--partition-name", "nvs",
+                   "--info", "size"], lang)
         size = parse_nvs_size(out)
         if not size:
             print(t(lang, "error", msg=f"Could not parse NVS size from output:\n{out}"))
