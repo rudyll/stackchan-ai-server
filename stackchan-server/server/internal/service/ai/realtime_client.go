@@ -49,12 +49,20 @@ func dialOpenAIRealtimeSession(
 	ha *haWSClient,
 	cb RealtimeCallbacks,
 ) (RealtimeSession, error) {
+	// As of late 2025 the Realtime API is GA. The legacy "OpenAI-Beta:
+	// realtime=v1" header is no longer needed and at some point started
+	// causing TLS handshake to fail with EOF — leaving it off works for
+	// both old beta accounts and GA.
 	hdr := http.Header{
 		"Authorization": []string{"Bearer " + apiKey},
-		"OpenAI-Beta":   []string{"realtime=v1"},
 	}
-	conn, _, err := websocket.DefaultDialer.DialContext(ctx, realtimeEndpoint+"?model="+model, hdr)
+	conn, resp, err := websocket.DefaultDialer.DialContext(ctx, realtimeEndpoint+"?model="+model, hdr)
 	if err != nil {
+		// Surface HTTP status when available — helps tell auth (401), wrong
+		// model (404), and rate limits (429) apart from network errors.
+		if resp != nil {
+			return nil, fmt.Errorf("realtime dial: %w (http %d)", err, resp.StatusCode)
+		}
 		return nil, fmt.Errorf("realtime dial: %w", err)
 	}
 

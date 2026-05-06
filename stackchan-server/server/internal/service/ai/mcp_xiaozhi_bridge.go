@@ -223,6 +223,11 @@ func haToolDefs() []map[string]any {
 // a single tool entry containing an array of functionDeclarations.
 // Schema is otherwise the same JSON-schema shape OpenAI uses, just keyed as
 // "parameters" and wrapped under {functionDeclarations: [...]}.
+//
+// Gemini's schema validator is stricter than OpenAI's: it rejects standard
+// JSON-schema keys like "additionalProperties", "$schema", "$ref". We strip
+// those recursively so OpenAI keeps its richer schema while Gemini gets a
+// clean subset.
 func haGeminiTools() []map[string]any {
 	defs := haToolDefs()
 	decls := make([]map[string]any, 0, len(defs))
@@ -230,10 +235,43 @@ func haGeminiTools() []map[string]any {
 		decls = append(decls, map[string]any{
 			"name":        t["name"],
 			"description": t["description"],
-			"parameters":  t["inputSchema"],
+			"parameters":  sanitizeGeminiSchema(t["inputSchema"]),
 		})
 	}
 	return []map[string]any{{"functionDeclarations": decls}}
+}
+
+// sanitizeGeminiSchema deep-copies a JSON-schema-shaped value, dropping keys
+// Gemini's tool validator does not accept.
+func sanitizeGeminiSchema(v any) any {
+	switch x := v.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(x))
+		for k, val := range x {
+			switch k {
+			case "additionalProperties", "$schema", "$ref", "definitions", "$defs":
+				continue
+			}
+			out[k] = sanitizeGeminiSchema(val)
+		}
+		return out
+	case []any:
+		out := make([]any, len(x))
+		for i, e := range x {
+			out[i] = sanitizeGeminiSchema(e)
+		}
+		return out
+	case []map[string]any:
+		out := make([]map[string]any, len(x))
+		for i, e := range x {
+			if m, ok := sanitizeGeminiSchema(e).(map[string]any); ok {
+				out[i] = m
+			}
+		}
+		return out
+	default:
+		return v
+	}
 }
 
 func dispatchHATool(ha *haWSClient, name string, args map[string]any) (string, error) {
