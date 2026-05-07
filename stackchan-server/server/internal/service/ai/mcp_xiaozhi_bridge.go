@@ -238,7 +238,9 @@ func haGeminiTools() []map[string]any {
 			"parameters":  sanitizeGeminiSchema(t["inputSchema"]),
 		})
 	}
-	return []map[string]any{{"functionDeclarations": decls}}
+	// Gemini Live WS uses snake_case proto field names — function_declarations,
+	// not functionDeclarations.
+	return []map[string]any{{"function_declarations": decls}}
 }
 
 // sanitizeGeminiSchema deep-copies a JSON-schema-shaped value, dropping keys

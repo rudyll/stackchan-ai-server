@@ -68,20 +68,26 @@ func dialGeminiSession(
 	}
 
 	// Setup message — single shot; must be the first frame on the socket.
+	//
+	// IMPORTANT: the Gemini Live WebSocket protocol uses proto-style snake_case
+	// for all field names (response_modalities, speech_config, ...). The REST
+	// API auto-converts camelCase but the WS endpoint does not — sending
+	// camelCase results in "Request contains an invalid argument" with a 1007
+	// close. The Python/JS SDKs hide this by translating; we have to be exact.
 	setup := map[string]any{
 		"setup": map[string]any{
 			"model": "models/" + model,
-			"generationConfig": map[string]any{
-				"responseModalities": []string{"AUDIO"},
-				"speechConfig": map[string]any{
-					"voiceConfig": map[string]any{
-						"prebuiltVoiceConfig": map[string]any{
-							"voiceName": voice,
+			"generation_config": map[string]any{
+				"response_modalities": []string{"AUDIO"},
+				"speech_config": map[string]any{
+					"voice_config": map[string]any{
+						"prebuilt_voice_config": map[string]any{
+							"voice_name": voice,
 						},
 					},
 				},
 			},
-			"systemInstruction": map[string]any{
+			"system_instruction": map[string]any{
 				"parts": []map[string]any{{"text": sysPrompt}},
 			},
 			"tools": haGeminiTools(),
@@ -103,10 +109,10 @@ func (s *geminiSession) AppendAudio(pcm []int16) error {
 		binary.LittleEndian.PutUint16(buf[i*2:], uint16(v))
 	}
 	return s.send(map[string]any{
-		"realtimeInput": map[string]any{
-			"mediaChunks": []map[string]any{{
-				"mimeType": "audio/pcm;rate=16000",
-				"data":     base64.StdEncoding.EncodeToString(buf),
+		"realtime_input": map[string]any{
+			"media_chunks": []map[string]any{{
+				"mime_type": "audio/pcm;rate=16000",
+				"data":      base64.StdEncoding.EncodeToString(buf),
 			}},
 		},
 	})
@@ -121,9 +127,9 @@ func (s *geminiSession) CommitAudio() error { return nil }
 // turnComplete to stop the model.
 func (s *geminiSession) CancelResponse() error {
 	return s.send(map[string]any{
-		"clientContent": map[string]any{
+		"client_content": map[string]any{
 			"turns":         []map[string]any{},
-			"turnComplete":  true,
+			"turn_complete": true,
 		},
 	})
 }
@@ -163,35 +169,49 @@ func (s *geminiSession) readLoop(ctx context.Context) {
 			continue
 		}
 
-		// setupComplete: connection ready.
-		if _, ok := evt["setupComplete"]; ok {
+		// Server may use either snake_case or camelCase depending on proto JSON
+		// flavour the gateway picks. Accept both via geminiField below.
+
+		// setup_complete: connection ready.
+		if geminiField(evt, "setup_complete", "setupComplete") != nil {
 			g.Log().Infof(s.logCtx, "[GM] setup complete")
 			continue
 		}
 
-		// serverContent: model audio / text / turn lifecycle.
-		if sc, ok := evt["serverContent"].(map[string]any); ok {
+		// server_content: model audio / text / turn lifecycle.
+		if sc, ok := geminiField(evt, "server_content", "serverContent").(map[string]any); ok {
 			s.handleServerContent(sc)
 			continue
 		}
 
-		// toolCall: HA tool invocations.
-		if tc, ok := evt["toolCall"].(map[string]any); ok {
+		// tool_call: HA tool invocations.
+		if tc, ok := geminiField(evt, "tool_call", "toolCall").(map[string]any); ok {
 			s.handleToolCall(tc)
 			continue
 		}
 
-		// goAway / errors — treat as fatal-ish.
-		if _, ok := evt["goAway"]; ok {
-			g.Log().Warningf(s.logCtx, "[GM] server sent goAway")
+		// go_away / errors — treat as fatal-ish.
+		if geminiField(evt, "go_away", "goAway") != nil {
+			g.Log().Warningf(s.logCtx, "[GM] server sent go_away")
 			return
 		}
 	}
 }
 
+// geminiField looks up the first non-nil value at one of the given keys.
+// Used to accept both snake_case and camelCase forms in incoming messages.
+func geminiField(m map[string]any, keys ...string) any {
+	for _, k := range keys {
+		if v, ok := m[k]; ok && v != nil {
+			return v
+		}
+	}
+	return nil
+}
+
 func (s *geminiSession) handleServerContent(sc map[string]any) {
-	// modelTurn carries audio/text deltas.
-	if mt, ok := sc["modelTurn"].(map[string]any); ok {
+	// model_turn carries audio/text deltas.
+	if mt, ok := geminiField(sc, "model_turn", "modelTurn").(map[string]any); ok {
 		s.startSpeakingOnce()
 		parts, _ := mt["parts"].([]any)
 		for _, p := range parts {
@@ -200,8 +220,8 @@ func (s *geminiSession) handleServerContent(sc map[string]any) {
 				continue
 			}
 
-			if inline, ok := part["inlineData"].(map[string]any); ok {
-				mime, _ := inline["mimeType"].(string)
+			if inline, ok := geminiField(part, "inline_data", "inlineData").(map[string]any); ok {
+				mime, _ := geminiField(inline, "mime_type", "mimeType").(string)
 				b64, _ := inline["data"].(string)
 				if !strings.HasPrefix(mime, "audio/pcm") || b64 == "" {
 					continue
@@ -227,8 +247,8 @@ func (s *geminiSession) handleServerContent(sc map[string]any) {
 		}
 	}
 
-	// inputTranscription: user STT (best-effort, may not be present in all models).
-	if it, ok := sc["inputTranscription"].(map[string]any); ok {
+	// input_transcription: user STT (best-effort, may not be present in all models).
+	if it, ok := geminiField(sc, "input_transcription", "inputTranscription").(map[string]any); ok {
 		if text, _ := it["text"].(string); text != "" {
 			if s.cb.OnSTT != nil {
 				s.cb.OnSTT(text)
@@ -236,8 +256,8 @@ func (s *geminiSession) handleServerContent(sc map[string]any) {
 		}
 	}
 
-	// turnComplete: model finished speaking → fire OnStop.
-	if done, _ := sc["turnComplete"].(bool); done {
+	// turn_complete: model finished speaking → fire OnStop.
+	if done, _ := geminiField(sc, "turn_complete", "turnComplete").(bool); done {
 		s.endSpeaking()
 	}
 
@@ -248,7 +268,7 @@ func (s *geminiSession) handleServerContent(sc map[string]any) {
 }
 
 func (s *geminiSession) handleToolCall(tc map[string]any) {
-	calls, _ := tc["functionCalls"].([]any)
+	calls, _ := geminiField(tc, "function_calls", "functionCalls").([]any)
 	if len(calls) == 0 {
 		return
 	}
@@ -276,7 +296,7 @@ func (s *geminiSession) handleToolCall(tc map[string]any) {
 		})
 	}
 	_ = s.send(map[string]any{
-		"toolResponse": map[string]any{"functionResponses": responses},
+		"tool_response": map[string]any{"function_responses": responses},
 	})
 }
 
