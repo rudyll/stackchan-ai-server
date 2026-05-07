@@ -69,25 +69,25 @@ func dialGeminiSession(
 
 	// Setup message — single shot; must be the first frame on the socket.
 	//
-	// IMPORTANT: the Gemini Live WebSocket protocol uses proto-style snake_case
-	// for all field names (response_modalities, speech_config, ...). The REST
-	// API auto-converts camelCase but the WS endpoint does not — sending
-	// camelCase results in "Request contains an invalid argument" with a 1007
-	// close. The Python/JS SDKs hide this by translating; we have to be exact.
+	// Wire format is camelCase (per https://ai.google.dev/api/live). The earlier
+	// "Request contains an invalid argument" 1007 close was NOT a case-sensitivity
+	// issue — it was Gemini's Schema validator rejecting lowercase type literals
+	// (`"object"`, `"string"`) instead of the proto-style enum values
+	// (`"OBJECT"`, `"STRING"`). sanitizeGeminiSchema upper-cases them.
 	setup := map[string]any{
 		"setup": map[string]any{
 			"model": "models/" + model,
-			"generation_config": map[string]any{
-				"response_modalities": []string{"AUDIO"},
-				"speech_config": map[string]any{
-					"voice_config": map[string]any{
-						"prebuilt_voice_config": map[string]any{
-							"voice_name": voice,
+			"generationConfig": map[string]any{
+				"responseModalities": []string{"AUDIO"},
+				"speechConfig": map[string]any{
+					"voiceConfig": map[string]any{
+						"prebuiltVoiceConfig": map[string]any{
+							"voiceName": voice,
 						},
 					},
 				},
 			},
-			"system_instruction": map[string]any{
+			"systemInstruction": map[string]any{
 				"parts": []map[string]any{{"text": sysPrompt}},
 			},
 			"tools": haGeminiTools(),
@@ -109,10 +109,10 @@ func (s *geminiSession) AppendAudio(pcm []int16) error {
 		binary.LittleEndian.PutUint16(buf[i*2:], uint16(v))
 	}
 	return s.send(map[string]any{
-		"realtime_input": map[string]any{
-			"media_chunks": []map[string]any{{
-				"mime_type": "audio/pcm;rate=16000",
-				"data":      base64.StdEncoding.EncodeToString(buf),
+		"realtimeInput": map[string]any{
+			"mediaChunks": []map[string]any{{
+				"mimeType": "audio/pcm;rate=16000",
+				"data":     base64.StdEncoding.EncodeToString(buf),
 			}},
 		},
 	})
@@ -127,9 +127,9 @@ func (s *geminiSession) CommitAudio() error { return nil }
 // turnComplete to stop the model.
 func (s *geminiSession) CancelResponse() error {
 	return s.send(map[string]any{
-		"client_content": map[string]any{
-			"turns":         []map[string]any{},
-			"turn_complete": true,
+		"clientContent": map[string]any{
+			"turns":        []map[string]any{},
+			"turnComplete": true,
 		},
 	})
 }
@@ -296,7 +296,7 @@ func (s *geminiSession) handleToolCall(tc map[string]any) {
 		})
 	}
 	_ = s.send(map[string]any{
-		"tool_response": map[string]any{"function_responses": responses},
+		"toolResponse": map[string]any{"functionResponses": responses},
 	})
 }
 

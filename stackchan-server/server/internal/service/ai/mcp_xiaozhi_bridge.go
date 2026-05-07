@@ -238,20 +238,19 @@ func haGeminiTools() []map[string]any {
 			"parameters":  sanitizeGeminiSchema(t["inputSchema"]),
 		})
 	}
-	// Gemini Live WS uses snake_case proto field names — function_declarations,
-	// not functionDeclarations.
-	return []map[string]any{{"function_declarations": decls}}
+	return []map[string]any{{"functionDeclarations": decls}}
 }
 
-// sanitizeGeminiSchema deep-copies a JSON-schema-shaped value, dropping keys
-// Gemini's tool validator does not accept and reshaping nodes Gemini cannot
-// validate as-is.
+// sanitizeGeminiSchema deep-copies a JSON-schema-shaped value into the form
+// Gemini's Schema validator accepts:
 //
-// In particular: an `{type: "object"}` node with no `properties` is legal JSON
-// Schema (means "any object") but Gemini rejects it as "invalid argument".
-// We rewrite such open-object nodes into `{type: "string"}` with a hint that
-// the LLM should send a JSON-encoded object literal — dispatchHATool then
-// parses it back to a map.
+//   - drops keys Gemini does not model (additionalProperties, $schema, $ref, ...)
+//   - upper-cases `type` values to the proto enum form ("OBJECT", "STRING",
+//     "NUMBER", "INTEGER", "BOOLEAN", "ARRAY"). Lowercase JSON-Schema literals
+//     ("object", "string") are rejected with a 1007 "invalid argument" close.
+//   - rewrites `{type: OBJECT}` nodes that have no `properties` (open object)
+//     into `{type: STRING}` with a hint to send a JSON-encoded literal.
+//     dispatchHATool then parses the string back to a map.
 func sanitizeGeminiSchema(v any) any {
 	switch x := v.(type) {
 	case map[string]any:
@@ -263,8 +262,12 @@ func sanitizeGeminiSchema(v any) any {
 			}
 			out[k] = sanitizeGeminiSchema(val)
 		}
-		// Open-object rewrite: type=object with no properties → string holding JSON.
-		if t, _ := out["type"].(string); t == "object" {
+		// Upper-case the type literal Gemini's enum demands.
+		if t, ok := out["type"].(string); ok {
+			out["type"] = strings.ToUpper(t)
+		}
+		// Open-object rewrite: OBJECT with no properties → STRING holding JSON.
+		if t, _ := out["type"].(string); t == "OBJECT" {
 			if _, hasProps := out["properties"]; !hasProps {
 				desc, _ := out["description"].(string)
 				if desc == "" {
@@ -272,7 +275,7 @@ func sanitizeGeminiSchema(v any) any {
 				} else {
 					desc += " (Send as a JSON-encoded string, e.g. \"{\\\"brightness_pct\\\": 80}\".)"
 				}
-				return map[string]any{"type": "string", "description": desc}
+				return map[string]any{"type": "STRING", "description": desc}
 			}
 		}
 		return out
