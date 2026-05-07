@@ -1,6 +1,6 @@
 name: "StackChan AI Server"
 description: "StackChan AI server: OpenAI Realtime / Gemini Live + Home Assistant device control"
-version: "2.2.3"
+version: "2.2.4"
 slug: "stackchan_ai_server"
 init: false
 
@@ -26,7 +26,7 @@ options:
   openai_realtime_model: "gpt-realtime-1.5"
   openai_tts_voice: "alloy"
   gemini_api_key: ""
-  gemini_model: "gemini-2.0-flash-live-001"
+  gemini_model: "gemini-2.5-flash-native-audio-latest"
   gemini_voice: "Aoede"
   system_prompt: "You are StackChan, a friendly desktop robot assistant. Keep replies concise."
 
@@ -38,7 +38,7 @@ schema:
   openai_realtime_model: list(gpt-realtime-1.5|gpt-realtime-mini|gpt-4o-realtime-preview|gpt-4o-mini-realtime-preview)
   openai_tts_voice: list(alloy|echo|fable|onyx|nova|shimmer|ash|coral|sage|verse|cedar|marin|cove)
   gemini_api_key: str?
-  gemini_model: list(gemini-2.0-flash-live-001|gemini-live-2.5-flash-preview|gemini-2.5-flash-preview-native-audio-dialog)
+  gemini_model: list(gemini-2.5-flash-native-audio-latest|gemini-2.5-flash-native-audio-preview-09-2025|gemini-2.5-flash-native-audio-preview-12-2025|gemini-3.1-flash-live-preview)
   gemini_voice: list(Aoede|Charon|Fenrir|Kore|Puck)
   system_prompt: str
 
