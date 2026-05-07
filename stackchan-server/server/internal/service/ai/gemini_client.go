@@ -45,6 +45,13 @@ type geminiSession struct {
 	mu        sync.Mutex
 	speaking  bool
 	audioOnce sync.Once // logs the first AppendAudio call for diagnostics
+
+	// setupDone is closed when Gemini acknowledges the setup message.
+	// Any message sent before setupComplete causes a 1007 "invalid argument"
+	// because the device can send listen:detect→CancelResponse before
+	// setupComplete arrives. Guard all outbound messages except setup itself.
+	setupDone chan struct{}
+	setupOnce sync.Once // ensures setupDone is closed exactly once
 }
 
 // dialGeminiSession opens a Gemini Live websocket, sends the setup message,
@@ -62,10 +69,11 @@ func dialGeminiSession(
 	}
 
 	s := &geminiSession{
-		conn:   conn,
-		ha:     ha,
-		logCtx: gctx.New(),
-		cb:     cb,
+		conn:      conn,
+		ha:        ha,
+		logCtx:    gctx.New(),
+		cb:        cb,
+		setupDone: make(chan struct{}),
 	}
 
 	// Setup message — single shot; must be the first frame on the socket.
@@ -118,6 +126,13 @@ func dialGeminiSession(
 // rejected with 1007 "invalid argument" — which is exactly what we hit after
 // setup completed. Use the typed `audio` Blob.
 func (s *geminiSession) AppendAudio(pcm []int16) error {
+	// Drop audio that arrives before Gemini acknowledges setup; sending any
+	// message before setupComplete causes a 1007 "invalid argument" close.
+	select {
+	case <-s.setupDone:
+	default:
+		return nil
+	}
 	buf := make([]byte, len(pcm)*2)
 	for i, v := range pcm {
 		binary.LittleEndian.PutUint16(buf[i*2:], uint16(v))
@@ -143,6 +158,13 @@ func (s *geminiSession) CommitAudio() error { return nil }
 // detects a wake word with no audio yet we emit an explicit clientContent
 // turnComplete to stop the model.
 func (s *geminiSession) CancelResponse() error {
+	// Skip if setup is not yet acknowledged — sending before setupComplete
+	// causes a 1007 (and there is nothing to cancel anyway at that point).
+	select {
+	case <-s.setupDone:
+	default:
+		return nil
+	}
 	return s.send(map[string]any{
 		"clientContent": map[string]any{
 			"turns":        []map[string]any{},
@@ -189,9 +211,10 @@ func (s *geminiSession) readLoop(ctx context.Context) {
 		// Server may use either snake_case or camelCase depending on proto JSON
 		// flavour the gateway picks. Accept both via geminiField below.
 
-		// setup_complete: connection ready.
+		// setup_complete: connection ready. Ungate all subsequent sends.
 		if geminiField(evt, "setup_complete", "setupComplete") != nil {
 			g.Log().Infof(s.logCtx, "[GM] setup complete")
+			s.setupOnce.Do(func() { close(s.setupDone) })
 			continue
 		}
 
