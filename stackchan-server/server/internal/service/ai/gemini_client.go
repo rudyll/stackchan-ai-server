@@ -42,8 +42,9 @@ type geminiSession struct {
 
 	// Tracks model speech start so OnStart fires once per turn even though
 	// audio arrives in many small modelTurn chunks.
-	mu       sync.Mutex
-	speaking bool
+	mu        sync.Mutex
+	speaking  bool
+	audioOnce sync.Once // logs the first AppendAudio call for diagnostics
 }
 
 // dialGeminiSession opens a Gemini Live websocket, sends the setup message,
@@ -95,10 +96,10 @@ func dialGeminiSession(
 
 	setup := map[string]any{"setup": setupBody}
 
-	// Dump the exact payload — invaluable for diagnosing 1007 "invalid argument"
-	// rejections, since Gemini doesn't tell us which field it disliked.
+	// Dump the exact payload at INFO so it always appears in HA logs —
+	// invaluable for diagnosing 1007 "invalid argument" rejections.
 	if pretty, err := json.MarshalIndent(setup, "", "  "); err == nil {
-		g.Log().Debugf(s.logCtx, "[GM] setup payload:\n%s", string(pretty))
+		g.Log().Infof(s.logCtx, "[GM] setup payload:\n%s", string(pretty))
 	}
 
 	if err := s.send(setup); err != nil {
@@ -121,6 +122,9 @@ func (s *geminiSession) AppendAudio(pcm []int16) error {
 	for i, v := range pcm {
 		binary.LittleEndian.PutUint16(buf[i*2:], uint16(v))
 	}
+	s.audioOnce.Do(func() {
+		g.Log().Infof(s.logCtx, "[GM] first audio chunk: samples=%d bytes=%d", len(pcm), len(buf))
+	})
 	return s.send(map[string]any{
 		"realtimeInput": map[string]any{
 			"audio": map[string]any{
@@ -208,6 +212,18 @@ func (s *geminiSession) readLoop(ctx context.Context) {
 			g.Log().Warningf(s.logCtx, "[GM] server sent go_away")
 			return
 		}
+
+		// Log any other messages for diagnostics — helps diagnose delayed
+		// setup rejections that arrive after setupComplete.
+		keys := make([]string, 0, len(evt))
+		for k := range evt {
+			keys = append(keys, k)
+		}
+		preview := string(raw)
+		if len(preview) > 300 {
+			preview = preview[:300] + "..."
+		}
+		g.Log().Warningf(s.logCtx, "[GM] unrecognized message keys=%v raw=%s", keys, preview)
 	}
 }
 
