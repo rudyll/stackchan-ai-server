@@ -13,8 +13,9 @@ OPENAI_KEY=$(get openai_api_key "")
 OPENAI_RT_MODEL=$(get openai_realtime_model "gpt-realtime-1.5")
 OPENAI_VOICE=$(get openai_tts_voice "alloy")
 GEMINI_KEY=$(get gemini_api_key "")
-GEMINI_MODEL=$(get gemini_model "gemini-2.5-flash-preview-native-audio-dialog")
+GEMINI_MODEL=$(get gemini_model "gemini-2.5-flash-native-audio-latest")
 GEMINI_VOICE=$(get gemini_voice "Aoede")
+GEMINI_ENABLE_TOOLS=$(get gemini_enable_tools "true")
 SYSTEM_PROMPT=$(get system_prompt "You are StackChan, a friendly desktop robot assistant. Keep replies concise.")
 
 mkdir -p /app/manifest/config
@@ -24,7 +25,7 @@ server:
 
 logger:
   stdout: true
-  level: "info"
+  level: "debug"
 
 database:
   default:
@@ -60,6 +61,7 @@ ai:
   gemini_api_key: "${GEMINI_KEY}"
   gemini_model: "${GEMINI_MODEL}"
   gemini_voice: "${GEMINI_VOICE}"
+  gemini_enable_tools: ${GEMINI_ENABLE_TOOLS}
   system_prompt: "${SYSTEM_PROMPT}"
 EOF
 

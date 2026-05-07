@@ -68,31 +68,39 @@ func dialGeminiSession(
 	}
 
 	// Setup message — single shot; must be the first frame on the socket.
-	//
-	// Wire format is camelCase (per https://ai.google.dev/api/live). The earlier
-	// "Request contains an invalid argument" 1007 close was NOT a case-sensitivity
-	// issue — it was Gemini's Schema validator rejecting lowercase type literals
-	// (`"object"`, `"string"`) instead of the proto-style enum values
-	// (`"OBJECT"`, `"STRING"`). sanitizeGeminiSchema upper-cases them.
-	setup := map[string]any{
-		"setup": map[string]any{
-			"model": "models/" + model,
-			"generationConfig": map[string]any{
-				"responseModalities": []string{"AUDIO"},
-				"speechConfig": map[string]any{
-					"voiceConfig": map[string]any{
-						"prebuiltVoiceConfig": map[string]any{
-							"voiceName": voice,
-						},
+	// Wire format is camelCase per https://ai.google.dev/api/live.
+	enableTools := g.Cfg().MustGet(gctx.New(), "ai.gemini_enable_tools", true).Bool()
+
+	setupBody := map[string]any{
+		"model": "models/" + model,
+		"generationConfig": map[string]any{
+			"responseModalities": []string{"AUDIO"},
+			"speechConfig": map[string]any{
+				"voiceConfig": map[string]any{
+					"prebuiltVoiceConfig": map[string]any{
+						"voiceName": voice,
 					},
 				},
 			},
-			"systemInstruction": map[string]any{
-				"parts": []map[string]any{{"text": sysPrompt}},
-			},
-			"tools": haGeminiTools(),
+		},
+		"systemInstruction": map[string]any{
+			"parts": []map[string]any{{"text": sysPrompt}},
 		},
 	}
+	if enableTools {
+		setupBody["tools"] = haGeminiTools()
+	} else {
+		g.Log().Infof(s.logCtx, "[GM] tools disabled by ai.gemini_enable_tools=false")
+	}
+
+	setup := map[string]any{"setup": setupBody}
+
+	// Dump the exact payload — invaluable for diagnosing 1007 "invalid argument"
+	// rejections, since Gemini doesn't tell us which field it disliked.
+	if pretty, err := json.MarshalIndent(setup, "", "  "); err == nil {
+		g.Log().Debugf(s.logCtx, "[GM] setup payload:\n%s", string(pretty))
+	}
+
 	if err := s.send(setup); err != nil {
 		conn.Close()
 		return nil, fmt.Errorf("gemini setup: %w", err)

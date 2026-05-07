@@ -1,6 +1,6 @@
 name: "StackChan AI Server"
 description: "StackChan AI server: OpenAI Realtime / Gemini Live + Home Assistant device control"
-version: "2.2.7"
+version: "2.2.8"
 slug: "stackchan_ai_server"
 init: false
 
@@ -28,6 +28,7 @@ options:
   gemini_api_key: ""
   gemini_model: "gemini-2.5-flash-native-audio-latest"
   gemini_voice: "Aoede"
+  gemini_enable_tools: true
   system_prompt: "You are StackChan, a friendly desktop robot assistant. Keep replies concise."
 
 schema:
@@ -40,6 +41,7 @@ schema:
   gemini_api_key: str?
   gemini_model: list(gemini-2.5-flash-native-audio-latest|gemini-2.5-flash-native-audio-preview-09-2025|gemini-2.5-flash-native-audio-preview-12-2025|gemini-3.1-flash-live-preview)
   gemini_voice: list(Aoede|Charon|Fenrir|Kore|Puck)
+  gemini_enable_tools: bool
   system_prompt: str
 
 # Allow outbound internet access (needed for OpenAI API).
