@@ -110,7 +110,12 @@ func dialGeminiSession(
 	return s, nil
 }
 
-// AppendAudio sends a 16kHz PCM16 chunk as a realtimeInput media chunk.
+// AppendAudio sends a 16kHz PCM16 chunk to Gemini's realtime input.
+//
+// The current RealtimeInput proto exposes typed fields (audio / video / text);
+// the older `mediaChunks` array form was an early-preview shape and is now
+// rejected with 1007 "invalid argument" — which is exactly what we hit after
+// setup completed. Use the typed `audio` Blob.
 func (s *geminiSession) AppendAudio(pcm []int16) error {
 	buf := make([]byte, len(pcm)*2)
 	for i, v := range pcm {
@@ -118,10 +123,10 @@ func (s *geminiSession) AppendAudio(pcm []int16) error {
 	}
 	return s.send(map[string]any{
 		"realtimeInput": map[string]any{
-			"mediaChunks": []map[string]any{{
+			"audio": map[string]any{
 				"mimeType": "audio/pcm;rate=16000",
 				"data":     base64.StdEncoding.EncodeToString(buf),
-			}},
+			},
 		},
 	})
 }
