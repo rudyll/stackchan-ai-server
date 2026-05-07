@@ -80,6 +80,9 @@ func dialOpenAIRealtimeSession(
 	if err := s.send(map[string]any{
 		"type": "session.update",
 		"session": map[string]any{
+			// session.type is required since the Realtime API GA — without it
+			// the server returns "Missing required parameter: 'session.type'".
+			"type":                "realtime",
 			"modalities":          []string{"text", "audio"},
 			"instructions":        instructions,
 			"voice":               voice,

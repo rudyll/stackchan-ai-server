@@ -26,7 +26,10 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-const geminiEndpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent"
+// v1beta hosts the Gemini Live model family
+// (gemini-2.5-flash-preview-native-audio-dialog and friends). v1alpha returns
+// "model not found ... or not supported for bidiGenerate" for these models.
+const geminiEndpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent"
 
 // geminiSession manages one Gemini Live WS connection.
 type geminiSession struct {
