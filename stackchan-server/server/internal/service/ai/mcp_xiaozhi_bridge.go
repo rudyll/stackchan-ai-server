@@ -242,7 +242,14 @@ func haGeminiTools() []map[string]any {
 }
 
 // sanitizeGeminiSchema deep-copies a JSON-schema-shaped value, dropping keys
-// Gemini's tool validator does not accept.
+// Gemini's tool validator does not accept and reshaping nodes Gemini cannot
+// validate as-is.
+//
+// In particular: an `{type: "object"}` node with no `properties` is legal JSON
+// Schema (means "any object") but Gemini rejects it as "invalid argument".
+// We rewrite such open-object nodes into `{type: "string"}` with a hint that
+// the LLM should send a JSON-encoded object literal — dispatchHATool then
+// parses it back to a map.
 func sanitizeGeminiSchema(v any) any {
 	switch x := v.(type) {
 	case map[string]any:
@@ -253,6 +260,18 @@ func sanitizeGeminiSchema(v any) any {
 				continue
 			}
 			out[k] = sanitizeGeminiSchema(val)
+		}
+		// Open-object rewrite: type=object with no properties → string holding JSON.
+		if t, _ := out["type"].(string); t == "object" {
+			if _, hasProps := out["properties"]; !hasProps {
+				desc, _ := out["description"].(string)
+				if desc == "" {
+					desc = "JSON object encoded as a string."
+				} else {
+					desc += " (Send as a JSON-encoded string, e.g. \"{\\\"brightness_pct\\\": 80}\".)"
+				}
+				return map[string]any{"type": "string", "description": desc}
+			}
 		}
 		return out
 	case []any:
@@ -391,13 +410,15 @@ func dispatchHATool(ha *haWSClient, name string, args map[string]any) (string, e
 
 	case "ha_call_services":
 		// Re-marshal and parse the calls array (LLM sends it as []interface{}).
+		// `data` may arrive as either a map (OpenAI rich schema) or as a JSON
+		// string (Gemini, where open-object schemas are rewritten to type:string).
 		callsJSON, _ := json.Marshal(args["calls"])
 		var calls []struct {
-			Domain   string         `json:"domain"`
-			Service  string         `json:"service"`
-			EntityID string         `json:"entity_id"`
-			AreaID   string         `json:"area_id"`
-			Data     map[string]any `json:"data"`
+			Domain   string `json:"domain"`
+			Service  string `json:"service"`
+			EntityID string `json:"entity_id"`
+			AreaID   string `json:"area_id"`
+			Data     any    `json:"data"`
 		}
 		if err := json.Unmarshal(callsJSON, &calls); err != nil || len(calls) == 0 {
 			return "", fmt.Errorf("calls must be a non-empty array")
@@ -416,7 +437,17 @@ func dispatchHATool(ha *haWSClient, name string, args map[string]any) (string, e
 			if call.AreaID != "" {
 				target["area_id"] = call.AreaID
 			}
-			_, err := ha.CallServiceWithTarget(call.Domain, call.Service, target, call.Data)
+			// Coerce data: accept map directly, or parse JSON string.
+			var data map[string]any
+			switch d := call.Data.(type) {
+			case map[string]any:
+				data = d
+			case string:
+				if d != "" {
+					_ = json.Unmarshal([]byte(d), &data)
+				}
+			}
+			_, err := ha.CallServiceWithTarget(call.Domain, call.Service, target, data)
 			if err != nil {
 				results = append(results, fmt.Sprintf("%s.%s: error: %v", call.Domain, call.Service, err))
 			} else {

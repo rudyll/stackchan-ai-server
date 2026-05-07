@@ -145,7 +145,15 @@ func (s *geminiSession) readLoop(ctx context.Context) {
 		_, raw, err := s.conn.ReadMessage()
 		if err != nil {
 			if ctx.Err() == nil {
-				g.Log().Warningf(s.logCtx, "[GM] read error: %v", err)
+				// Gemini close frames carry a one-line reason that is often
+				// the only thing telling us which setup field was rejected.
+				// Surface code + verbatim text so users can paste it back.
+				if ce, ok := err.(*websocket.CloseError); ok {
+					g.Log().Warningf(s.logCtx,
+						"[GM] socket closed code=%d reason=%q", ce.Code, ce.Text)
+				} else {
+					g.Log().Warningf(s.logCtx, "[GM] read error: %v", err)
+				}
 			}
 			return
 		}
