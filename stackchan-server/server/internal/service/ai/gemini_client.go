@@ -20,6 +20,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gctx"
@@ -132,7 +133,29 @@ func dialGeminiSession(
 	}
 
 	go s.readLoop(ctx)
+	go s.pingLoop(ctx)
 	return s, nil
+}
+
+// pingLoop sends a WebSocket ping to Gemini every 30 seconds.
+// Prevents NAT/firewall timeouts from silently dropping the long-lived
+// connection, which causes "tls: bad record MAC" errors mid-session.
+func (s *geminiSession) pingLoop(ctx context.Context) {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			s.writeMu.Lock()
+			err := s.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(5*time.Second))
+			s.writeMu.Unlock()
+			if err != nil {
+				return
+			}
+		}
+	}
 }
 
 // AppendAudio sends a 16kHz PCM16 chunk to Gemini's realtime input.
