@@ -6,19 +6,29 @@ English | [中文](README.zh.md)
 
 ## About
 
-**StackChan HA Add-ons** turns your [StackChan](https://github.com/m5stack/StackChan) desktop robot into an AI voice assistant integrated with your smart home — no Xiaozhi account needed.
+**StackChan HA Add-ons** turns your [StackChan](https://github.com/m5stack/StackChan) desktop robot into a GPT-4 / Gemini-powered voice assistant with full Home Assistant control — no Xiaozhi cloud account, no firmware modifications, no intent scripts to maintain.
 
-StackChan is a palm-sized robot built on the M5Stack CoreS3 (ESP32-S3). It ships with the open-source [xiaozhi-esp32](https://github.com/78/xiaozhi-esp32) firmware, which normally relies on the Xiaozhi cloud for speech recognition, language model, and text-to-speech. This add-on replaces that with a Home Assistant add-on: your voice data goes to **OpenAI** or **Google Gemini** (your pick) instead of Xiaozhi, and Home Assistant stays entirely on your local network.
+StackChan is a palm-sized robot built on the M5Stack CoreS3 (ESP32-S3). The official firmware normally relies on the Xiaozhi cloud for speech recognition, language model, and TTS. This add-on replaces that entirely: your voice goes to **OpenAI Realtime** or **Google Gemini Live** (your choice), and Home Assistant device control happens locally over the HA WebSocket API.
 
-The device firmware is **never modified** — the add-on speaks the same Xiaozhi WebSocket protocol v3 the device already expects. Voice commands are processed by either **OpenAI Realtime API** or **Google Gemini Live API** (streaming speech-to-speech, ~0.5–1.5 s latency, switchable from the add-on UI), and the robot can control any Home Assistant device by voice.
+### Why not just use HA Assist?
+
+| | **StackChan AI Server** | **HA Assist** |
+|---|---|---|
+| **Understanding** | GPT-4o / Gemini 2.5 — understands natural, conversational speech | Rules-based intent matching — only recognises pre-defined phrases |
+| **Conversation** | Full multi-turn context across the whole session | Stateless — every utterance is independent, no memory of what was just said |
+| **Ambiguous commands** | Asks one clarifying question, then acts (e.g. "too hot" → "which room?" → turns on AC) | Fails or picks a random device if the command doesn't match a pattern exactly |
+| **Multiple devices** | Names the matches and asks "which one, or all?" | No disambiguation |
+| **Voice quality** | Real-time neural audio — natural, low-latency | TTS pipeline with noticeable STT→LLM→TTS delay |
+| **Setup** | One system prompt, no scripts | Requires defining intents and scripts per device action |
+| **Scenes / Scripts / Automations** | Searches and activates by name automatically | Only if you write a matching intent |
 
 **Key features:**
 - Choice of provider: **OpenAI Realtime API** or **Google Gemini Live API**, switchable in the add-on UI
-- ~0.5–1.5 s end-to-end latency via streaming speech-to-speech
-- Controls lights, climate, covers, media players, and scripts by voice
+- Full multi-turn conversation — the AI remembers context across utterances within a session
+- Controls lights, climate, covers, media players, scripts, scenes and automations by voice
 - Area-based control ("turn off all lights in the living room")
 - No Xiaozhi account — audio is processed by OpenAI/Gemini, HA stays on your LAN
-- Easy installation as a standard Home Assistant add-on
+- Unmodified official firmware — no recompile needed
 
 ## How It Works
 
@@ -55,15 +65,15 @@ No Xiaozhi account needed. The only cloud dependency is your chosen provider (Op
 
 ### StackChan AI Server
 
-Low-latency speech-to-speech conversation powered by **OpenAI Realtime API** (`gpt-realtime-1.5`) **or Google Gemini Live API** (`gemini-2.5-flash-preview-native-audio-dialog`) — pick your provider in the add-on UI. Both options give natural-language control of Home Assistant devices.
+Low-latency speech-to-speech conversation powered by **OpenAI Realtime API** (`gpt-realtime-1.5`) **or Google Gemini Live API** (`gemini-2.5-flash-native-audio-latest`) — pick your provider in the add-on UI. Both options give natural-language control of Home Assistant devices.
 
 **Features:**
 - Switchable AI provider: OpenAI Realtime / Gemini Live (dropdown)
 - ~0.5–1.5s response latency (server-side VAD, streaming audio)
-- Controls HA devices by voice: lights, climate, covers, media players, scripts
+- Controls HA devices by voice: lights, climate, covers, media players, scripts, scenes and automations
 - Area-based control ("turn off all lights in the living room")
-- Conversation history maintained across utterances within a session
-- Configurable voice and model via dropdown in the add-on UI
+- Full multi-turn conversation — context maintained across utterances within a session
+- 13 OpenAI voices / 30 Gemini native audio voices, configurable via dropdown
 
 ---
 
@@ -97,8 +107,8 @@ Pick **one** AI provider via `ai_provider` and fill in only its API key. The oth
 | `openai_tts_voice` | | TTS voice. Default: `alloy`. Female voices: `nova`, `shimmer`, `coral`, `sage`, `cedar`, `marin`, `cove`. |
 | **Gemini** (when `ai_provider=gemini`) | | |
 | `gemini_api_key` | ✅ | Your Google AI Studio API key from [aistudio.google.com](https://aistudio.google.com/app/apikey). |
-| `gemini_model` | | Gemini Live model. Default: `gemini-2.5-flash-preview-native-audio-dialog`. |
-| `gemini_voice` | | TTS voice. Default: `Aoede`. Options: `Aoede`, `Charon`, `Fenrir`, `Kore`, `Puck`. |
+| `gemini_model` | | Gemini Live model. Default: `gemini-2.5-flash-native-audio-latest`. |
+| `gemini_voice` | | TTS voice. Default: `Aoede`. 30 native audio voices available via dropdown (Aoede, Charon, Fenrir, Kore, Puck, Leda, Orus, Zephyr, and more). |
 
 ---
 
