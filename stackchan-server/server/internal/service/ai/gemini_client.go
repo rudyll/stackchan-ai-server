@@ -102,12 +102,18 @@ func dialGeminiSession(
 		tools := []map[string]any{}
 		if enableTools {
 			tools = append(tools, haGeminiTools()...)
+			if enableSearch {
+				// googleSearch grounding is incompatible with functionDeclarations
+				// in Gemini Live — using both causes 1011 after tool calls.
+				// HA tools take priority; search is silently skipped.
+				g.Log().Warningf(s.logCtx, "[GM] gemini_enable_search ignored: incompatible with gemini_enable_tools (Gemini limitation)")
+			}
 		} else {
 			g.Log().Infof(s.logCtx, "[GM] HA tools disabled by ai.gemini_enable_tools=false")
-		}
-		if enableSearch {
-			tools = append(tools, map[string]any{"googleSearch": map[string]any{}})
-			g.Log().Infof(s.logCtx, "[GM] Google Search enabled")
+			if enableSearch {
+				tools = append(tools, map[string]any{"googleSearch": map[string]any{}})
+				g.Log().Infof(s.logCtx, "[GM] Google Search enabled")
+			}
 		}
 		setupBody["tools"] = tools
 	}
