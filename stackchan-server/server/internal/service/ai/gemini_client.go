@@ -78,7 +78,9 @@ func dialGeminiSession(
 
 	// Setup message — single shot; must be the first frame on the socket.
 	// Wire format is camelCase per https://ai.google.dev/api/live.
-	enableTools := g.Cfg().MustGet(gctx.New(), "ai.gemini_enable_tools", true).Bool()
+	cfg := g.Cfg()
+	enableTools := cfg.MustGet(gctx.New(), "ai.gemini_enable_tools", true).Bool()
+	enableSearch := cfg.MustGet(gctx.New(), "ai.gemini_enable_search", true).Bool()
 
 	setupBody := map[string]any{
 		"model": "models/" + model,
@@ -96,10 +98,18 @@ func dialGeminiSession(
 			"parts": []map[string]any{{"text": sysPrompt}},
 		},
 	}
-	if enableTools {
-		setupBody["tools"] = haGeminiTools()
-	} else {
-		g.Log().Infof(s.logCtx, "[GM] tools disabled by ai.gemini_enable_tools=false")
+	if enableTools || enableSearch {
+		tools := []map[string]any{}
+		if enableTools {
+			tools = append(tools, haGeminiTools()...)
+		} else {
+			g.Log().Infof(s.logCtx, "[GM] HA tools disabled by ai.gemini_enable_tools=false")
+		}
+		if enableSearch {
+			tools = append(tools, map[string]any{"googleSearch": map[string]any{}})
+			g.Log().Infof(s.logCtx, "[GM] Google Search enabled")
+		}
+		setupBody["tools"] = tools
 	}
 
 	setup := map[string]any{"setup": setupBody}
