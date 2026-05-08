@@ -153,25 +153,14 @@ func (s *geminiSession) AppendAudio(pcm []int16) error {
 // CommitAudio is a no-op for Gemini — server VAD always handles end-of-speech.
 func (s *geminiSession) CommitAudio() error { return nil }
 
-// CancelResponse interrupts the current model turn. Gemini Live treats a
-// new realtimeInput audio chunk as user-initiated barge-in, but if the device
-// detects a wake word with no audio yet we emit an explicit clientContent
-// turnComplete to stop the model.
-func (s *geminiSession) CancelResponse() error {
-	// Skip if setup is not yet acknowledged — sending before setupComplete
-	// causes a 1007 (and there is nothing to cancel anyway at that point).
-	select {
-	case <-s.setupDone:
-	default:
-		return nil
-	}
-	return s.send(map[string]any{
-		"clientContent": map[string]any{
-			"turns":        []map[string]any{},
-			"turnComplete": true,
-		},
-	})
-}
+// CancelResponse is a no-op for Gemini Live.
+//
+// Gemini has no explicit cancel/interrupt API. The server VAD automatically
+// interrupts the model the moment new user audio arrives via AppendAudio.
+// Sending clientContent with an empty turns array causes a 1007 "invalid
+// argument" close, so we do nothing here and let the next audio chunk
+// handle the barge-in.
+func (s *geminiSession) CancelResponse() error { return nil }
 
 func (s *geminiSession) Close() {
 	s.conn.Close()
