@@ -28,6 +28,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gogf/gf/v2/frame/g"
@@ -57,7 +58,8 @@ type wsSession struct {
 	// A nil entry is a sentinel meaning "response ended — send tts:stop".
 	frameQueue chan []byte
 
-	writeMu sync.Mutex // serialises WebSocket writes
+	writeMu       sync.Mutex // serialises WebSocket writes
+	providerClosed int32     // atomic: 1 when OnClose triggered conn.Close()
 }
 
 // HandleWS upgrades the connection and runs a Xiaozhi v3 protocol session
@@ -110,6 +112,7 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 			// connection so run() exits and the device reconnects cleanly
 			// rather than waiting forever for a response that won't arrive.
 			g.Log().Infof(ctx, "[WS] device=%s provider closed, dropping device connection", deviceID)
+			atomic.StoreInt32(&s.providerClosed, 1)
 			s.conn.Close()
 		},
 		OnSTT: func(text string) {
@@ -238,7 +241,11 @@ func (s *wsSession) run(ctx context.Context) {
 	for {
 		msgType, data, err := s.conn.ReadMessage()
 		if err != nil {
-			g.Log().Infof(ctx, "[WS] device=%s read error: %v", s.deviceID, err)
+			// Suppress the "use of closed network connection" error that fires
+			// when OnClose intentionally calls conn.Close() — it is expected.
+			if atomic.LoadInt32(&s.providerClosed) == 0 {
+				g.Log().Infof(ctx, "[WS] device=%s read error: %v", s.deviceID, err)
+			}
 			return
 		}
 

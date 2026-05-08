@@ -331,7 +331,11 @@ func (s *geminiSession) handleToolCall(tc map[string]any) {
 		}
 		callID, _ := call["id"].(string)
 		name, _ := call["name"].(string)
-		args, _ := call["args"].(map[string]any)
+		// Gemini sometimes wraps property names in extra quotes
+		// (key "\"domain\"" instead of "domain"). Strip them before dispatch
+		// so JSON re-marshalling inside dispatchHATool finds the right fields.
+		raw, _ := call["args"].(map[string]any)
+		args := stripArgKeyQuotes(raw)
 		g.Log().Infof(s.logCtx, "[GM] tool=%s args=%v", name, args)
 
 		result, dispErr := dispatchHATool(s.ha, name, args)
@@ -349,6 +353,37 @@ func (s *geminiSession) handleToolCall(tc map[string]any) {
 	_ = s.send(map[string]any{
 		"toolResponse": map[string]any{"functionResponses": responses},
 	})
+}
+
+// stripArgKeyQuotes recursively strips surrounding double-quote characters from
+// map keys in a tool-call args tree.  Gemini Live inconsistently wraps some
+// property names in extra quotes (e.g. key `"domain"` instead of `domain`),
+// which causes json.Unmarshal in dispatchHATool to see empty struct fields.
+func stripArgKeyQuotes(v any) map[string]any {
+	m, _ := v.(map[string]any)
+	if m == nil {
+		return nil
+	}
+	return stripAnyKeyQuotes(m).(map[string]any)
+}
+
+func stripAnyKeyQuotes(v any) any {
+	switch x := v.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(x))
+		for k, val := range x {
+			out[strings.Trim(k, `"`)] = stripAnyKeyQuotes(val)
+		}
+		return out
+	case []any:
+		out := make([]any, len(x))
+		for i, e := range x {
+			out[i] = stripAnyKeyQuotes(e)
+		}
+		return out
+	default:
+		return v
+	}
 }
 
 func (s *geminiSession) startSpeakingOnce() {
