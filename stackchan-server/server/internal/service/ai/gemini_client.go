@@ -81,7 +81,7 @@ func dialGeminiSession(
 	// Wire format is camelCase per https://ai.google.dev/api/live.
 	cfg := g.Cfg()
 	enableTools := cfg.MustGet(gctx.New(), "ai.gemini_enable_tools", true).Bool()
-	enableSearch := cfg.MustGet(gctx.New(), "ai.gemini_enable_search", true).Bool()
+	enableSearch := cfg.MustGet(gctx.New(), "ai.gemini_enable_search", false).Bool()
 
 	setupBody := map[string]any{
 		"model": "models/" + model,
