@@ -160,23 +160,11 @@ func (s *geminiSession) AppendAudio(pcm []int16) error {
 	})
 }
 
-// CommitAudio signals end-of-speech to Gemini via activityEnd.
-// Without this hint, Gemini relies solely on server VAD silence detection,
-// adding ~500ms latency after the device sends listen:stop.
-// activityEnd is the correct per-turn signal (audioStreamEnd closes the whole
-// session and causes 1006 unexpected EOF).
-func (s *geminiSession) CommitAudio() error {
-	select {
-	case <-s.setupDone:
-	default:
-		return nil
-	}
-	return s.send(map[string]any{
-		"realtimeInput": map[string]any{
-			"activityEnd": map[string]any{},
-		},
-	})
-}
+// CommitAudio is a no-op for Gemini — server automatic VAD handles
+// end-of-speech detection. activityEnd is only for manual VAD mode
+// (when automaticActivityDetection is disabled), sending it with auto
+// VAD enabled causes 1011 internal errors mid-conversation.
+func (s *geminiSession) CommitAudio() error { return nil }
 
 // CancelResponse is a no-op for Gemini Live.
 //
