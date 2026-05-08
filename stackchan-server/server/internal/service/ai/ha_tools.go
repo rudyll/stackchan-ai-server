@@ -221,6 +221,14 @@ func dispatchHATool(ha *haWSClient, name string, args map[string]any) (string, e
 			return "", err
 		}
 
+		// Domains that are read-only or non-controllable — excluded from
+		// search results unless the caller explicitly filters by domain.
+		nonControllable := map[string]bool{
+			"sensor": true, "binary_sensor": true, "device_tracker": true,
+			"person": true, "zone": true, "sun": true, "weather": true,
+			"event": true, "update": true, "tag": true,
+		}
+
 		var results []map[string]any
 		for _, s := range states {
 			entityID, _ := s["entity_id"].(string)
@@ -230,6 +238,14 @@ func dispatchHATool(ha *haWSClient, name string, args map[string]any) (string, e
 			domain := strings.SplitN(entityID, ".", 2)[0]
 			areaID := entityArea[entityID]
 
+			// Skip read-only/non-controllable domains (unless domain filter set).
+			if domainFilter == "" && nonControllable[domain] {
+				continue
+			}
+			// Skip unavailable entities — they can't be controlled anyway.
+			if state == "unavailable" {
+				continue
+			}
 			if domainFilter != "" && domain != domainFilter {
 				continue
 			}
