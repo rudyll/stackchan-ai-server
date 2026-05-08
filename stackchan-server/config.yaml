@@ -1,6 +1,6 @@
 name: "StackChan AI Server"
 description: "StackChan AI server: OpenAI Realtime / Gemini Live + Home Assistant device control"
-version: "2.3.2"
+version: "2.3.3"
 slug: "stackchan_ai_server"
 init: false
 
@@ -40,7 +40,7 @@ schema:
   openai_tts_voice: list(alloy|echo|fable|onyx|nova|shimmer|ash|coral|sage|verse|cedar|marin|cove)
   gemini_api_key: str?
   gemini_model: list(gemini-2.5-flash-native-audio-latest|gemini-2.5-flash-native-audio-preview-09-2025|gemini-2.5-flash-native-audio-preview-12-2025|gemini-3.1-flash-live-preview)
-  gemini_voice: list(Aoede|Charon|Fenrir|Kore|Puck)
+  gemini_voice: list(Aoede|Charon|Fenrir|Kore|Puck|Leda|Orus|Zephyr|Achernar|Achird|Algenib|Algieba|Alnilam|Autonoe|Callirrhoe|Despina|Enceladus|Erinome|Gacrux|Iapetus|Laomedeia|Pulcherrima|Rasalgethi|Sadachbia|Sadaltager|Schedar|Sulafat|Umbriel|Vindemiatrix|Zubenelgenubi)
   gemini_enable_tools: bool
   system_prompt: str
 
