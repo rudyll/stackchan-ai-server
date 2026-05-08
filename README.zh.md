@@ -6,19 +6,29 @@
 
 ## 项目介绍
 
-**StackChan HA Add-ons** 让你的 [StackChan](https://github.com/m5stack/StackChan) 桌面机器人成为与智能家居深度集成的 AI 语音助手——无需小智账号。
+**StackChan HA Add-ons** 让你的 [StackChan](https://github.com/m5stack/StackChan) 桌面机器人成为由 GPT-4 / Gemini 驱动、深度集成 Home Assistant 的语音助手——无需小智账号，无需修改固件，无需维护意图脚本。
 
-StackChan 是基于 M5Stack CoreS3（ESP32-S3）的掌心大小机器人，出厂搭载开源的 [xiaozhi-esp32](https://github.com/78/xiaozhi-esp32) 固件，该固件原本依赖小智云提供语音识别、语言模型和语音合成服务。本插件将小智云替换为 Home Assistant 插件：语音数据可选发往 **OpenAI** 或 **Google Gemini**（任选其一）而非小智，Home Assistant 则完全运行在你的本地网络中。
+StackChan 是基于 M5Stack CoreS3（ESP32-S3）的掌心大小机器人，官方固件原本依赖小智云提供语音识别、语言模型和语音合成服务。本插件将小智云完全替换：语音发往 **OpenAI Realtime** 或 **Google Gemini Live**（任选其一），HA 设备控制通过本地 HA WebSocket API 执行，不出局域网。
 
-**设备固件无需任何修改**——插件使用设备已支持的 Xiaozhi WebSocket 协议 v3 进行通信。语音指令由 **OpenAI Realtime API** 或 **Google Gemini Live API** 处理（流式语音对话，延迟约 0.5–1.5 秒，可在插件 UI 中切换），机器人可通过语音控制任意 Home Assistant 设备。
+### 为什么不用 HA Assist？
+
+| | **StackChan AI Server** | **HA Assist** |
+|---|---|---|
+| **理解能力** | GPT-4o / Gemini 2.5——理解自然、口语化的表达 | 规则匹配——只识别预定义的短语模板 |
+| **多轮对话** | 整个会话全程保持上下文 | 无状态——每句话独立处理，无记忆 |
+| **模糊指令** | 问一个关键问题再执行（如"好热"→"在哪个房间？"→开空调） | 指令不匹配就报错或随机执行 |
+| **多设备消歧** | 列出匹配设备，询问控制哪一个或全部 | 不支持消歧 |
+| **语音质量** | 实时神经音频——自然、低延迟 | STT→LLM→TTS 管道，有明显延迟 |
+| **配置成本** | 一个 system prompt，无需写脚本 | 每个设备操作都需定义意图和脚本 |
+| **场景/脚本/自动化** | 按名称自动搜索并激活 | 需要手动编写对应意图 |
 
 **核心功能：**
 - 可选 AI 后端：**OpenAI Realtime API** 或 **Google Gemini Live API**，插件 UI 一键切换
-- 流式语音传输，端到端延迟约 0.5–1.5 秒
-- 语音控制灯光、空调、窗帘、媒体播放器及脚本
+- 全程多轮对话——同一会话内 AI 记住上下文
+- 语音控制灯光、空调、窗帘、媒体播放器、脚本、场景及自动化
 - 支持区域控制（如"把客厅所有灯关掉"）
-- 无需小智账号——语音由 OpenAI / Gemini 处理，HA 保留在本地局域网
-- 作为标准 Home Assistant 插件一键安装
+- 无需小智账号——HA 保留在本地局域网
+- 使用官方固件，无需重新编译
 
 ## 工作原理
 
@@ -55,15 +65,15 @@ StackChan AI Server（本插件，运行在 HA 的 12800 端口）
 
 ### StackChan AI Server
 
-低延迟语音对话，可选 **OpenAI Realtime API**（`gpt-realtime-1.5`）或 **Google Gemini Live API**（`gemini-2.5-flash-preview-native-audio-dialog`），在插件 UI 中切换。两种后端都支持自然语言控制 Home Assistant 设备。
+低延迟语音对话，可选 **OpenAI Realtime API**（`gpt-realtime-1.5`）或 **Google Gemini Live API**（`gemini-2.5-flash-native-audio-latest`），在插件 UI 中切换。两种后端都支持自然语言控制 Home Assistant 设备。
 
 **功能特性：**
 - AI 后端可切换：OpenAI Realtime / Gemini Live（下拉选择）
 - 约 0.5–1.5 秒响应延迟（服务端 VAD + 流式音频）
-- 语音控制 HA 设备：灯光、空调、窗帘、媒体播放器、脚本等
+- 语音控制 HA 设备：灯光、空调、窗帘、媒体播放器、脚本、场景及自动化
 - 支持区域控制（如"把客厅所有灯关掉"）
-- 同一会话内多轮对话保持上下文
-- 在插件 UI 中通过下拉菜单选择模型和语音
+- 全程多轮对话——同一会话内 AI 记住上下文
+- 13 种 OpenAI 语音 / 30 种 Gemini 原生音频语音，下拉选择
 
 ---
 
@@ -97,8 +107,8 @@ StackChan AI Server（本插件，运行在 HA 的 12800 端口）
 | `openai_tts_voice` | | TTS 语音，默认 `alloy`。女声推荐：`nova`、`shimmer`、`coral`、`sage`、`cedar`、`marin`、`cove`。 |
 | **Gemini**（当 `ai_provider=gemini`） | | |
 | `gemini_api_key` | ✅ | Google AI Studio API Key，在 [aistudio.google.com](https://aistudio.google.com/app/apikey) 获取。 |
-| `gemini_model` | | Gemini Live 模型，默认 `gemini-2.5-flash-preview-native-audio-dialog`。 |
-| `gemini_voice` | | TTS 语音，默认 `Aoede`。可选：`Aoede`、`Charon`、`Fenrir`、`Kore`、`Puck`。 |
+| `gemini_model` | | Gemini Live 模型，默认 `gemini-2.5-flash-native-audio-latest`。 |
+| `gemini_voice` | | TTS 语音，默认 `Aoede`。共 30 种原生音频语音可选（下拉菜单）。 |
 
 ---
 
