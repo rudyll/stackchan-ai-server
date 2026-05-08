@@ -109,6 +109,8 @@ StackChan AI Server（本插件，运行在 HA 的 12800 端口）
 | `gemini_api_key` | ✅ | Google AI Studio API Key，在 [aistudio.google.com](https://aistudio.google.com/app/apikey) 获取。 |
 | `gemini_model` | | Gemini Live 模型，默认 `gemini-2.5-flash-native-audio-latest`。 |
 | `gemini_voice` | | TTS 语音，默认 `Aoede`。共 30 种原生音频语音可选（下拉菜单）。 |
+| `gemini_enable_tools` | | 启用 Gemini 的 HA 设备控制工具（默认开启）。 |
+| `gemini_enable_search` | | 启用 Gemini 的 Google Search 联网搜索（默认关闭）。**⚠️ 与 `gemini_enable_tools` 互斥** — Gemini 不支持同时使用 grounding（联网搜索）和 function calling（HA 工具调用），两者同时开启会导致 1011 连接错误。如需联网搜索，请将 `gemini_enable_tools` 设为关闭。 |
 
 ---
 
