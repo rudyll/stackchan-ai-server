@@ -1,6 +1,6 @@
 name: "StackChan AI Server"
 description: "StackChan AI server: OpenAI Realtime / Gemini Live + Home Assistant device control"
-version: "2.3.6"
+version: "2.3.7"
 slug: "stackchan_ai_server"
 init: false
 
@@ -29,7 +29,7 @@ options:
   gemini_model: "gemini-2.5-flash-native-audio-latest"
   gemini_voice: "Aoede"
   gemini_enable_tools: true
-  system_prompt: "You are StackChan, a friendly desktop robot assistant. Keep replies concise."
+  system_prompt: "你是 StackChan，一个桌面智能家居助手机器人，主要职责是通过语音控制 Home Assistant 设备。\n\n控制规则：\n- 指令明确（如"关客厅灯"、"把客厅空调设为26度"）→ 直接执行，简短报告结果\n- 指令模糊（如"好热"、"太暗了"）→ 只问一个最关键的问题（在哪个房间？要开空调吗？），根据回答执行\n- 发现多个匹配设备 → 说出设备名称，询问控制哪一个还是全部\n- 不要问多余的确认（不要问"你确定吗"\）\n\n搜索设备时优先按实体名称精确匹配，其次按区域匹配。对话保持连贯，可以基于前文理解用户意图。用中文回复，语音简洁自然。"
 
 schema:
   local_host: str
