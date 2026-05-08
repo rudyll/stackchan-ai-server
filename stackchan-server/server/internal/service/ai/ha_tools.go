@@ -68,8 +68,13 @@ func haToolDefs() []map[string]any {
 			}, "entity_id"),
 		},
 		{
+			"name":        "ha_list_scenes",
+			"description": "List all activatable items in Home Assistant: scenes, scripts, and automations. Call this when the user wants to activate a scene, run a script, or trigger an automation by name. Returns entity_id, name, domain, and current state.",
+			"inputSchema": schema(map[string]any{}),
+		},
+		{
 			"name":        "ha_call_services",
-			"description": "Execute one or more Home Assistant service calls for device control: turn on/off, set brightness, adjust temperature, control covers, play media, run scripts, etc. Supports area-wide control.",
+			"description": "Execute one or more Home Assistant service calls for device control: turn on/off, set brightness, adjust temperature, control covers, play media, run scripts, activate scenes, trigger automations, etc. Supports area-wide control.",
 			"inputSchema": schema(map[string]any{
 				"calls": map[string]any{
 					"type":        "array",
@@ -276,6 +281,30 @@ func dispatchHATool(ha *haWSClient, name string, args map[string]any) (string, e
 			return "", err
 		}
 		return mustJSONStr(state), nil
+
+	case "ha_list_scenes":
+		states, err := ha.GetStates()
+		if err != nil {
+			return "", err
+		}
+		var results []map[string]any
+		for _, s := range states {
+			entityID, _ := s["entity_id"].(string)
+			domain := strings.SplitN(entityID, ".", 2)[0]
+			if domain != "scene" && domain != "script" && domain != "automation" {
+				continue
+			}
+			attrs, _ := s["attributes"].(map[string]any)
+			name, _ := attrs["friendly_name"].(string)
+			state, _ := s["state"].(string)
+			results = append(results, map[string]any{
+				"entity_id": entityID,
+				"name":      name,
+				"domain":    domain,
+				"state":     state,
+			})
+		}
+		return mustJSONStr(results), nil
 
 	case "ha_call_services":
 		// Re-marshal and parse the calls array (LLM sends it as []interface{}).

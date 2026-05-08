@@ -8,7 +8,19 @@ Home Assistant add-on repository for [StackChan](https://github.com/m5stack/Stac
 
 ### StackChan AI Server
 
-A local AI server that connects your StackChan device to OpenAI Realtime or Google Gemini Live, with built-in Home Assistant device control. No Xiaozhi cloud account required — the add-on speaks the Xiaozhi WebSocket protocol directly so the official StackChan firmware works unchanged.
+A local AI server that gives your StackChan robot **GPT-4 / Gemini-level voice intelligence with full Home Assistant control** — no Xiaozhi cloud account, no firmware modifications, no intent scripts to maintain.
+
+### Why not just use HA Assist?
+
+| | **StackChan AI Server** | **HA Assist** |
+|---|---|---|
+| **Understanding** | GPT-4o / Gemini 2.5 — understands natural, conversational speech | Rules-based intent matching — only recognises pre-defined phrases |
+| **Conversation** | Full multi-turn context across the whole session | Stateless — every utterance is independent, no memory of what was just said |
+| **Ambiguous commands** | Asks one clarifying question, then acts (e.g. "好热" → "哪个房间？" → turns on AC) | Fails or picks a random device if the command doesn't match a pattern exactly |
+| **Multiple devices** | Names the matches and asks "which one, or all?" | No disambiguation — controls all or errors out |
+| **Voice quality** | Real-time neural audio (OpenAI Realtime / Gemini Live) — natural, low-latency | TTS pipeline with noticeable STT→LLM→TTS delay |
+| **Setup** | One system prompt, no scripts | Requires defining intents and scripts per device action |
+| **Scenes / Scripts / Automations** | Searches and activates by name automatically | Only if you write a matching intent |
 
 **How it works:**
 
@@ -16,17 +28,17 @@ A local AI server that connects your StackChan device to OpenAI Realtime or Goog
 StackChan device (official firmware, unmodified)
     ↓  Xiaozhi WebSocket protocol (port 12800)
 StackChan AI Server  (this add-on, running on HA)
-    ├──▶  OpenAI Realtime API  (voice-to-voice)
+    ├──▶  OpenAI Realtime API  (voice-to-voice, GPT-4o)
     │         or
-    ├──▶  Google Gemini Live API  (voice-to-voice)
+    ├──▶  Google Gemini Live API  (voice-to-voice, Gemini 2.5)
     │
-    └──▶  Home Assistant WebSocket API  (device control)
+    └──▶  Home Assistant WebSocket API  (device control, local)
 ```
 
 1. The device connects to this server instead of the Xiaozhi cloud
-2. Voice is streamed to OpenAI or Gemini for real-time conversation
-3. When the AI wants to control a device it calls built-in HA tools (list areas, search entities, call services, get state)
-4. HA tool calls are executed locally via the HA WebSocket API
+2. Voice is streamed end-to-end to OpenAI or Gemini — no separate STT/TTS steps
+3. When the AI wants to control a device it calls built-in HA tools: list areas, search entities, list scenes/scripts/automations, call services, get state
+4. All HA calls are executed locally via the HA WebSocket API — nothing leaves your network except the AI audio stream
 
 ## Installation
 
@@ -61,7 +73,7 @@ The add-on intercepts the OTA check on port 443 and redirects the device to the 
 | `gemini_model` | Gemini Live model to use |
 | `gemini_voice` | Voice for Gemini audio output |
 | `gemini_enable_tools` | Enable HA tool calling for Gemini (disable to bisect issues) |
-| `system_prompt` | System prompt sent to the AI at the start of each session |
+| `system_prompt` | System prompt sent to the AI. Controls language, personality, and control behaviour. |
 
 ## License
 
