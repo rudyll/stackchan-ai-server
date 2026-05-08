@@ -19,7 +19,7 @@ ports_description:
 
 # User fills these in the add-on UI instead of editing config.yaml manually.
 options:
-  local_host: "10.20.20.8"
+  local_host: "192.168.1.100"
   ha_mcp_token: ""
   ai_provider: "openai"
   openai_api_key: ""

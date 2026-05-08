@@ -51,7 +51,7 @@ The add-on intercepts the OTA check on port 443 and redirects the device to the 
 
 | Option | Description |
 |--------|-------------|
-| `local_host` | LAN IP of this HA instance (e.g. `10.20.20.8`). The device uses this to connect back. |
+| `local_host` | LAN IP of this HA instance (e.g. `192.168.1.100`). The device uses this to connect back. |
 | `ha_mcp_token` | HA Long-Lived Access Token for device control. Create one in **Profile → Security → Long-Lived Access Tokens**. |
 | `ai_provider` | `openai` or `gemini` |
 | `openai_api_key` | OpenAI API key (required when provider is `openai`) |
