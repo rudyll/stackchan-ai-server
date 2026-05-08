@@ -3,156 +3,18 @@ SPDX-FileCopyrightText: 2026 M5Stack Technology CO LTD
 SPDX-License-Identifier: MIT
 */
 
+// ha_tools.go — Home Assistant tool definitions and dispatcher shared by
+// both the OpenAI Realtime and Gemini Live providers.
 package ai
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"strings"
-	"sync"
-	"time"
-
-	"github.com/gogf/gf/v2/frame/g"
-	"github.com/gogf/gf/v2/os/gctx"
-	"github.com/gorilla/websocket"
 )
 
-var bridgeCtx = gctx.New()
-
-// StartXiaozhiBridge connects to the Xiaozhi MCP relay endpoint as an MCP server,
-// exposing 7 slim HA tools. Runs in a background goroutine with auto-reconnect.
-func StartXiaozhiBridge() {
-	go func() {
-		for {
-			ctx := bridgeCtx
-			cfg := g.Cfg()
-			xiaozhiURL := cfg.MustGet(ctx, "ai.xiaozhi_mcp_url", "").String()
-			haWSURL := cfg.MustGet(ctx, "ai.ha_ws_url", "ws://homeassistant:8123/api/websocket").String()
-			haToken := cfg.MustGet(ctx, "ai.ha_mcp_token", "").String()
-
-			if xiaozhiURL == "" {
-				time.Sleep(30 * time.Second)
-				continue
-			}
-
-			if err := runBridgeSession(ctx, xiaozhiURL, haWSURL, haToken); err != nil {
-				g.Log().Warningf(ctx, "Xiaozhi MCP bridge ended: %v — reconnecting in 30s", err)
-			}
-			time.Sleep(30 * time.Second)
-		}
-	}()
-}
-
-func runBridgeSession(ctx context.Context, xiaozhiURL, haWSURL, haToken string) error {
-	ha, err := dialHAWebSocket(haWSURL, haToken)
-	if err != nil {
-		return fmt.Errorf("connect HA: %w", err)
-	}
-	defer ha.Close()
-
-	conn, _, err := websocket.DefaultDialer.DialContext(ctx, xiaozhiURL, http.Header{})
-	if err != nil {
-		return fmt.Errorf("connect Xiaozhi MCP relay: %w", err)
-	}
-	defer conn.Close()
-	g.Log().Infof(ctx, "Xiaozhi MCP bridge connected to %s", xiaozhiURL)
-
-	// No read deadline — the relay sends nothing until a device session is active.
-	// Gorilla's default ping handler already sends pong frames automatically.
-
-	// Write mutex — ping goroutine and message handler both write to conn.
-	var writeMu sync.Mutex
-	safeWrite := func(data []byte) error {
-		writeMu.Lock()
-		defer writeMu.Unlock()
-		return conn.WriteMessage(websocket.TextMessage, data)
-	}
-
-	// Send a WebSocket ping every 50 s to keep the relay from closing idle connections.
-	// (Matches the interval used by the reference ha-mcp-for-xiaozhi implementation.)
-	pingStop := make(chan struct{})
-	go func() {
-		ticker := time.NewTicker(50 * time.Second)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				writeMu.Lock()
-				_ = conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(5*time.Second))
-				writeMu.Unlock()
-			case <-pingStop:
-				return
-			}
-		}
-	}()
-	defer close(pingStop)
-
-	for {
-		_, msgBytes, err := conn.ReadMessage()
-		if err != nil {
-			return fmt.Errorf("read: %w", err)
-		}
-
-		var req struct {
-			JSONRPC string          `json:"jsonrpc"`
-			ID      any             `json:"id"`
-			Method  string          `json:"method"`
-			Params  json.RawMessage `json:"params"`
-		}
-		if err := json.Unmarshal(msgBytes, &req); err != nil {
-			continue
-		}
-
-		// Notifications (no id) — no response needed.
-		if req.ID == nil {
-			if req.Method == "notifications/initialized" {
-				g.Log().Debugf(ctx, "Xiaozhi MCP: client initialized")
-			}
-			continue
-		}
-
-		var resp []byte
-		switch req.Method {
-		case "initialize":
-			resp = buildRPCResult(req.ID, map[string]any{
-				"protocolVersion": "2024-11-05",
-				"capabilities":    map[string]any{"tools": map[string]any{}},
-				"serverInfo":      map[string]any{"name": "ha-bridge", "version": "1.0"},
-			})
-		case "tools/list":
-			resp = buildRPCResult(req.ID, map[string]any{"tools": haToolDefs()})
-		case "tools/call":
-			var p struct {
-				Name      string         `json:"name"`
-				Arguments map[string]any `json:"arguments"`
-			}
-			if err := json.Unmarshal(req.Params, &p); err != nil {
-				resp = buildRPCError(req.ID, "invalid params")
-			} else {
-				content, toolErr := dispatchHATool(ha, p.Name, p.Arguments)
-				if toolErr != nil {
-					resp = buildRPCResult(req.ID, map[string]any{
-						"content": []any{toolErrorContent(toolErr.Error())},
-						"isError": true,
-					})
-				} else {
-					resp = buildRPCResult(req.ID, map[string]any{
-						"content": []any{toolTextContent(content)},
-					})
-				}
-			}
-		default:
-			resp = buildRPCError(req.ID, fmt.Sprintf("unknown method: %s", req.Method))
-		}
-
-		if err := safeWrite(resp); err != nil {
-			return fmt.Errorf("write: %w", err)
-		}
-	}
-}
-
+// haToolDefs returns the canonical HA tool definitions in JSON-Schema form.
+// Used by the OpenAI provider directly and by haGeminiTools() for Gemini.
 func haToolDefs() []map[string]any {
 	str := func(desc string) map[string]any {
 		return map[string]any{"type": "string", "description": desc}
@@ -298,6 +160,8 @@ func sanitizeGeminiSchema(v any) any {
 	}
 }
 
+// dispatchHATool executes a named HA tool call and returns a result string.
+// Called by both the OpenAI and Gemini providers.
 func dispatchHATool(ha *haWSClient, name string, args map[string]any) (string, error) {
 	strVal := func(key string) string {
 		v, _ := args[key].(string)
@@ -465,117 +329,12 @@ func dispatchHATool(ha *haWSClient, name string, args map[string]any) (string, e
 		}
 		return strings.Join(results, "\n"), nil
 
-	// Keep legacy single-call tools for backward compatibility with MCP bridge.
-	case "ha_turn_on":
-		entityID := strVal("entity_id")
-		if entityID == "" {
-			return "", fmt.Errorf("entity_id required")
-		}
-		_, err := ha.CallService("homeassistant", "turn_on", entityID, nil)
-		if err != nil {
-			return "", err
-		}
-		return "OK", nil
-
-	case "ha_turn_off":
-		entityID := strVal("entity_id")
-		if entityID == "" {
-			return "", fmt.Errorf("entity_id required")
-		}
-		_, err := ha.CallService("homeassistant", "turn_off", entityID, nil)
-		if err != nil {
-			return "", err
-		}
-		return "OK", nil
-
-	case "ha_set_value":
-		entityID := strVal("entity_id")
-		value, ok := args["value"]
-		if entityID == "" || !ok {
-			return "", fmt.Errorf("entity_id and value required")
-		}
-		domain := strings.SplitN(entityID, ".", 2)[0]
-		var svcDomain, svcName string
-		data := map[string]any{}
-		switch domain {
-		case "light":
-			svcDomain, svcName = "light", "turn_on"
-			data["brightness"] = value
-		case "climate":
-			svcDomain, svcName = "climate", "set_temperature"
-			data["temperature"] = value
-		case "media_player":
-			svcDomain, svcName = "media_player", "volume_set"
-			data["volume_level"] = value
-		case "cover":
-			svcDomain, svcName = "cover", "set_cover_position"
-			data["position"] = value
-		case "fan":
-			svcDomain, svcName = "fan", "set_percentage"
-			data["percentage"] = value
-		default:
-			return "", fmt.Errorf("ha_set_value: unsupported domain %s", domain)
-		}
-		_, err := ha.CallService(svcDomain, svcName, entityID, data)
-		if err != nil {
-			return "", err
-		}
-		return "OK", nil
-
-	case "ha_call_service":
-		domain := strVal("domain")
-		service := strVal("service")
-		if domain == "" || service == "" {
-			return "", fmt.Errorf("domain and service required")
-		}
-		entityID := strVal("entity_id")
-		var data map[string]any
-		if rawData := strVal("data"); rawData != "" {
-			_ = json.Unmarshal([]byte(rawData), &data)
-		}
-		result, err := ha.CallService(domain, service, entityID, data)
-		if err != nil {
-			return "", err
-		}
-		if result == nil {
-			return "OK", nil
-		}
-		return string(result), nil
-
 	default:
 		return "", fmt.Errorf("unknown tool: %s", name)
 	}
 }
 
-func buildRPCResult(id any, result any) []byte {
-	return mustJSON(map[string]any{
-		"jsonrpc": "2.0",
-		"id":      id,
-		"result":  result,
-	})
-}
-
-func buildRPCError(id any, msg string) []byte {
-	return mustJSON(map[string]any{
-		"jsonrpc": "2.0",
-		"id":      id,
-		"error":   map[string]any{"code": -32600, "message": msg},
-	})
-}
-
-func toolTextContent(text string) map[string]any {
-	return map[string]any{"type": "text", "text": text}
-}
-
-func toolErrorContent(errMsg string) map[string]any {
-	return map[string]any{"type": "text", "text": errMsg}
-}
-
-func mustJSON(v any) []byte {
-	b, _ := json.Marshal(v)
-	return b
-}
-
 func mustJSONStr(v any) string {
-	return string(mustJSON(v))
+	b, _ := json.Marshal(v)
+	return string(b)
 }
