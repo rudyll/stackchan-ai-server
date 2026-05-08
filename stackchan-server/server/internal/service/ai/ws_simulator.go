@@ -105,6 +105,13 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 	// Wire provider callbacks → device WebSocket writes. Same callbacks for any
 	// backend (OpenAI Realtime, Gemini Live, ...) — see provider.go.
 	cb := RealtimeCallbacks{
+		OnClose: func() {
+			// Provider session ended (error or normal). Close the device
+			// connection so run() exits and the device reconnects cleanly
+			// rather than waiting forever for a response that won't arrive.
+			g.Log().Infof(ctx, "[WS] device=%s provider closed, dropping device connection", deviceID)
+			s.conn.Close()
+		},
 		OnSTT: func(text string) {
 			_ = s.sendJSON(map[string]any{"type": "stt", "text": text})
 		},

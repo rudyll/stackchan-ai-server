@@ -41,6 +41,7 @@ type RealtimeCallbacks struct {
 	OnAudio func([]int16) // 24kHz PCM chunk to play back to the device
 	OnStart func()        // model began speaking
 	OnStop  func()        // model finished speaking
+	OnClose func()        // provider connection ended (any reason — error or normal)
 }
 
 // dialProvider selects the configured backend (openai | gemini) and opens a

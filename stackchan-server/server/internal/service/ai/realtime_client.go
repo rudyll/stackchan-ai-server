@@ -147,6 +147,11 @@ func (s *openaiRealtimeSession) send(v any) error {
 }
 
 func (s *openaiRealtimeSession) readLoop(ctx context.Context) {
+	defer func() {
+		if s.cb.OnClose != nil {
+			s.cb.OnClose()
+		}
+	}()
 	var textBuf strings.Builder
 
 	for {
