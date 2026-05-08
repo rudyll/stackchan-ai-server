@@ -41,7 +41,7 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
-const frameQueueSize = 200 // ~12 seconds of audio headroom
+const frameQueueSize = 600 // ~36 seconds of audio headroom
 
 type wsSession struct {
 	conn     *websocket.Conn
@@ -149,13 +149,23 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 			_ = s.sendJSON(map[string]any{"type": "tts", "state": "start"})
 		},
 
-		OnStop: func() { // push nil sentinel; pacingLoop sends tts:stop after queue drains
+		OnStop: func() { // flush encoder tail, push nil sentinel; pacingLoop sends tts:stop
 			g.Log().Infof(ctx, "[WS] device=%s TTS response done, draining queue", deviceID)
 			s.mu.Lock()
+			enc := s.opusEnc
 			s.opusEnc = nil
 			s.mu.Unlock()
+			// Flush remaining PCM that didn't fill a complete 60ms frame.
+			if enc != nil {
+				for _, frame := range enc.Flush() {
+					select {
+					case s.frameQueue <- frame:
+					default:
+					}
+				}
+			}
 			select {
-			case s.frameQueue <- nil: // sentinel
+			case s.frameQueue <- nil: // sentinel: pacingLoop sends tts:stop after draining
 			default:
 			}
 		},

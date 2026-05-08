@@ -174,7 +174,10 @@ func (s *geminiSession) send(v any) error {
 }
 
 // readLoop dispatches Gemini server messages onto the generic callbacks.
+// The deferred endSpeaking ensures OnStop (→ tts:stop to device) fires even
+// when the connection closes unexpectedly (TLS error, go_away, 1007, etc.).
 func (s *geminiSession) readLoop(ctx context.Context) {
+	defer s.endSpeaking()
 	for {
 		_, raw, err := s.conn.ReadMessage()
 		if err != nil {

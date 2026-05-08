@@ -91,6 +91,26 @@ func newOpusStreamEncoder() (*opusStreamEncoder, error) {
 	return &opusStreamEncoder{enc: enc}, nil
 }
 
+// Flush encodes any remaining buffered samples as a zero-padded 60ms frame.
+// Call this before discarding the encoder so the audio tail is not silently dropped.
+func (e *opusStreamEncoder) Flush() [][]byte {
+	if len(e.buf) == 0 {
+		return nil
+	}
+	// Pad the tail with silence to reach a full 60ms frame.
+	padded := make([]int16, serverFrameSamples)
+	copy(padded, e.buf)
+	e.buf = e.buf[:0]
+	outBuf := make([]byte, 4096)
+	n, err := e.enc.Encode(padded, outBuf)
+	if err != nil {
+		return nil
+	}
+	frame := make([]byte, n)
+	copy(frame, outBuf[:n])
+	return [][]byte{frame}
+}
+
 // Encode appends pcm to the internal buffer and returns any complete 60ms frames ready to send.
 func (e *opusStreamEncoder) Encode(pcm []int16) ([][]byte, error) {
 	e.buf = append(e.buf, pcm...)
