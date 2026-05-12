@@ -365,11 +365,21 @@ func dispatchHATool(ha *haWSClient, name string, args map[string]any) (string, e
 			if err != nil {
 				results = append(results, fmt.Sprintf("%s.%s: error: %v", call.Domain, call.Service, err))
 			} else {
+				// Use friendly_name so the model says "已关闭书房落地灯" instead
+				// of reading the pinyin entity_id aloud.
 				label := call.EntityID
-				if label == "" {
-					label = "area:" + call.AreaID
+				if call.EntityID != "" {
+					if st, e := ha.GetState(call.EntityID); e == nil {
+						if attrs, ok := st["attributes"].(map[string]any); ok {
+							if fn, ok := attrs["friendly_name"].(string); ok && fn != "" {
+								label = fn
+							}
+						}
+					}
+				} else if call.AreaID != "" {
+					label = "区域:" + call.AreaID
 				}
-				results = append(results, fmt.Sprintf("%s.%s %s: OK", call.Domain, call.Service, label))
+				results = append(results, fmt.Sprintf("%s: OK", label))
 			}
 		}
 		return strings.Join(results, "\n"), nil
