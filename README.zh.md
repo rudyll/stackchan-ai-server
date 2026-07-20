@@ -57,7 +57,7 @@ StackChan AI Server（本插件，运行在 HA 的 12800 端口）
                          OPUS 编码 → 设备扬声器
 ```
 
-无需小智账号，除你选择的后端（OpenAI 或 Google）外无其他云端依赖。
+无需小智账号，云端依赖取决于你实际选择的 provider 或兼容端点。
 
 ---
 
@@ -120,6 +120,14 @@ StackChan AI Server（本插件，运行在 HA 的 12800 端口）
 | 通用兼容端点 | | 选择 `openai_compatible`，填写 `compatible_base_url`、`compatible_api_key` 和模型字段。 |
 
 每次语音完成后，插件日志会输出 `[LAT]`，包含从设备 `listen:stop` 到 STT、LLM、TTS 开始和首个音频包的毫秒数，可据此比较小智、Realtime 和兼容管线的实际差异。
+
+### Provider 选择与中国内地延迟
+
+`openai` 和 `gemini` 是原生的双向实时音频接入，分别需要 OpenAI Realtime 或 Gemini Live API Key。在中国内地访问其海外端点时，跨境网络可能增加延迟或造成音频 chunk 间歇到达；实际体验取决于网络路由，不只取决于模型。
+
+`tokenhub`、`openrouter` 和 `openai_compatible` 使用逐句 HTTP 管线。当前实现要求同一个兼容端点与 API Key 同时支持 `/v1/audio/transcriptions`、`/v1/chat/completions`、`/v1/audio/speech` 三个 OpenAI 风格端点。仅提供文本 Chat 的 TokenHub 账号不能单独组成完整语音链路；OpenRouter 的路由和“OpenAI-compatible”标签也不保证中国内地低延迟。
+
+想优先获得小智那种顺畅体验，较合理的方向是“本地或国内 STT + 国内 LLM + 本地或国内 TTS”。目前 add-on 还没有把 STT、LLM、TTS 拆成三个独立可选的 provider；兼容模式暂时要求一个端点提供完整链路。
 
 ### 连续播放与多设备 Profile
 

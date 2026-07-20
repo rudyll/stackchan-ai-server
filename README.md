@@ -57,7 +57,7 @@ Device OPUS (16kHz) → PCM → OpenAI Realtime / Gemini Live
                          OPUS encode → Device speaker
 ```
 
-No Xiaozhi account needed. The only cloud dependency is your chosen provider (OpenAI or Google).
+No Xiaozhi account is needed. The cloud dependency is whichever provider or compatible endpoint you configure.
 
 ---
 
@@ -120,6 +120,14 @@ Pick **one** AI provider via `ai_provider` and fill in only its API key. The oth
 | Generic compatible endpoint | | Select `openai_compatible`; set `compatible_base_url`, `compatible_api_key`, and compatible model fields. |
 
 The add-on logs `[LAT]` timings from device `listen:stop` to STT, LLM, TTS start, and first audio. Use these real measurements to compare providers.
+
+### Provider choice and mainland-China latency
+
+`openai` and `gemini` are native bidirectional realtime audio integrations. They require the respective OpenAI Realtime or Gemini Live API key. From mainland China, their overseas endpoints can add latency or intermittent audio delivery; real performance depends on the network route, not only the selected model.
+
+`tokenhub`, `openrouter`, and `openai_compatible` use the turn-based HTTP pipeline. In the current implementation, the selected compatible endpoint and API key must support all three OpenAI-style endpoints: `/v1/audio/transcriptions`, `/v1/chat/completions`, and `/v1/audio/speech`. A TokenHub account that supplies only text chat cannot by itself provide the complete voice path. OpenRouter routing and an OpenAI-compatible label likewise do not guarantee low mainland-China latency.
+
+For the best chance of a smooth mainland-China deployment, use local or domestic STT and TTS with a domestic LLM. Separating STT, LLM, and TTS into independently selectable providers is not implemented yet; the current compatible mode expects one endpoint to provide the complete pipeline.
 
 ### Playback buffering and device profiles
 

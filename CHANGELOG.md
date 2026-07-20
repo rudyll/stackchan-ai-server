@@ -4,6 +4,7 @@
 
 - Added configurable initial-audio prebuffering to reduce audible playback gaps from uneven upstream audio delivery.
 - Added `device_profiles`: Device-Id keyed overrides for provider, prompt, model, and voice.
+- Clarified native realtime versus compatible HTTP pipeline requirements and mainland-China latency tradeoffs in both READMEs.
 
 ## 2.4.0
 
