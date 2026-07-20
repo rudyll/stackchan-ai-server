@@ -6,7 +6,7 @@ English | [中文](README.zh.md)
 
 ## About
 
-**StackChan HA Add-ons** turns your [StackChan](https://github.com/m5stack/StackChan) desktop robot into a GPT-4 / Gemini-powered voice assistant with full Home Assistant control — no Xiaozhi cloud account, no firmware modifications, no intent scripts to maintain.
+**StackChan HA Add-ons** turns your [StackChan](https://github.com/m5stack/StackChan) desktop robot into a configurable realtime or OpenAI-compatible voice assistant with full Home Assistant control — no Xiaozhi cloud account, no firmware modifications, no intent scripts to maintain.
 
 StackChan is a palm-sized robot built on the M5Stack CoreS3 (ESP32-S3). The official firmware normally relies on the Xiaozhi cloud for speech recognition, language model, and TTS. This add-on replaces that entirely: your voice goes to **OpenAI Realtime** or **Google Gemini Live** (your choice), and Home Assistant device control happens locally over the HA WebSocket API.
 
@@ -23,7 +23,7 @@ StackChan is a palm-sized robot built on the M5Stack CoreS3 (ESP32-S3). The offi
 | **Scenes / Scripts / Automations** | Searches and activates by name automatically | Only if you write a matching intent |
 
 **Key features:**
-- Choice of provider: **OpenAI Realtime API** or **Google Gemini Live API**, switchable in the add-on UI
+- Choice of provider: **OpenAI Realtime API**, **Google Gemini Live API**, or an OpenAI-compatible STT → LLM → TTS pipeline (TokenHub, OpenRouter, or a compatible endpoint)
 - Full multi-turn conversation — the AI remembers context across utterances within a session
 - Controls lights, climate, covers, media players, scripts, scenes and automations by voice
 - Area-based control ("turn off all lights in the living room")
@@ -99,7 +99,7 @@ Pick **one** AI provider via `ai_provider` and fill in only its API key. The oth
 |--------|----------|-------------|
 | `local_host` | ✅ | LAN IP of your Home Assistant instance (e.g. `192.168.1.100`). The device uses this to connect. |
 | `ha_mcp_token` | ✅ | HA Long-Lived Access Token. Create one in **Profile → Security → Long-Lived Access Tokens**. |
-| `ai_provider` | ✅ | `openai` (default) or `gemini`. Selects which backend handles speech + LLM + TTS. |
+| `ai_provider` | ✅ | `openai` (default), `gemini`, `tokenhub`, `openrouter`, or `openai_compatible`. |
 | `system_prompt` | | Custom personality/instructions for the assistant. |
 | **OpenAI** (when `ai_provider=openai`) | | |
 | `openai_api_key` | ✅ | Your OpenAI API key from [platform.openai.com](https://platform.openai.com). |
@@ -111,6 +111,36 @@ Pick **one** AI provider via `ai_provider` and fill in only its API key. The oth
 | `gemini_voice` | | TTS voice. Default: `Aoede`. 30 native audio voices available via dropdown (Aoede, Charon, Fenrir, Kore, Puck, Leda, Orus, Zephyr, and more). |
 | `gemini_enable_tools` | | Enable HA device control tools for Gemini. Default: on. |
 | `gemini_enable_search` | | Enable Google Search grounding for Gemini. Default: off. **⚠️ Mutually exclusive with `gemini_enable_tools`** — Gemini does not allow grounding and function calling simultaneously. Enabling both causes 1011 connection errors. To use web search, set `gemini_enable_tools=false`. |
+| **Compatible pipeline** | | For `tokenhub`, `openrouter`, and `openai_compatible`: a turn-based STT → Chat Completions → TTS path, not OpenAI Realtime WebSocket. |
+| `compatible_model` | ✅ | Chat Completions model name. |
+| `compatible_stt_model` / `compatible_tts_model` | ✅ | Model names supported by the endpoint's transcription and speech endpoints. |
+| `compatible_tts_voice` | | TTS voice, default `alloy`. |
+| TokenHub | | Select `tokenhub`; set `tokenhub_base_url`, `tokenhub_api_key`, plus compatible model fields. |
+| OpenRouter | | Select `openrouter`; set `openrouter_api_key`, plus compatible model fields. The base URL is set automatically. |
+| Generic compatible endpoint | | Select `openai_compatible`; set `compatible_base_url`, `compatible_api_key`, and compatible model fields. |
+
+The add-on logs `[LAT]` timings from device `listen:stop` to STT, LLM, TTS start, and first audio. Use these real measurements to compare providers.
+
+### Playback buffering and device profiles
+
+`audio_prebuffer_ms` defaults to `300`: it accumulates initial audio before playback so uneven upstream audio chunks do not become audible gaps. `audio_prebuffer_max_wait_ms` defaults to `900` and caps the wait. Try `480 / 1200` for unstable networks or `120 / 500` for faster first speech.
+
+`device_profiles` is a JSON object keyed by WebSocket `Device-Id`. Its fields override the global provider, prompt, model, and voice settings, while API keys remain global. Example:
+
+```json
+{
+  "AA:BB:CC:DD:EE:FF": {
+    "system_prompt": "You are the living-room StackChan. Reply briefly.",
+    "openai_tts_voice": "coral"
+  }
+}
+```
+
+Supported overrides: `provider`, `system_prompt`, `openai_realtime_model`, `openai_tts_voice`, `gemini_model`, `gemini_voice`, `compatible_model`, `compatible_stt_model`, `compatible_tts_model`, and `compatible_tts_voice`.
+
+### Wake word, standby, and power
+
+Wake-word detection and always-listening behaviour belong to the StackChan firmware. This add-on only receives audio after the firmware emits `listen:detect/start/stop`, and does not currently control a custom wake word. For less power draw and fewer accidental activations, use touch/screen activation; a firmware variant could also add an idle timeout and a 15–30 second conversation window after a wake event.
 
 ---
 
