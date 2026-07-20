@@ -20,11 +20,16 @@ import (
 )
 
 type compatibleConfig struct {
-	BaseURL, APIKey, Model, STTModel, TTSModel, Voice, Prompt string
+	STTBaseURL, STTAPIKey, STTModel        string
+	LLMBaseURL, LLMAPIKey, LLMModel        string
+	TTSBaseURL, TTSAPIKey, TTSModel, Voice string
+	Prompt                                 string
 }
 
 type compatibleSession struct {
-	client     *openAIClient
+	sttClient  *openAIClient
+	llmClient  *openAIClient
+	ttsClient  *openAIClient
 	ha         *haWSClient
 	cb         RealtimeCallbacks
 	ctx        context.Context
@@ -37,13 +42,21 @@ type compatibleSession struct {
 }
 
 func dialCompatibleSession(ctx context.Context, cfg compatibleConfig, ha *haWSClient, cb RealtimeCallbacks) (RealtimeSession, error) {
-	if cfg.Model == "" {
-		return nil, fmt.Errorf("ai.compatible_model is required for OpenAI-compatible providers")
+	if cfg.STTBaseURL == "" || cfg.STTAPIKey == "" || cfg.STTModel == "" {
+		return nil, fmt.Errorf("STT base URL, API key, and model are required")
+	}
+	if cfg.LLMBaseURL == "" || cfg.LLMAPIKey == "" || cfg.LLMModel == "" {
+		return nil, fmt.Errorf("LLM base URL, API key, and model are required")
+	}
+	if cfg.TTSBaseURL == "" || cfg.TTSAPIKey == "" || cfg.TTSModel == "" {
+		return nil, fmt.Errorf("TTS base URL, API key, and model are required")
 	}
 	childCtx, cancel := context.WithCancel(ctx)
 	return &compatibleSession{
-		client: newOpenAIClient(cfg.BaseURL, cfg.APIKey, cfg.Model, cfg.STTModel, cfg.TTSModel, cfg.Voice, cfg.Prompt),
-		ha:     ha, cb: cb, ctx: childCtx, cancel: cancel,
+		sttClient: newOpenAIClient(cfg.STTBaseURL, cfg.STTAPIKey, "", cfg.STTModel, "", "", ""),
+		llmClient: newOpenAIClient(cfg.LLMBaseURL, cfg.LLMAPIKey, cfg.LLMModel, "", "", "", cfg.Prompt),
+		ttsClient: newOpenAIClient(cfg.TTSBaseURL, cfg.TTSAPIKey, "", "", cfg.TTSModel, cfg.Voice, ""),
+		ha:        ha, cb: cb, ctx: childCtx, cancel: cancel,
 	}, nil
 }
 
@@ -76,7 +89,7 @@ func (s *compatibleSession) CommitAudio() error {
 }
 
 func (s *compatibleSession) completeTurn(ctx context.Context, pcm []int16) {
-	text, err := s.client.Transcribe(ctx, pcmToWAV(pcm, 16000))
+	text, err := s.sttClient.Transcribe(ctx, pcmToWAV(pcm, 16000))
 	if err != nil {
 		g.Log().Warningf(gctx.New(), "[COMPAT] transcription: %v", err)
 		return
@@ -92,7 +105,7 @@ func (s *compatibleSession) completeTurn(ctx context.Context, pcm []int16) {
 	history := append([]chatMessage(nil), s.history...)
 	history = append(history, chatMessage{Role: "user", Content: text})
 	s.mu.Unlock()
-	reply, err := s.client.Chat(ctx, history, s.ha)
+	reply, err := s.llmClient.Chat(ctx, history, s.ha)
 	if err != nil {
 		g.Log().Warningf(gctx.New(), "[COMPAT] chat: %v", err)
 		return
@@ -106,7 +119,7 @@ func (s *compatibleSession) completeTurn(ctx context.Context, pcm []int16) {
 	if s.cb.OnStart != nil {
 		s.cb.OnStart()
 	}
-	pcmReply, err := s.client.Speak(ctx, reply)
+	pcmReply, err := s.ttsClient.Speak(ctx, reply)
 	if err != nil {
 		g.Log().Warningf(gctx.New(), "[COMPAT] TTS: %v", err)
 	} else if len(pcmReply) > 0 && s.cb.OnAudio != nil {

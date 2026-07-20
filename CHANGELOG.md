@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.6.0
+
+- Added independent OpenAI-compatible STT, LLM, and TTS endpoint, API key, model, and voice settings.
+- Preserved the existing `compatible_*` settings as fallbacks for single-endpoint configurations.
+
 ## 2.5.0
 
 - Added configurable initial-audio prebuffering to reduce audible playback gaps from uneven upstream audio delivery.

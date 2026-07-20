@@ -8,7 +8,7 @@
 
 **StackChan HA Add-ons** 让你的 [StackChan](https://github.com/m5stack/StackChan) 桌面机器人成为由 GPT-4 / Gemini 驱动、深度集成 Home Assistant 的语音助手——无需小智账号，无需修改固件，无需维护意图脚本。
 
-StackChan 是基于 M5Stack CoreS3（ESP32-S3）的掌心大小机器人，官方固件原本依赖小智云提供语音识别、语言模型和语音合成服务。本插件将小智云完全替换：语音发往 **OpenAI Realtime** 或 **Google Gemini Live**（任选其一），HA 设备控制通过本地 HA WebSocket API 执行，不出局域网。
+StackChan 是基于 M5Stack CoreS3（ESP32-S3）的掌心大小机器人，官方固件原本依赖小智云提供语音识别、语言模型和语音合成服务。本插件将小智云完全替换：可选择原生实时 provider，或分别配置 OpenAI-compatible 的 STT、LLM、TTS；HA 设备控制通过本地 HA WebSocket API 执行，不出局域网。
 
 ### 为什么不用 HA Assist？
 
@@ -112,9 +112,10 @@ StackChan AI Server（本插件，运行在 HA 的 12800 端口）
 | `gemini_enable_tools` | | 启用 Gemini 的 HA 设备控制工具（默认开启）。 |
 | `gemini_enable_search` | | 启用 Gemini 的 Google Search 联网搜索（默认关闭）。**⚠️ 与 `gemini_enable_tools` 互斥** — Gemini 不支持同时使用 grounding（联网搜索）和 function calling（HA 工具调用），两者同时开启会导致 1011 连接错误。如需联网搜索，请将 `gemini_enable_tools` 设为关闭。 |
 | **OpenAI-compatible 管线**（当 `ai_provider=tokenhub`、`openrouter` 或 `openai_compatible`） | | 这是逐句的 STT → LLM → TTS 管线，不是 OpenAI Realtime WebSocket；延迟应以插件 `[LAT]` 日志实测为准。 |
-| `compatible_model` | ✅ | Chat Completions 模型名。 |
-| `compatible_stt_model` / `compatible_tts_model` | ✅ | 端点所支持的转写和语音合成模型名。三个服务必须同时支持这些端点，或使用一个兼容网关统一提供。 |
-| `compatible_tts_voice` | | TTS 声音，默认 `alloy`。 |
+| `stt_*` | | 可选的独立 STT Base URL、API Key 和模型。 |
+| `llm_*` | | 可选的独立 LLM Base URL、API Key 和模型。 |
+| `tts_*` | | 可选的独立 TTS Base URL、API Key、模型和音色。 |
+| `compatible_*` | | 三段均未单独填写时的向后兼容回退值。 |
 | TokenHub | | 选择 `tokenhub`，填写 `tokenhub_base_url`、`tokenhub_api_key` 与上述 compatible 模型字段。 |
 | OpenRouter | | 选择 `openrouter`，填写 `openrouter_api_key` 与上述 compatible 模型字段；Base URL 自动使用 `https://openrouter.ai/api/v1`。 |
 | 通用兼容端点 | | 选择 `openai_compatible`，填写 `compatible_base_url`、`compatible_api_key` 和模型字段。 |
@@ -125,9 +126,9 @@ StackChan AI Server（本插件，运行在 HA 的 12800 端口）
 
 `openai` 和 `gemini` 是原生的双向实时音频接入，分别需要 OpenAI Realtime 或 Gemini Live API Key。在中国内地访问其海外端点时，跨境网络可能增加延迟或造成音频 chunk 间歇到达；实际体验取决于网络路由，不只取决于模型。
 
-`tokenhub`、`openrouter` 和 `openai_compatible` 使用逐句 HTTP 管线。当前实现要求同一个兼容端点与 API Key 同时支持 `/v1/audio/transcriptions`、`/v1/chat/completions`、`/v1/audio/speech` 三个 OpenAI 风格端点。仅提供文本 Chat 的 TokenHub 账号不能单独组成完整语音链路；OpenRouter 的路由和“OpenAI-compatible”标签也不保证中国内地低延迟。
+`tokenhub`、`openrouter` 和 `openai_compatible` 使用逐句 HTTP 管线。现在可分别配置 `stt_*`、`llm_*`、`tts_*` 来混用提供者；每段端点须分别支持 `/v1/audio/transcriptions`、`/v1/chat/completions` 或 `/v1/audio/speech`。仅提供文本 Chat 的 TokenHub 账号可承担 LLM 段，但还需要单独配置 STT 与 TTS；OpenRouter 的路由和“OpenAI-compatible”标签也不保证中国内地低延迟。
 
-想优先获得小智那种顺畅体验，较合理的方向是“本地或国内 STT + 国内 LLM + 本地或国内 TTS”。目前 add-on 还没有把 STT、LLM、TTS 拆成三个独立可选的 provider；兼容模式暂时要求一个端点提供完整链路。
+想优先获得小智那种顺畅体验，较合理的方向是“本地或国内 STT + 国内 LLM + 本地或国内 TTS”。现在已可通过独立三段设置实现这种组合；只有某段留空时，才回退使用旧 `compatible_*` 端点。
 
 ### 连续播放与多设备 Profile
 

@@ -8,7 +8,7 @@ English | [中文](README.zh.md)
 
 **StackChan HA Add-ons** turns your [StackChan](https://github.com/m5stack/StackChan) desktop robot into a configurable realtime or OpenAI-compatible voice assistant with full Home Assistant control — no Xiaozhi cloud account, no firmware modifications, no intent scripts to maintain.
 
-StackChan is a palm-sized robot built on the M5Stack CoreS3 (ESP32-S3). The official firmware normally relies on the Xiaozhi cloud for speech recognition, language model, and TTS. This add-on replaces that entirely: your voice goes to **OpenAI Realtime** or **Google Gemini Live** (your choice), and Home Assistant device control happens locally over the HA WebSocket API.
+StackChan is a palm-sized robot built on the M5Stack CoreS3 (ESP32-S3). The official firmware normally relies on the Xiaozhi cloud for speech recognition, language model, and TTS. This add-on replaces that entirely: choose a native realtime provider, or configure independent OpenAI-compatible STT, LLM, and TTS stages; Home Assistant device control happens locally over the HA WebSocket API.
 
 ### Why not just use HA Assist?
 
@@ -112,9 +112,10 @@ Pick **one** AI provider via `ai_provider` and fill in only its API key. The oth
 | `gemini_enable_tools` | | Enable HA device control tools for Gemini. Default: on. |
 | `gemini_enable_search` | | Enable Google Search grounding for Gemini. Default: off. **⚠️ Mutually exclusive with `gemini_enable_tools`** — Gemini does not allow grounding and function calling simultaneously. Enabling both causes 1011 connection errors. To use web search, set `gemini_enable_tools=false`. |
 | **Compatible pipeline** | | For `tokenhub`, `openrouter`, and `openai_compatible`: a turn-based STT → Chat Completions → TTS path, not OpenAI Realtime WebSocket. |
-| `compatible_model` | ✅ | Chat Completions model name. |
-| `compatible_stt_model` / `compatible_tts_model` | ✅ | Model names supported by the endpoint's transcription and speech endpoints. |
-| `compatible_tts_voice` | | TTS voice, default `alloy`. |
+| `stt_*` | | Optional independent STT Base URL, API Key, and model. |
+| `llm_*` | | Optional independent LLM Base URL, API Key, and model. |
+| `tts_*` | | Optional independent TTS Base URL, API Key, model, and voice. |
+| `compatible_*` | | Backward-compatible fallback values for all three stages when their stage-specific values are blank. |
 | TokenHub | | Select `tokenhub`; set `tokenhub_base_url`, `tokenhub_api_key`, plus compatible model fields. |
 | OpenRouter | | Select `openrouter`; set `openrouter_api_key`, plus compatible model fields. The base URL is set automatically. |
 | Generic compatible endpoint | | Select `openai_compatible`; set `compatible_base_url`, `compatible_api_key`, and compatible model fields. |
@@ -125,9 +126,9 @@ The add-on logs `[LAT]` timings from device `listen:stop` to STT, LLM, TTS start
 
 `openai` and `gemini` are native bidirectional realtime audio integrations. They require the respective OpenAI Realtime or Gemini Live API key. From mainland China, their overseas endpoints can add latency or intermittent audio delivery; real performance depends on the network route, not only the selected model.
 
-`tokenhub`, `openrouter`, and `openai_compatible` use the turn-based HTTP pipeline. In the current implementation, the selected compatible endpoint and API key must support all three OpenAI-style endpoints: `/v1/audio/transcriptions`, `/v1/chat/completions`, and `/v1/audio/speech`. A TokenHub account that supplies only text chat cannot by itself provide the complete voice path. OpenRouter routing and an OpenAI-compatible label likewise do not guarantee low mainland-China latency.
+`tokenhub`, `openrouter`, and `openai_compatible` use the turn-based HTTP pipeline. Configure `stt_*`, `llm_*`, and `tts_*` separately to mix providers. Each stage's endpoint must support its matching OpenAI-style endpoint: `/v1/audio/transcriptions`, `/v1/chat/completions`, or `/v1/audio/speech`. A TokenHub account that supplies only text chat is suitable for the LLM stage, but needs separate STT and TTS providers. OpenRouter routing and an OpenAI-compatible label likewise do not guarantee low mainland-China latency.
 
-For the best chance of a smooth mainland-China deployment, use local or domestic STT and TTS with a domestic LLM. Separating STT, LLM, and TTS into independently selectable providers is not implemented yet; the current compatible mode expects one endpoint to provide the complete pipeline.
+For the best chance of a smooth mainland-China deployment, use local or domestic STT and TTS with a domestic LLM. The independent stage settings support this combination; leave a stage blank only when the legacy `compatible_*` endpoint can provide it.
 
 ### Playback buffering and device profiles
 

@@ -109,27 +109,42 @@ func dialProvider(
 
 	switch provider {
 	case "openai_compatible", "tokenhub", "openrouter":
-		baseURL := cfg.MustGet(ctx, "ai.compatible_base_url", "").String()
-		apiKey := cfg.MustGet(ctx, "ai.compatible_api_key", "").String()
+		compatibleBaseURL := cfg.MustGet(ctx, "ai.compatible_base_url", "").String()
+		compatibleAPIKey := cfg.MustGet(ctx, "ai.compatible_api_key", "").String()
+		llmBaseURL, llmAPIKey := compatibleBaseURL, compatibleAPIKey
 		if provider == "tokenhub" {
-			baseURL = cfg.MustGet(ctx, "ai.tokenhub_base_url", baseURL).String()
-			apiKey = cfg.MustGet(ctx, "ai.tokenhub_api_key", apiKey).String()
+			llmBaseURL = cfg.MustGet(ctx, "ai.tokenhub_base_url", llmBaseURL).String()
+			llmAPIKey = cfg.MustGet(ctx, "ai.tokenhub_api_key", llmAPIKey).String()
 		}
 		if provider == "openrouter" {
-			baseURL = cfg.MustGet(ctx, "ai.openrouter_base_url", "https://openrouter.ai/api/v1").String()
-			apiKey = cfg.MustGet(ctx, "ai.openrouter_api_key", apiKey).String()
+			llmBaseURL = cfg.MustGet(ctx, "ai.openrouter_base_url", "https://openrouter.ai/api/v1").String()
+			llmAPIKey = cfg.MustGet(ctx, "ai.openrouter_api_key", llmAPIKey).String()
 		}
-		if apiKey == "" || baseURL == "" {
-			return nil, fmt.Errorf("a base URL and API key are required when provider=%s", provider)
-		}
+		// Stage-specific values override the legacy compatible endpoint. This
+		// enables e.g. domestic STT + TokenHub LLM + local TTS without breaking
+		// existing single-endpoint configurations.
+		sttBaseURL := override(cfg.MustGet(ctx, "ai.stt_base_url", "").String(), compatibleBaseURL)
+		sttAPIKey := override(cfg.MustGet(ctx, "ai.stt_api_key", "").String(), compatibleAPIKey)
+		ttsBaseURL := override(cfg.MustGet(ctx, "ai.tts_base_url", "").String(), compatibleBaseURL)
+		ttsAPIKey := override(cfg.MustGet(ctx, "ai.tts_api_key", "").String(), compatibleAPIKey)
+		llmBaseURL = override(cfg.MustGet(ctx, "ai.llm_base_url", "").String(), llmBaseURL)
+		llmAPIKey = override(cfg.MustGet(ctx, "ai.llm_api_key", "").String(), llmAPIKey)
+		sttModel := override(p.CompatibleSTTModel, override(cfg.MustGet(ctx, "ai.stt_model", "").String(), cfg.MustGet(ctx, "ai.compatible_stt_model", "whisper-1").String()))
+		llmModel := override(p.CompatibleModel, override(cfg.MustGet(ctx, "ai.llm_model", "").String(), cfg.MustGet(ctx, "ai.compatible_model", "").String()))
+		ttsModel := override(p.CompatibleTTSModel, override(cfg.MustGet(ctx, "ai.tts_model", "").String(), cfg.MustGet(ctx, "ai.compatible_tts_model", "tts-1").String()))
+		voice := override(p.CompatibleTTSVoice, override(cfg.MustGet(ctx, "ai.tts_voice", "").String(), cfg.MustGet(ctx, "ai.compatible_tts_voice", "alloy").String()))
 		return dialCompatibleSession(ctx, compatibleConfig{
-			BaseURL:  baseURL,
-			APIKey:   apiKey,
-			Model:    override(p.CompatibleModel, cfg.MustGet(ctx, "ai.compatible_model", "").String()),
-			STTModel: override(p.CompatibleSTTModel, cfg.MustGet(ctx, "ai.compatible_stt_model", "whisper-1").String()),
-			TTSModel: override(p.CompatibleTTSModel, cfg.MustGet(ctx, "ai.compatible_tts_model", "tts-1").String()),
-			Voice:    override(p.CompatibleTTSVoice, cfg.MustGet(ctx, "ai.compatible_tts_voice", "alloy").String()),
-			Prompt:   sysPrompt,
+			STTBaseURL: sttBaseURL,
+			STTAPIKey:  sttAPIKey,
+			STTModel:   sttModel,
+			LLMBaseURL: llmBaseURL,
+			LLMAPIKey:  llmAPIKey,
+			LLMModel:   llmModel,
+			TTSBaseURL: ttsBaseURL,
+			TTSAPIKey:  ttsAPIKey,
+			TTSModel:   ttsModel,
+			Voice:      voice,
+			Prompt:     sysPrompt,
 		}, ha, cb)
 
 	case "gemini":

@@ -25,6 +25,16 @@ COMPATIBLE_TTS_VOICE=$(get compatible_tts_voice "alloy")
 TOKENHUB_BASE_URL=$(get tokenhub_base_url "")
 TOKENHUB_API_KEY=$(get tokenhub_api_key "")
 OPENROUTER_API_KEY=$(get openrouter_api_key "")
+STT_BASE_URL=$(get stt_base_url "")
+STT_API_KEY=$(get stt_api_key "")
+STT_MODEL=$(get stt_model "")
+LLM_BASE_URL=$(get llm_base_url "")
+LLM_API_KEY=$(get llm_api_key "")
+LLM_MODEL=$(get llm_model "")
+TTS_BASE_URL=$(get tts_base_url "")
+TTS_API_KEY=$(get tts_api_key "")
+TTS_MODEL=$(get tts_model "")
+TTS_VOICE=$(get tts_voice "")
 AUDIO_PREBUFFER_MS=$(get audio_prebuffer_ms "300")
 AUDIO_PREBUFFER_MAX_WAIT_MS=$(get audio_prebuffer_max_wait_ms "900")
 DEVICE_PROFILES=$(get device_profiles "{}")
@@ -85,6 +95,16 @@ ai:
   tokenhub_base_url: "${TOKENHUB_BASE_URL}"
   tokenhub_api_key: "${TOKENHUB_API_KEY}"
   openrouter_api_key: "${OPENROUTER_API_KEY}"
+  stt_base_url: "${STT_BASE_URL}"
+  stt_api_key: "${STT_API_KEY}"
+  stt_model: "${STT_MODEL}"
+  llm_base_url: "${LLM_BASE_URL}"
+  llm_api_key: "${LLM_API_KEY}"
+  llm_model: "${LLM_MODEL}"
+  tts_base_url: "${TTS_BASE_URL}"
+  tts_api_key: "${TTS_API_KEY}"
+  tts_model: "${TTS_MODEL}"
+  tts_voice: "${TTS_VOICE}"
   audio_prebuffer_ms: ${AUDIO_PREBUFFER_MS}
   audio_prebuffer_max_wait_ms: ${AUDIO_PREBUFFER_MAX_WAIT_MS}
   device_profiles_b64: "${DEVICE_PROFILES_B64}"
