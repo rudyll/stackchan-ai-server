@@ -36,6 +36,12 @@ type deviceProfile struct {
 }
 
 func deviceProfileFor(ctx context.Context, deviceID string) deviceProfile {
+	if raw := readSettings()["device_profiles"]; raw != "" {
+		profiles := map[string]deviceProfile{}
+		if json.Unmarshal([]byte(raw), &profiles) == nil {
+			return profiles[deviceID]
+		}
+	}
 	encoded := g.Cfg().MustGet(ctx, "ai.device_profiles_b64", "").String()
 	if encoded == "" || deviceID == "" {
 		return deviceProfile{}
@@ -60,6 +66,9 @@ func override(value, fallback string) string {
 
 func globalSystemPrompt(ctx context.Context) string {
 	const fallback = "You are StackChan, a friendly desktop robot assistant."
+	if prompt := aiString(ctx, "system_prompt", ""); prompt != "" {
+		return prompt
+	}
 	encoded := g.Cfg().MustGet(ctx, "ai.system_prompt_b64", "").String()
 	if raw, err := base64.StdEncoding.DecodeString(encoded); err == nil && len(raw) > 0 {
 		return string(raw)
@@ -102,37 +111,36 @@ func dialProvider(
 	ha *haWSClient,
 	cb RealtimeCallbacks,
 ) (RealtimeSession, error) {
-	cfg := g.Cfg()
 	p := deviceProfileFor(ctx, deviceID)
-	provider := override(p.Provider, cfg.MustGet(ctx, "ai.provider", "openai").String())
+	provider := override(p.Provider, aiString(ctx, "provider", "openai"))
 	sysPrompt := override(p.SystemPrompt, globalSystemPrompt(ctx))
 
 	switch provider {
 	case "openai_compatible", "tokenhub", "openrouter":
-		compatibleBaseURL := cfg.MustGet(ctx, "ai.compatible_base_url", "").String()
-		compatibleAPIKey := cfg.MustGet(ctx, "ai.compatible_api_key", "").String()
+		compatibleBaseURL := aiString(ctx, "compatible_base_url", "")
+		compatibleAPIKey := aiString(ctx, "compatible_api_key", "")
 		llmBaseURL, llmAPIKey := compatibleBaseURL, compatibleAPIKey
 		if provider == "tokenhub" {
-			llmBaseURL = cfg.MustGet(ctx, "ai.tokenhub_base_url", llmBaseURL).String()
-			llmAPIKey = cfg.MustGet(ctx, "ai.tokenhub_api_key", llmAPIKey).String()
+			llmBaseURL = aiString(ctx, "tokenhub_base_url", llmBaseURL)
+			llmAPIKey = aiString(ctx, "tokenhub_api_key", llmAPIKey)
 		}
 		if provider == "openrouter" {
-			llmBaseURL = cfg.MustGet(ctx, "ai.openrouter_base_url", "https://openrouter.ai/api/v1").String()
-			llmAPIKey = cfg.MustGet(ctx, "ai.openrouter_api_key", llmAPIKey).String()
+			llmBaseURL = aiString(ctx, "openrouter_base_url", "https://openrouter.ai/api/v1")
+			llmAPIKey = aiString(ctx, "openrouter_api_key", llmAPIKey)
 		}
 		// Stage-specific values override the legacy compatible endpoint. This
 		// enables e.g. domestic STT + TokenHub LLM + local TTS without breaking
 		// existing single-endpoint configurations.
-		sttBaseURL := override(cfg.MustGet(ctx, "ai.stt_base_url", "").String(), compatibleBaseURL)
-		sttAPIKey := override(cfg.MustGet(ctx, "ai.stt_api_key", "").String(), compatibleAPIKey)
-		ttsBaseURL := override(cfg.MustGet(ctx, "ai.tts_base_url", "").String(), compatibleBaseURL)
-		ttsAPIKey := override(cfg.MustGet(ctx, "ai.tts_api_key", "").String(), compatibleAPIKey)
-		llmBaseURL = override(cfg.MustGet(ctx, "ai.llm_base_url", "").String(), llmBaseURL)
-		llmAPIKey = override(cfg.MustGet(ctx, "ai.llm_api_key", "").String(), llmAPIKey)
-		sttModel := override(p.CompatibleSTTModel, override(cfg.MustGet(ctx, "ai.stt_model", "").String(), cfg.MustGet(ctx, "ai.compatible_stt_model", "whisper-1").String()))
-		llmModel := override(p.CompatibleModel, override(cfg.MustGet(ctx, "ai.llm_model", "").String(), cfg.MustGet(ctx, "ai.compatible_model", "").String()))
-		ttsModel := override(p.CompatibleTTSModel, override(cfg.MustGet(ctx, "ai.tts_model", "").String(), cfg.MustGet(ctx, "ai.compatible_tts_model", "tts-1").String()))
-		voice := override(p.CompatibleTTSVoice, override(cfg.MustGet(ctx, "ai.tts_voice", "").String(), cfg.MustGet(ctx, "ai.compatible_tts_voice", "alloy").String()))
+		sttBaseURL := override(aiString(ctx, "stt_base_url", ""), compatibleBaseURL)
+		sttAPIKey := override(aiString(ctx, "stt_api_key", ""), compatibleAPIKey)
+		ttsBaseURL := override(aiString(ctx, "tts_base_url", ""), compatibleBaseURL)
+		ttsAPIKey := override(aiString(ctx, "tts_api_key", ""), compatibleAPIKey)
+		llmBaseURL = override(aiString(ctx, "llm_base_url", ""), llmBaseURL)
+		llmAPIKey = override(aiString(ctx, "llm_api_key", ""), llmAPIKey)
+		sttModel := override(p.CompatibleSTTModel, override(aiString(ctx, "stt_model", ""), aiString(ctx, "compatible_stt_model", "whisper-1")))
+		llmModel := override(p.CompatibleModel, override(aiString(ctx, "llm_model", ""), aiString(ctx, "compatible_model", "")))
+		ttsModel := override(p.CompatibleTTSModel, override(aiString(ctx, "tts_model", ""), aiString(ctx, "compatible_tts_model", "tts-1")))
+		voice := override(p.CompatibleTTSVoice, override(aiString(ctx, "tts_voice", ""), aiString(ctx, "compatible_tts_voice", "alloy")))
 		return dialCompatibleSession(ctx, compatibleConfig{
 			STTBaseURL: sttBaseURL,
 			STTAPIKey:  sttAPIKey,
@@ -148,21 +156,21 @@ func dialProvider(
 		}, ha, cb)
 
 	case "gemini":
-		apiKey := cfg.MustGet(ctx, "ai.gemini_api_key", "").String()
+		apiKey := aiString(ctx, "gemini_api_key", "")
 		if apiKey == "" {
 			return nil, fmt.Errorf("ai.gemini_api_key is required when provider=gemini")
 		}
-		model := override(p.GeminiModel, cfg.MustGet(ctx, "ai.gemini_model", "gemini-2.5-flash-preview-native-audio-dialog").String())
-		voice := override(p.GeminiVoice, cfg.MustGet(ctx, "ai.gemini_voice", "Aoede").String())
+		model := override(p.GeminiModel, aiString(ctx, "gemini_model", "gemini-2.5-flash-preview-native-audio-dialog"))
+		voice := override(p.GeminiVoice, aiString(ctx, "gemini_voice", "Aoede"))
 		return dialGeminiSession(ctx, apiKey, model, voice, sysPrompt, ha, cb)
 
 	case "openai", "":
-		apiKey := cfg.MustGet(ctx, "ai.openai_api_key", "").String()
+		apiKey := aiString(ctx, "openai_api_key", "")
 		if apiKey == "" {
 			return nil, fmt.Errorf("ai.openai_api_key is required when provider=openai")
 		}
-		model := override(p.OpenAIRealtimeModel, cfg.MustGet(ctx, "ai.openai_realtime_model", "gpt-realtime-1.5").String())
-		voice := override(p.OpenAITTSVoice, cfg.MustGet(ctx, "ai.openai_tts_voice", "alloy").String())
+		model := override(p.OpenAIRealtimeModel, aiString(ctx, "openai_realtime_model", "gpt-realtime-1.5"))
+		voice := override(p.OpenAITTSVoice, aiString(ctx, "openai_tts_voice", "alloy"))
 		return dialOpenAIRealtimeSession(ctx, apiKey, model, voice, sysPrompt, ha, cb)
 
 	default:

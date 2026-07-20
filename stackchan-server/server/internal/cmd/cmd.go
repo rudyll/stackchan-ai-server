@@ -45,6 +45,7 @@ var (
 			s.BindHandler("/stackChan/ws", web_socket.Handler)
 
 			// Xiaozhi AI proxy: OTA endpoint (firmware URL strip) + WebSocket proxy.
+			ai.StartConfigUI()
 			s.BindHandler("/xiaozhi/ota/", func(r *ghttp.Request) {
 				ai.HandleOTA(r.Response.Writer, r.Request)
 			})

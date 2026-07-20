@@ -93,6 +93,8 @@ StackChan AI Server（本插件，运行在 HA 的 12800 端口）
 
 ## 配置项
 
+推荐在启动 add-on 后点击 **Open Web UI** 进行设置。该受 Home Assistant Ingress 保护的页面将配置分为“基础 / 语音管线 / 设备 Profile”，并仅显示当前 provider 需要的字段；标准 add-on「配置」页仍保留作兼容用途。
+
 通过 `ai_provider` 选择**其中一个** AI 后端，只需填入对应的 API Key，另一家的字段可留空。
 
 | 选项 | 必填 | 说明 |

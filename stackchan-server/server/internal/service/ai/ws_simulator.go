@@ -108,8 +108,8 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 		deviceID:         deviceID,
 		opusDec:          opusDec,
 		frameQueue:       make(chan []byte, frameQueueSize),
-		prebufferFrames:  max(0, cfg.MustGet(ctx, "ai.audio_prebuffer_ms", 300).Int()/frameDurationMs),
-		prebufferMaxWait: time.Duration(max(0, cfg.MustGet(ctx, "ai.audio_prebuffer_max_wait_ms", 900).Int())) * time.Millisecond,
+		prebufferFrames:  max(0, aiInt(ctx, "audio_prebuffer_ms", 300)/frameDurationMs),
+		prebufferMaxWait: time.Duration(max(0, aiInt(ctx, "audio_prebuffer_max_wait_ms", 900))) * time.Millisecond,
 	}
 
 	// Wire provider callbacks → device WebSocket writes. Same callbacks for any

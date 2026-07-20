@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.7.0
+
+- Added a protected Home Assistant Ingress configuration UI with provider-aware basic settings, independent voice-pipeline settings, and Device-Id profiles.
+- Replaced static voice dropdowns in the web UI with provider-native free-text voice fields.
+
 ## 2.6.0
 
 - Added independent OpenAI-compatible STT, LLM, and TTS endpoint, API key, model, and voice settings.

@@ -93,6 +93,8 @@ Low-latency speech-to-speech conversation powered by **OpenAI Realtime API** (`g
 
 ## Configuration
 
+For the recommended setup, open the add-on's **Open Web UI** button after starting it. The protected Home Assistant Ingress page groups settings into **Basic**, **Voice pipeline**, and **Device profiles**, and only shows the fields relevant to the selected provider. The standard add-on Configuration tab remains available for legacy settings.
+
 Pick **one** AI provider via `ai_provider` and fill in only its API key. The other provider's fields can stay blank.
 
 | Option | Required | Description |
