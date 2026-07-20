@@ -16,7 +16,21 @@ GEMINI_KEY=$(get gemini_api_key "")
 GEMINI_MODEL=$(get gemini_model "gemini-2.5-flash-native-audio-latest")
 GEMINI_VOICE=$(get gemini_voice "Aoede")
 GEMINI_ENABLE_TOOLS=$(get gemini_enable_tools "true")
+COMPATIBLE_BASE_URL=$(get compatible_base_url "")
+COMPATIBLE_API_KEY=$(get compatible_api_key "")
+COMPATIBLE_MODEL=$(get compatible_model "")
+COMPATIBLE_STT_MODEL=$(get compatible_stt_model "whisper-1")
+COMPATIBLE_TTS_MODEL=$(get compatible_tts_model "tts-1")
+COMPATIBLE_TTS_VOICE=$(get compatible_tts_voice "alloy")
+TOKENHUB_BASE_URL=$(get tokenhub_base_url "")
+TOKENHUB_API_KEY=$(get tokenhub_api_key "")
+OPENROUTER_API_KEY=$(get openrouter_api_key "")
+AUDIO_PREBUFFER_MS=$(get audio_prebuffer_ms "300")
+AUDIO_PREBUFFER_MAX_WAIT_MS=$(get audio_prebuffer_max_wait_ms "900")
+DEVICE_PROFILES=$(get device_profiles "{}")
+DEVICE_PROFILES_B64=$(printf %s "$DEVICE_PROFILES" | base64 | tr -d '\n')
 SYSTEM_PROMPT=$(get system_prompt "You are StackChan, a friendly desktop robot assistant. Keep replies concise.")
+SYSTEM_PROMPT_B64=$(printf %s "$SYSTEM_PROMPT" | base64 | tr -d '\n')
 
 mkdir -p /app/manifest/config
 cat > /app/manifest/config/config.yaml <<EOF
@@ -62,7 +76,19 @@ ai:
   gemini_model: "${GEMINI_MODEL}"
   gemini_voice: "${GEMINI_VOICE}"
   gemini_enable_tools: ${GEMINI_ENABLE_TOOLS}
-  system_prompt: "${SYSTEM_PROMPT}"
+  compatible_base_url: "${COMPATIBLE_BASE_URL}"
+  compatible_api_key: "${COMPATIBLE_API_KEY}"
+  compatible_model: "${COMPATIBLE_MODEL}"
+  compatible_stt_model: "${COMPATIBLE_STT_MODEL}"
+  compatible_tts_model: "${COMPATIBLE_TTS_MODEL}"
+  compatible_tts_voice: "${COMPATIBLE_TTS_VOICE}"
+  tokenhub_base_url: "${TOKENHUB_BASE_URL}"
+  tokenhub_api_key: "${TOKENHUB_API_KEY}"
+  openrouter_api_key: "${OPENROUTER_API_KEY}"
+  audio_prebuffer_ms: ${AUDIO_PREBUFFER_MS}
+  audio_prebuffer_max_wait_ms: ${AUDIO_PREBUFFER_MAX_WAIT_MS}
+  device_profiles_b64: "${DEVICE_PROFILES_B64}"
+  system_prompt_b64: "${SYSTEM_PROMPT_B64}"
 EOF
 
 echo "INFO: Starting StackChan AI server on :12800"

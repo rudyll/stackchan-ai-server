@@ -22,8 +22,11 @@ import (
 )
 
 type openAIClient struct {
+	baseURL   string
 	apiKey    string
 	model     string
+	sttModel  string
+	ttsModel  string
 	ttsVoice  string
 	sysPrompt string
 	http      *http.Client
@@ -45,10 +48,23 @@ type toolCall struct {
 	} `json:"function"`
 }
 
-func newOpenAIClient(apiKey, model, ttsVoice, sysPrompt string) *openAIClient {
+func newOpenAIClient(baseURL, apiKey, model, sttModel, ttsModel, ttsVoice, sysPrompt string) *openAIClient {
+	baseURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
+	if baseURL == "" {
+		baseURL = "https://api.openai.com"
+	}
+	if sttModel == "" {
+		sttModel = "whisper-1"
+	}
+	if ttsModel == "" {
+		ttsModel = "tts-1"
+	}
 	return &openAIClient{
+		baseURL:   baseURL,
 		apiKey:    apiKey,
 		model:     model,
+		sttModel:  sttModel,
+		ttsModel:  ttsModel,
 		ttsVoice:  ttsVoice,
 		sysPrompt: sysPrompt,
 		http:      &http.Client{},
@@ -56,7 +72,7 @@ func newOpenAIClient(apiKey, model, ttsVoice, sysPrompt string) *openAIClient {
 }
 
 func (c *openAIClient) doRequest(ctx context.Context, method, path string, body io.Reader, contentType string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, method, "https://api.openai.com"+path, body)
+	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, body)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +106,7 @@ func (c *openAIClient) Transcribe(ctx context.Context, wavBytes []byte) (string,
 	if _, err := fw.Write(wavBytes); err != nil {
 		return "", err
 	}
-	_ = mw.WriteField("model", "whisper-1")
+	_ = mw.WriteField("model", c.sttModel)
 	mw.Close()
 
 	data, err := c.doRequest(ctx, "POST", "/v1/audio/transcriptions", &buf, mw.FormDataContentType())
@@ -166,7 +182,7 @@ func (c *openAIClient) Chat(ctx context.Context, history []chatMessage, ha *haWS
 // Speak sends text to OpenAI TTS and returns 24kHz mono int16 PCM.
 func (c *openAIClient) Speak(ctx context.Context, text string) ([]int16, error) {
 	body, _ := json.Marshal(map[string]any{
-		"model":           "tts-1",
+		"model":           c.ttsModel,
 		"voice":           c.ttsVoice,
 		"input":           text,
 		"response_format": "pcm",

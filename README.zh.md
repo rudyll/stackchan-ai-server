@@ -23,7 +23,7 @@ StackChan 是基于 M5Stack CoreS3（ESP32-S3）的掌心大小机器人，官�
 | **场景/脚本/自动化** | 按名称自动搜索并激活 | 需要手动编写对应意图 |
 
 **核心功能：**
-- 可选 AI 后端：**OpenAI Realtime API** 或 **Google Gemini Live API**，插件 UI 一键切换
+- 可选 AI 后端：**OpenAI Realtime API**、**Google Gemini Live API**，或 OpenAI 兼容的 STT → LLM → TTS 管线（TokenHub、OpenRouter、任意兼容端点）
 - 全程多轮对话——同一会话内 AI 记住上下文
 - 语音控制灯光、空调、窗帘、媒体播放器、脚本、场景及自动化
 - 支持区域控制（如"把客厅所有灯关掉"）
@@ -111,6 +111,44 @@ StackChan AI Server（本插件，运行在 HA 的 12800 端口）
 | `gemini_voice` | | TTS 语音，默认 `Aoede`。共 30 种原生音频语音可选（下拉菜单）。 |
 | `gemini_enable_tools` | | 启用 Gemini 的 HA 设备控制工具（默认开启）。 |
 | `gemini_enable_search` | | 启用 Gemini 的 Google Search 联网搜索（默认关闭）。**⚠️ 与 `gemini_enable_tools` 互斥** — Gemini 不支持同时使用 grounding（联网搜索）和 function calling（HA 工具调用），两者同时开启会导致 1011 连接错误。如需联网搜索，请将 `gemini_enable_tools` 设为关闭。 |
+| **OpenAI-compatible 管线**（当 `ai_provider=tokenhub`、`openrouter` 或 `openai_compatible`） | | 这是逐句的 STT → LLM → TTS 管线，不是 OpenAI Realtime WebSocket；延迟应以插件 `[LAT]` 日志实测为准。 |
+| `compatible_model` | ✅ | Chat Completions 模型名。 |
+| `compatible_stt_model` / `compatible_tts_model` | ✅ | 端点所支持的转写和语音合成模型名。三个服务必须同时支持这些端点，或使用一个兼容网关统一提供。 |
+| `compatible_tts_voice` | | TTS 声音，默认 `alloy`。 |
+| TokenHub | | 选择 `tokenhub`，填写 `tokenhub_base_url`、`tokenhub_api_key` 与上述 compatible 模型字段。 |
+| OpenRouter | | 选择 `openrouter`，填写 `openrouter_api_key` 与上述 compatible 模型字段；Base URL 自动使用 `https://openrouter.ai/api/v1`。 |
+| 通用兼容端点 | | 选择 `openai_compatible`，填写 `compatible_base_url`、`compatible_api_key` 和模型字段。 |
+
+每次语音完成后，插件日志会输出 `[LAT]`，包含从设备 `listen:stop` 到 STT、LLM、TTS 开始和首个音频包的毫秒数，可据此比较小智、Realtime 和兼容管线的实际差异。
+
+### 连续播放与多设备 Profile
+
+`audio_prebuffer_ms`（默认 300ms）是开始播放前累计的音频长度。提高它可明显减少上游网络或模型音频 chunk 抖动造成的断续，但会增加相同量级的首次出声延迟；`audio_prebuffer_max_wait_ms`（默认 900ms）限制最长等待时间。网络不稳定时建议从 `300 / 900` 开始，仍断续可试 `480 / 1200`；追求最快开口可设为 `120 / 500`。
+
+`device_profiles` 是一个以设备 WebSocket `Device-Id` 为键的 JSON 对象。未填写的字段自动继承全局设置；API Key 保持全局，不应放进 profile。例如：
+
+```json
+{
+  "AA:BB:CC:DD:EE:FF": {
+    "system_prompt": "你叫客厅小柴。始终用简短自然的中文回答。",
+    "openai_tts_voice": "coral",
+    "openai_realtime_model": "gpt-realtime-mini"
+  },
+  "11:22:33:44:55:66": {
+    "provider": "gemini",
+    "system_prompt": "你叫卧室小柴，夜间回答更轻柔简短。",
+    "gemini_voice": "Aoede"
+  }
+}
+```
+
+可覆盖字段：`provider`、`system_prompt`、`openai_realtime_model`、`openai_tts_voice`、`gemini_model`、`gemini_voice`、`compatible_model`、`compatible_stt_model`、`compatible_tts_model`、`compatible_tts_voice`。设备连接时会在日志中显示其 `Device-Id`。
+
+### 唤醒词、待机和省电
+
+唤醒词检测和“始终待机”属于 StackChan 固件，不由本 add-on 或官方 App 的 prompt 控制；本 add-on 只能在固件发送 `listen:detect/start/stop` 后处理音频。官方文档也说明自定义唤醒词尚未上线。
+
+若要减少误唤醒、打扰和耗电，建议先在设备侧关闭 AI Agent 自动启动，改为点击屏幕/触控唤醒；或者保留唤醒词但在固件中增加空闲超时后停止麦克风、仅在触控或按键时恢复。后一种需要定制固件，并应保留设备端的舵机安全、Wi-Fi 配网和 OTA/USB 恢复功能。
 
 ---
 

@@ -50,16 +50,22 @@ type wsSession struct {
 	rt       RealtimeSession
 	opusDec  *opus.Decoder // device input decoder (16kHz, reset per utterance)
 
-	mu          sync.Mutex         // protects opusEnc and isListening
-	opusEnc     *opusStreamEncoder // non-nil only while model is speaking
-	isListening bool
+	mu               sync.Mutex         // protects opusEnc and isListening
+	opusEnc          *opusStreamEncoder // non-nil only while model is speaking
+	isListening      bool
+	playbackStarted  bool
+	prebufferFrames  int
+	prebufferMaxWait time.Duration
+	prebufferTimer   *time.Timer
 
 	// frameQueue carries encoded OPUS frames to pacingLoop.
 	// A nil entry is a sentinel meaning "response ended — send tts:stop".
 	frameQueue chan []byte
 
-	writeMu       sync.Mutex // serialises WebSocket writes
-	providerClosed int32     // atomic: 1 when OnClose triggered conn.Close()
+	writeMu          sync.Mutex // serialises WebSocket writes
+	providerClosed   int32      // atomic: 1 when OnClose triggered conn.Close()
+	listenStopped    time.Time  // latency baseline for the current user turn
+	firstAudioLogged int32
 }
 
 // HandleWS upgrades the connection and runs a Xiaozhi v3 protocol session
@@ -98,10 +104,12 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s := &wsSession{
-		conn:       conn,
-		deviceID:   deviceID,
-		opusDec:    opusDec,
-		frameQueue: make(chan []byte, frameQueueSize),
+		conn:             conn,
+		deviceID:         deviceID,
+		opusDec:          opusDec,
+		frameQueue:       make(chan []byte, frameQueueSize),
+		prebufferFrames:  max(0, cfg.MustGet(ctx, "ai.audio_prebuffer_ms", 300).Int()/frameDurationMs),
+		prebufferMaxWait: time.Duration(max(0, cfg.MustGet(ctx, "ai.audio_prebuffer_max_wait_ms", 900).Int())) * time.Millisecond,
 	}
 
 	// Wire provider callbacks → device WebSocket writes. Same callbacks for any
@@ -116,14 +124,19 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 			s.conn.Close()
 		},
 		OnSTT: func(text string) {
+			s.logTurnLatency(ctx, "stt")
 			_ = s.sendJSON(map[string]any{"type": "stt", "text": text})
 		},
 
 		OnText: func(text string) {
+			s.logTurnLatency(ctx, "llm")
 			g.Log().Infof(ctx, "[WS] device=%s LLM: %q", deviceID, text)
 		},
 
 		OnAudio: func(pcm []int16) { // encode and enqueue; pacingLoop sends at 60ms
+			if atomic.CompareAndSwapInt32(&s.firstAudioLogged, 0, 1) {
+				s.logTurnLatency(ctx, "first_audio")
+			}
 			s.mu.Lock()
 			enc := s.opusEnc
 			s.mu.Unlock()
@@ -142,9 +155,11 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 					g.Log().Warningf(ctx, "[WS] device=%s frame queue full, dropping frame", deviceID)
 				}
 			}
+			s.startPlayback(false)
 		},
 
 		OnStart: func() {
+			s.logTurnLatency(ctx, "tts_start")
 			g.Log().Infof(ctx, "[WS] device=%s TTS start", deviceID)
 			s.drainFrameQueue() // clear any leftover frames from previous response
 			enc, err := newOpusStreamEncoder()
@@ -154,16 +169,22 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 			}
 			s.mu.Lock()
 			s.opusEnc = enc
+			s.playbackStarted = false
 			s.mu.Unlock()
-			_ = s.sendJSON(map[string]any{"type": "llm", "emotion": "neutral"})
-			_ = s.sendJSON(map[string]any{"type": "tts", "state": "start"})
+			if s.prebufferMaxWait > 0 {
+				s.mu.Lock()
+				s.prebufferTimer = time.AfterFunc(s.prebufferMaxWait, func() { s.startPlayback(true) })
+				s.mu.Unlock()
+			}
+			if s.prebufferFrames == 0 {
+				s.startPlayback(true)
+			}
 		},
 
 		OnStop: func() { // flush encoder tail, push nil sentinel; pacingLoop sends tts:stop
 			g.Log().Infof(ctx, "[WS] device=%s TTS response done, draining queue", deviceID)
 			s.mu.Lock()
 			enc := s.opusEnc
-			s.opusEnc = nil
 			s.mu.Unlock()
 			// Flush remaining PCM that didn't fill a complete 60ms frame.
 			if enc != nil {
@@ -178,10 +199,14 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 			case s.frameQueue <- nil: // sentinel: pacingLoop sends tts:stop after draining
 			default:
 			}
+			s.startPlayback(true)
+			s.mu.Lock()
+			s.opusEnc = nil
+			s.mu.Unlock()
 		},
 	}
 
-	rt, err := dialProvider(ctx, ha, cb)
+	rt, err := dialProvider(ctx, deviceID, ha, cb)
 	if err != nil {
 		g.Log().Errorf(ctx, "[WS] device=%s provider connect: %v", deviceID, err)
 		conn.Close()
@@ -210,6 +235,9 @@ func (s *wsSession) pacingLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			if !s.isPlaybackStarted() {
+				continue
+			}
 			select {
 			case frame := <-s.frameQueue:
 				if frame == nil {
@@ -223,6 +251,30 @@ func (s *wsSession) pacingLoop(ctx context.Context) {
 			}
 		}
 	}
+}
+
+func (s *wsSession) isPlaybackStarted() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.playbackStarted
+}
+
+// startPlayback waits for a small, configurable jitter buffer before sending
+// tts:start. It prevents short upstream delivery gaps from becoming audible.
+func (s *wsSession) startPlayback(force bool) {
+	s.mu.Lock()
+	if s.playbackStarted || s.opusEnc == nil || (!force && len(s.frameQueue) < s.prebufferFrames) {
+		s.mu.Unlock()
+		return
+	}
+	s.playbackStarted = true
+	if s.prebufferTimer != nil {
+		s.prebufferTimer.Stop()
+		s.prebufferTimer = nil
+	}
+	s.mu.Unlock()
+	_ = s.sendJSON(map[string]any{"type": "llm", "emotion": "neutral"})
+	_ = s.sendJSON(map[string]any{"type": "tts", "state": "start"})
 }
 
 // drainFrameQueue discards all pending frames (called on abort or new response start).
@@ -293,6 +345,11 @@ func (s *wsSession) run(ctx context.Context) {
 			s.mu.Lock()
 			s.opusEnc = nil
 			s.isListening = false
+			s.playbackStarted = false
+			if s.prebufferTimer != nil {
+				s.prebufferTimer.Stop()
+				s.prebufferTimer = nil
+			}
 			s.mu.Unlock()
 			s.drainFrameQueue()
 			_ = s.sendJSON(map[string]any{"type": "tts", "state": "stop"})
@@ -327,6 +384,11 @@ func (s *wsSession) handleListen(ctx context.Context, msg map[string]any) {
 		_ = s.rt.CancelResponse()
 		s.mu.Lock()
 		s.opusEnc = nil
+		s.playbackStarted = false
+		if s.prebufferTimer != nil {
+			s.prebufferTimer.Stop()
+			s.prebufferTimer = nil
+		}
 		s.mu.Unlock()
 		s.drainFrameQueue()
 		_ = s.sendJSON(map[string]any{"type": "tts", "state": "stop"})
@@ -348,9 +410,26 @@ func (s *wsSession) handleListen(ctx context.Context, msg map[string]any) {
 		s.mu.Lock()
 		s.isListening = false
 		s.mu.Unlock()
+		s.mu.Lock()
+		s.listenStopped = time.Now()
+		s.mu.Unlock()
+		atomic.StoreInt32(&s.firstAudioLogged, 0)
 		_ = s.rt.CommitAudio()
 		g.Log().Infof(ctx, "[WS] device=%s listening stopped (committed)", s.deviceID)
 	}
+}
+
+// logTurnLatency emits cumulative timings from the device's listen:stop event.
+// It is intentionally provider-neutral so logs can compare realtime and HTTP
+// pipelines without exposing audio or credentials.
+func (s *wsSession) logTurnLatency(ctx context.Context, stage string) {
+	s.mu.Lock()
+	stopped := s.listenStopped
+	s.mu.Unlock()
+	if stopped.IsZero() {
+		return
+	}
+	g.Log().Infof(ctx, "[LAT] device=%s stage=%s since_listen_stop_ms=%d", s.deviceID, stage, time.Since(stopped).Milliseconds())
 }
 
 func (s *wsSession) sendJSON(v any) error {

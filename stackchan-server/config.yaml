@@ -1,6 +1,6 @@
 name: "StackChan AI Server"
-description: "StackChan AI server: OpenAI Realtime / Gemini Live + Home Assistant device control"
-version: "2.3.17"
+description: "StackChan AI server: realtime or OpenAI-compatible voice pipeline + Home Assistant device control"
+version: "2.5.0"
 slug: "stackchan_ai_server"
 init: false
 
@@ -30,12 +30,24 @@ options:
   gemini_voice: "Aoede"
   gemini_enable_tools: true
   gemini_enable_search: false
+  compatible_base_url: ""
+  compatible_api_key: ""
+  compatible_model: ""
+  compatible_stt_model: "whisper-1"
+  compatible_tts_model: "tts-1"
+  compatible_tts_voice: "alloy"
+  tokenhub_base_url: ""
+  tokenhub_api_key: ""
+  openrouter_api_key: ""
+  audio_prebuffer_ms: 300
+  audio_prebuffer_max_wait_ms: 900
+  device_profiles: "{}"
   system_prompt: "你是 StackChan，一个桌面 AI 助手机器人，可以控制 Home Assistant 智能家居设备、回答问题、闲聊。\n\n重要：始终用中文回复，语音简洁自然，不要解释你的推理过程或执行步骤。\n\n智能家居控制规则：\n- 指令明确 → 直接调用工具执行，只用一句话报告结果（如「好的，已关灯」）\n- 指令模糊（如「好热」）→ 只问一个最关键的问题，根据回答执行\n- 搜索到多个匹配设备 → 简短列出名称，问控制哪一个还是全部\n- 不要问「你确定吗」之类多余确认\n- 搜索设备优先按名称精确匹配，其次按区域匹配"
 
 schema:
   local_host: str
   ha_mcp_token: str
-  ai_provider: list(openai|gemini)
+  ai_provider: list(openai|gemini|tokenhub|openrouter|openai_compatible)
   openai_api_key: str?
   openai_realtime_model: list(gpt-realtime-1.5|gpt-realtime-mini|gpt-4o-realtime-preview|gpt-4o-mini-realtime-preview)
   openai_tts_voice: list(alloy|echo|fable|onyx|nova|shimmer|ash|coral|sage|verse|cedar|marin|cove)
@@ -44,6 +56,18 @@ schema:
   gemini_voice: list(Aoede|Charon|Fenrir|Kore|Puck|Leda|Orus|Zephyr|Achernar|Achird|Algenib|Algieba|Alnilam|Autonoe|Callirrhoe|Despina|Enceladus|Erinome|Gacrux|Iapetus|Laomedeia|Pulcherrima|Rasalgethi|Sadachbia|Sadaltager|Schedar|Sulafat|Umbriel|Vindemiatrix|Zubenelgenubi)
   gemini_enable_tools: bool
   gemini_enable_search: bool
+  compatible_base_url: str?
+  compatible_api_key: str?
+  compatible_model: str?
+  compatible_stt_model: str?
+  compatible_tts_model: str?
+  compatible_tts_voice: str?
+  tokenhub_base_url: str?
+  tokenhub_api_key: str?
+  openrouter_api_key: str?
+  audio_prebuffer_ms: list(0|120|180|240|300|360|480|600)
+  audio_prebuffer_max_wait_ms: list(300|500|700|900|1200|1500)
+  device_profiles: str?
   system_prompt: str
 
 # Allow outbound internet access (needed for OpenAI API).
