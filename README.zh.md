@@ -93,7 +93,7 @@ StackChan AI Server（本插件，运行在 HA 的 12800 端口）
 
 ## 配置项
 
-推荐在启动 add-on 后点击 **Open Web UI** 进行设置。该受 Home Assistant Ingress 保护的页面将配置分为“基础 / 语音管线 / 设备 Profile”，并仅显示当前 provider 需要的字段；标准 add-on「配置」页仍保留作兼容用途。
+推荐在启动 add-on 后点击 **Open Web UI** 进行设置。该受 Home Assistant Ingress 保护的页面将配置分为“基础 / 语音管线 / 后台任务 / 设备 Profile”；标准 add-on「配置」页仍保留作兼容用途。
 
 通过 `ai_provider` 选择**其中一个** AI 后端，只需填入对应的 API Key，另一家的字段可留空。
 
@@ -121,8 +121,24 @@ StackChan AI Server（本插件，运行在 HA 的 12800 端口）
 | TokenHub | | 选择 `tokenhub`，填写 `tokenhub_base_url`、`tokenhub_api_key` 与上述 compatible 模型字段。 |
 | OpenRouter | | 选择 `openrouter`，填写 `openrouter_api_key` 与上述 compatible 模型字段；Base URL 自动使用 `https://openrouter.ai/api/v1`。 |
 | 通用兼容端点 | | 选择 `openai_compatible`，填写 `compatible_base_url`、`compatible_api_key` 和模型字段。 |
+| **后台任务（Beta）**（当前仅 `ai_provider=openai`） | | 长任务进入每台设备独立的后台队列，实时语音会话可继续对话。 |
+| `background_tasks_enabled` | | 是否启用后台任务，默认关闭。 |
+| `background_agent_base_url` | | 支持 `/v1/chat/completions` 的 OpenAI-compatible Base URL。 |
+| `background_agent_api_key` | | 后台 Agent Key；留空时依次复用 `llm_api_key`、`compatible_api_key` 或 `openai_api_key`。 |
+| `background_agent_model` | 启用时 ✅ | 后台 Chat Completions 模型，不可填写 Realtime 音频模型。 |
+| `background_agent_timeout_seconds` | | 单项任务超时，默认 300 秒。 |
 
 每次语音完成后，插件日志会输出 `[LAT]`，包含从设备 `listen:stop` 到 STT、LLM、TTS 开始和首个音频包的毫秒数，可据此比较小智、Realtime 和兼容管线的实际差异。
+
+### 连续对话与后台任务（Beta）
+
+> **Beta 提醒：** 此功能已通过自动化测试，但仍需要大家使用实体 StackChan、真实 Home Assistant 环境和不同的 OpenAI-compatible 后台模型进行验证。
+
+启用后台任务后，OpenAI Realtime 会获得创建、查询和取消后台任务的工具。开灯、查询温度等短 HA 操作仍直接执行；分析历史数据或多步骤操作可进入后台 FIFO 队列，前台会立即确认并继续对话。任务状态保存在 `/data/background-tasks.json`，按设备 `Device-Id` 隔离。
+
+任务完成后，结果会等待用户没有说话、模型没有回复且设备音频队列已经播放完毕时播报。结果在播报前会被单一会话领取；断线或打断会释放领取状态，重连后可再次投递，成功播报后不会重复。服务重启时仍在运行且不能恢复的任务会转为失败并明确通知。
+
+当前后台执行器使用 OpenAI-compatible Chat Completions，并可调用现有 Home Assistant 工具；它不自动获得网页搜索或代码执行能力。此功能当前只接入 OpenAI Realtime 前台，Gemini Live 和逐句兼容语音管线不会显示后台任务工具。
 
 ### Provider 选择与中国内地延迟
 

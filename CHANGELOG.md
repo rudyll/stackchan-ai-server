@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.8.0-beta.1 (Beta)
+
+- Added per-device background task queues for OpenAI Realtime conversations, with create, status, and cancellation tools.
+- Persisted task state and pending announcements across device reconnects, with explicit restart failure recovery and result expiry.
+- Delayed completion announcements until the user, model response, and device audio queue are idle, and prevented duplicate delivery.
+- Added Home Assistant Ingress settings for an OpenAI-compatible background Agent endpoint, model, timeout, and prompt.
+- Added FIFO, cancellation, owner-isolation, reconnect, restart, expiry, and race tests for background task lifecycle behavior.
+
+### Beta testing notes
+
+- Enable the feature from **Open Web UI → Background tasks** and configure an OpenAI-compatible model that supports `/v1/chat/completions`.
+- Background task tools are currently available only when the foreground provider is OpenAI Realtime; Gemini Live and the turn-based compatible voice pipeline are not included in this beta.
+- Web search and code execution are not added automatically. The background model can use the existing Home Assistant tools.
+- Tasks interrupted by an add-on restart are reported as failed; completed results waiting for announcement are retained for up to seven days.
+- This release passed automated unit, race, vet, build, shell, and YAML checks. Physical StackChan and live Home Assistant testing is requested from beta testers.
+
 ## 2.7.0
 
 - Added a protected Home Assistant Ingress configuration UI with provider-aware basic settings, independent voice-pipeline settings, and Device-Id profiles.

@@ -93,7 +93,7 @@ Low-latency speech-to-speech conversation powered by **OpenAI Realtime API** (`g
 
 ## Configuration
 
-For the recommended setup, open the add-on's **Open Web UI** button after starting it. The protected Home Assistant Ingress page groups settings into **Basic**, **Voice pipeline**, and **Device profiles**, and only shows the fields relevant to the selected provider. The standard add-on Configuration tab remains available for legacy settings.
+For the recommended setup, open the add-on's **Open Web UI** button after starting it. The protected Home Assistant Ingress page groups settings into **Basic**, **Voice pipeline**, **Background tasks**, and **Device profiles**. The standard add-on Configuration tab remains available for legacy settings.
 
 Pick **one** AI provider via `ai_provider` and fill in only its API key. The other provider's fields can stay blank.
 
@@ -121,8 +121,24 @@ Pick **one** AI provider via `ai_provider` and fill in only its API key. The oth
 | TokenHub | | Select `tokenhub`; set `tokenhub_base_url`, `tokenhub_api_key`, plus compatible model fields. |
 | OpenRouter | | Select `openrouter`; set `openrouter_api_key`, plus compatible model fields. The base URL is set automatically. |
 | Generic compatible endpoint | | Select `openai_compatible`; set `compatible_base_url`, `compatible_api_key`, and compatible model fields. |
+| **Background tasks (Beta)** (currently `ai_provider=openai` only) | | Long-running work enters a per-device queue while the realtime conversation remains available. |
+| `background_tasks_enabled` | | Enable background tasks. Default: off. |
+| `background_agent_base_url` | | OpenAI-compatible base URL supporting `/v1/chat/completions`. |
+| `background_agent_api_key` | | Agent key. When blank, falls back to `llm_api_key`, `compatible_api_key`, then `openai_api_key`. |
+| `background_agent_model` | ✅ when enabled | Chat Completions model for background work; do not use a Realtime audio model. |
+| `background_agent_timeout_seconds` | | Per-task timeout. Default: 300 seconds. |
 
 The add-on logs `[LAT]` timings from device `listen:stop` to STT, LLM, TTS start, and first audio. Use these real measurements to compare providers.
+
+### Continuous conversation and background tasks (Beta)
+
+> **Beta:** This path has automated coverage but still needs broad testing with physical StackChan devices, live Home Assistant installations, and different OpenAI-compatible background models.
+
+When enabled, OpenAI Realtime receives tools to create, inspect, and cancel background work. Short HA operations still execute directly. Longer analysis and multi-step operations enter a FIFO queue scoped to the device `Device-Id`, while the realtime voice session acknowledges the work and remains available. State is persisted in `/data/background-tasks.json`.
+
+Completion waits until the user, model, and physical audio queue are idle. A result is claimed by one voice connection before announcement; disconnecting or interrupting releases the claim for a later reconnect, and a successfully announced result is not repeated. In-flight work that cannot be recovered after an add-on restart becomes an explicit failed result.
+
+The first backend uses an OpenAI-compatible Chat Completions model with the existing Home Assistant tools. It does not automatically gain web search or code execution. Background tools are currently exposed only to the OpenAI Realtime frontend, not Gemini Live or the turn-based compatible voice pipeline.
 
 ### Provider choice and mainland-China latency
 

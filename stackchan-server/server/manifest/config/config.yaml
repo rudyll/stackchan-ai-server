@@ -48,5 +48,10 @@ ai:
   ha_mcp_url: "ws://homeassistant.local:8123/api/ws_mcp_server/ws"
   # HA Long-Lived Access Token (create in HA → Profile → Long-Lived Access Tokens).
   ha_mcp_token: ""
+  background_tasks_enabled: false
+  background_agent_base_url: "https://api.openai.com"
+  background_agent_api_key: ""
+  background_agent_model: ""
+  background_agent_timeout_seconds: 300
   # Upstream Xiaozhi OTA URL used to fetch real WebSocket credentials.
   upstream_ota_url: "https://api.tenclass.net/xiaozhi/ota/"

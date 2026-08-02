@@ -90,6 +90,19 @@ type RealtimeSession interface {
 	Close()
 }
 
+// PlaybackStateAware lets a provider postpone asynchronous announcements
+// until the device has physically drained its audio queue.
+type PlaybackStateAware interface {
+	SetPlaybackBusy(bool)
+	InterruptPlayback()
+}
+
+// AsyncDeliveryAware gates persisted result announcements until the Xiaozhi
+// hello handshake has completed on a newly connected device.
+type AsyncDeliveryAware interface {
+	SetDeliveryReady(bool)
+}
+
 // RealtimeCallbacks bundles the events ws_simulator wants from the provider.
 // All callbacks are invoked from the provider's read goroutine — keep them
 // quick and lock-free where possible.
@@ -171,7 +184,7 @@ func dialProvider(
 		}
 		model := override(p.OpenAIRealtimeModel, aiString(ctx, "openai_realtime_model", "gpt-realtime-1.5"))
 		voice := override(p.OpenAITTSVoice, aiString(ctx, "openai_tts_voice", "alloy"))
-		return dialOpenAIRealtimeSession(ctx, apiKey, model, voice, sysPrompt, ha, cb)
+		return dialOpenAIRealtimeSession(ctx, deviceID, apiKey, model, voice, sysPrompt, ha, cb)
 
 	default:
 		return nil, fmt.Errorf("unknown ai.provider %q", provider)

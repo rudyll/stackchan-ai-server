@@ -37,6 +37,11 @@ TTS_MODEL=$(get tts_model "")
 TTS_VOICE=$(get tts_voice "")
 AUDIO_PREBUFFER_MS=$(get audio_prebuffer_ms "300")
 AUDIO_PREBUFFER_MAX_WAIT_MS=$(get audio_prebuffer_max_wait_ms "900")
+BACKGROUND_TASKS_ENABLED=$(get background_tasks_enabled "false")
+BACKGROUND_AGENT_BASE_URL=$(get background_agent_base_url "https://api.openai.com")
+BACKGROUND_AGENT_API_KEY=$(get background_agent_api_key "")
+BACKGROUND_AGENT_MODEL=$(get background_agent_model "")
+BACKGROUND_AGENT_TIMEOUT_SECONDS=$(get background_agent_timeout_seconds "300")
 DEVICE_PROFILES=$(get device_profiles "{}")
 DEVICE_PROFILES_B64=$(printf %s "$DEVICE_PROFILES" | base64 | tr -d '\n')
 SYSTEM_PROMPT=$(get system_prompt "You are StackChan, a friendly desktop robot assistant. Keep replies concise.")
@@ -107,6 +112,11 @@ ai:
   tts_voice: "${TTS_VOICE}"
   audio_prebuffer_ms: ${AUDIO_PREBUFFER_MS}
   audio_prebuffer_max_wait_ms: ${AUDIO_PREBUFFER_MAX_WAIT_MS}
+  background_tasks_enabled: ${BACKGROUND_TASKS_ENABLED}
+  background_agent_base_url: "${BACKGROUND_AGENT_BASE_URL}"
+  background_agent_api_key: "${BACKGROUND_AGENT_API_KEY}"
+  background_agent_model: "${BACKGROUND_AGENT_MODEL}"
+  background_agent_timeout_seconds: ${BACKGROUND_AGENT_TIMEOUT_SECONDS}
   device_profiles_b64: "${DEVICE_PROFILES_B64}"
   system_prompt_b64: "${SYSTEM_PROMPT_B64}"
 EOF

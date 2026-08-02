@@ -159,12 +159,18 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 		},
 
 		OnStart: func() {
+			if aware, ok := s.rt.(PlaybackStateAware); ok {
+				aware.SetPlaybackBusy(true)
+			}
 			s.logTurnLatency(ctx, "tts_start")
 			g.Log().Infof(ctx, "[WS] device=%s TTS start", deviceID)
 			s.drainFrameQueue() // clear any leftover frames from previous response
 			enc, err := newOpusStreamEncoder()
 			if err != nil {
 				g.Log().Warningf(ctx, "[WS] device=%s encoder init: %v", deviceID, err)
+				if aware, ok := s.rt.(PlaybackStateAware); ok {
+					aware.InterruptPlayback()
+				}
 				return
 			}
 			s.mu.Lock()
@@ -186,19 +192,20 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 			s.mu.Lock()
 			enc := s.opusEnc
 			s.mu.Unlock()
+			if enc == nil {
+				if aware, ok := s.rt.(PlaybackStateAware); ok {
+					aware.InterruptPlayback()
+				}
+				return
+			}
 			// Flush remaining PCM that didn't fill a complete 60ms frame.
-			if enc != nil {
-				for _, frame := range enc.Flush() {
-					select {
-					case s.frameQueue <- frame:
-					default:
-					}
+			for _, frame := range enc.Flush() {
+				select {
+				case s.frameQueue <- frame:
+				default:
 				}
 			}
-			select {
-			case s.frameQueue <- nil: // sentinel: pacingLoop sends tts:stop after draining
-			default:
-			}
+			s.frameQueue <- nil // sentinel: pacingLoop confirms physical playback completion
 			s.startPlayback(true)
 			s.mu.Lock()
 			s.opusEnc = nil
@@ -243,6 +250,9 @@ func (s *wsSession) pacingLoop(ctx context.Context) {
 				if frame == nil {
 					// All frames delivered — tell device TTS is done.
 					_ = s.sendJSON(map[string]any{"type": "tts", "state": "stop"})
+					if aware, ok := s.rt.(PlaybackStateAware); ok {
+						aware.SetPlaybackBusy(false)
+					}
 				} else {
 					_ = s.sendAudio(frame)
 				}
@@ -352,6 +362,9 @@ func (s *wsSession) run(ctx context.Context) {
 			}
 			s.mu.Unlock()
 			s.drainFrameQueue()
+			if aware, ok := s.rt.(PlaybackStateAware); ok {
+				aware.InterruptPlayback()
+			}
 			_ = s.sendJSON(map[string]any{"type": "tts", "state": "stop"})
 		}
 	}
@@ -372,6 +385,9 @@ func (s *wsSession) handleHello(ctx context.Context) {
 		g.Log().Warningf(ctx, "[WS] device=%s hello send failed: %v", s.deviceID, err)
 		return
 	}
+	if aware, ok := s.rt.(AsyncDeliveryAware); ok {
+		aware.SetDeliveryReady(true)
+	}
 	g.Log().Infof(ctx, "[WS] device=%s session=%s hello OK", s.deviceID, sessionID)
 }
 
@@ -391,6 +407,9 @@ func (s *wsSession) handleListen(ctx context.Context, msg map[string]any) {
 		}
 		s.mu.Unlock()
 		s.drainFrameQueue()
+		if aware, ok := s.rt.(PlaybackStateAware); ok {
+			aware.InterruptPlayback()
+		}
 		_ = s.sendJSON(map[string]any{"type": "tts", "state": "stop"})
 
 	case "start":

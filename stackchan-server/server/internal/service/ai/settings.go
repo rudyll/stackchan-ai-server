@@ -62,6 +62,15 @@ func aiInt(ctx context.Context, key string, fallback int) int {
 	return g.Cfg().MustGet(ctx, "ai."+key, fallback).Int()
 }
 
+func aiBool(ctx context.Context, key string, fallback bool) bool {
+	if value := readSettings()[key]; value != "" {
+		if parsed, err := strconv.ParseBool(value); err == nil {
+			return parsed
+		}
+	}
+	return g.Cfg().MustGet(ctx, "ai."+key, fallback).Bool()
+}
+
 func settingsForUI(ctx context.Context) map[string]string {
 	values := readSettings()
 	keys := []string{
@@ -71,6 +80,8 @@ func settingsForUI(ctx context.Context) map[string]string {
 		"stt_base_url", "stt_api_key", "stt_model", "llm_base_url", "llm_api_key", "llm_model",
 		"tts_base_url", "tts_api_key", "tts_model", "tts_voice", "device_profiles",
 		"audio_prebuffer_ms", "audio_prebuffer_max_wait_ms",
+		"background_tasks_enabled", "background_agent_base_url", "background_agent_api_key",
+		"background_agent_model", "background_agent_timeout_seconds", "background_agent_prompt",
 	}
 	for _, key := range keys {
 		if values[key] == "" {
