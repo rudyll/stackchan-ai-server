@@ -127,6 +127,9 @@ def validate_port(port):
     except (AttributeError, ValueError):
         return False
 
+def build_ota_url(ip, server_port):
+    return f"http://{ip}:{server_port}/xiaozhi/ota/"
+
 def run(cmd, lang):
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
@@ -241,7 +244,7 @@ def main():
         print(t(lang, "size_found", size=hex(size)))
 
         # Step 2: write NVS CSV
-        ota_url = f"http://{ip}:{server_port}/xiaozhi/ota/"
+        ota_url = build_ota_url(ip, server_port)
         with open(csv_path, "w", newline="") as f:
             w = csv.writer(f)
             w.writerow(["key", "type", "encoding", "value"])
