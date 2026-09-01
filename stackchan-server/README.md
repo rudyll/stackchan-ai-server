@@ -83,7 +83,7 @@ The HA add-on intercepts the OTA check on port 443 and redirects the device to t
 | `local_host` | LAN IP of the host running StackChan AI Server (e.g. `192.168.1.100`). For the add-on this is normally the HA host; for standalone it is the Docker host. |
 | `ha_enabled` | Enable Home Assistant tools and background tasks. The HA add-on defaults to `true`; standalone runtime uses `false`. |
 | `ha_mcp_token` | HA Long-Lived Access Token for device control when HA is enabled. Leave empty in standalone mode. |
-| `ai_provider` | `openai` or `gemini` |
+| `ai_provider` | `openai`, `gemini`, `tokenhub`, `openrouter`, or `openai_compatible` |
 | `openai_api_key` | OpenAI API key (required when provider is `openai`) |
 | `openai_realtime_model` | OpenAI Realtime model to use |
 | `openai_tts_voice` | Voice for OpenAI TTS output |

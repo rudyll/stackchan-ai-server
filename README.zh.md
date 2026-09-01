@@ -123,7 +123,7 @@ docker compose -f docker-compose.standalone.yml up --build -d
 | `local_host` | ✅ | 运行 StackChan AI Server 的主机局域网 IP（如 `192.168.1.100`）。add-on 通常填写 HA 主机；standalone 填写 Docker 宿主机。 |
 | `ha_enabled` | | 是否启用 Home Assistant 工具和后台任务。HA add-on 默认为 `true`；standalone runtime 将默认为 `false`。 |
 | `ha_mcp_token` | 启用 HA 时必填 | HA 长期访问令牌。在 **个人资料 → 安全 → 长期访问令牌** 中创建；standalone 模式留空。 |
-| `ai_provider` | ✅ | `openai`（默认）或 `gemini`。选择由谁处理语音 + LLM + TTS。 |
+| `ai_provider` | ✅ | `openai`（默认）、`gemini`、`tokenhub`、`openrouter` 或 `openai_compatible`。选择由谁处理语音 + LLM + TTS。 |
 | `system_prompt` | | 助手的自定义角色设定或指令。 |
 | **OpenAI**（当 `ai_provider=openai`） | | |
 | `openai_api_key` | ✅ | OpenAI API Key，在 [platform.openai.com](https://platform.openai.com) 获取。 |
