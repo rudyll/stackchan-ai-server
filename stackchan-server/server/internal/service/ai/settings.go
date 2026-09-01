@@ -95,22 +95,28 @@ func aiBool(ctx context.Context, key string, fallback bool) bool {
 	return g.Cfg().MustGet(ctx, "ai."+key, fallback).Bool()
 }
 
+var settingsUIKeys = []string{
+	"provider", "openai_api_key", "openai_realtime_model", "openai_tts_voice",
+	"gemini_api_key", "gemini_model", "gemini_voice", "gemini_enable_tools", "gemini_enable_search",
+	"tokenhub_base_url", "tokenhub_api_key", "openrouter_api_key", "openrouter_base_url",
+	"compatible_base_url", "compatible_api_key", "compatible_model", "compatible_stt_model", "compatible_tts_model", "compatible_tts_voice",
+	"stt_base_url", "stt_api_key", "stt_model", "llm_base_url", "llm_api_key", "llm_model",
+	"tts_base_url", "tts_api_key", "tts_model", "tts_voice", "device_profiles",
+	"audio_prebuffer_ms", "audio_prebuffer_max_wait_ms",
+	"background_tasks_enabled", "background_agent_base_url", "background_agent_api_key",
+	"background_agent_model", "background_agent_timeout_seconds", "background_agent_prompt", "system_prompt",
+}
+
 func settingsForUI(ctx context.Context) map[string]string {
-	values := readSettings()
-	delete(values, "ha_enabled")
-	delete(values, "ui_ha_enabled")
-	values["ui_ha_enabled"] = strconv.FormatBool(aiBool(ctx, "ha_enabled", true))
-	keys := []string{
-		"provider", "openai_api_key", "openai_realtime_model", "openai_tts_voice",
-		"gemini_api_key", "gemini_model", "gemini_voice", "gemini_enable_tools", "gemini_enable_search", "tokenhub_base_url", "tokenhub_api_key",
-		"openrouter_api_key", "compatible_base_url", "compatible_api_key", "compatible_model",
-		"stt_base_url", "stt_api_key", "stt_model", "llm_base_url", "llm_api_key", "llm_model",
-		"tts_base_url", "tts_api_key", "tts_model", "tts_voice", "device_profiles",
-		"audio_prebuffer_ms", "audio_prebuffer_max_wait_ms",
-		"background_tasks_enabled", "background_agent_base_url", "background_agent_api_key",
-		"background_agent_model", "background_agent_timeout_seconds", "background_agent_prompt",
+	stored := readSettings()
+	values := make(map[string]string, len(settingsUIKeys)+1)
+	for _, key := range settingsUIKeys {
+		if value, ok := stored[key]; ok {
+			values[key] = value
+		}
 	}
-	for _, key := range keys {
+	values["ui_ha_enabled"] = strconv.FormatBool(aiBool(ctx, "ha_enabled", true))
+	for _, key := range settingsUIKeys {
 		if _, ok := values[key]; !ok {
 			values[key] = g.Cfg().MustGet(ctx, "ai."+key, "").String()
 		}

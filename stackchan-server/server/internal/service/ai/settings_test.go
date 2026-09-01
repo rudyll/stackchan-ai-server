@@ -104,3 +104,24 @@ func TestStoredRuntimeModeCannotOverrideStandaloneConfiguration(t *testing.T) {
 		t.Fatalf("ui_ha_enabled = %q, want %q", got, strconv.FormatBool(configured))
 	}
 }
+
+func TestSettingsUIDoesNotExposeUnknownOrSupervisorFields(t *testing.T) {
+	t.Setenv("STACKCHAN_DATA_DIR", t.TempDir())
+	if err := writeSettings(map[string]string{
+		"provider":            "openai",
+		"ha_mcp_token":        "should-not-leak",
+		"settings_auth_token": "should-not-leak",
+		"unknown_secret":      "should-not-leak",
+	}); err != nil {
+		t.Fatalf("writeSettings() error = %v", err)
+	}
+	values := settingsForUI(context.Background())
+	for _, key := range []string{"ha_mcp_token", "settings_auth_token", "unknown_secret"} {
+		if _, ok := values[key]; ok {
+			t.Fatalf("settingsForUI() exposed %q", key)
+		}
+	}
+	if values["provider"] != "openai" {
+		t.Fatalf("provider = %q, want persisted UI setting", values["provider"])
+	}
+}
