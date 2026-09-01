@@ -41,6 +41,11 @@ func readSettings() map[string]string {
 	return values
 }
 
+func storedSetting(key string) (string, bool) {
+	value, ok := readSettings()[key]
+	return value, ok
+}
+
 func writeSettings(values map[string]string) error {
 	merged := readSettings()
 	for key, value := range values {
@@ -62,7 +67,7 @@ func writeSettings(values map[string]string) error {
 }
 
 func aiString(ctx context.Context, key, fallback string) string {
-	if value := readSettings()[key]; value != "" {
+	if value, ok := storedSetting(key); ok {
 		return value
 	}
 	return g.Cfg().MustGet(ctx, "ai."+key, fallback).String()
@@ -99,7 +104,7 @@ func settingsForUI(ctx context.Context) map[string]string {
 		"background_agent_model", "background_agent_timeout_seconds", "background_agent_prompt",
 	}
 	for _, key := range keys {
-		if values[key] == "" {
+		if _, ok := values[key]; !ok {
 			values[key] = g.Cfg().MustGet(ctx, "ai."+key, "").String()
 		}
 	}

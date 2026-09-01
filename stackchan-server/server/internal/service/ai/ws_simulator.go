@@ -80,7 +80,7 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	provider := cfg.MustGet(ctx, "ai.provider", "openai").String()
+	provider := configuredProvider(ctx)
 
 	deviceID := r.Header.Get("Device-Id")
 	var ha *haWSClient

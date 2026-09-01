@@ -64,10 +64,17 @@ func override(value, fallback string) string {
 	return fallback
 }
 
+func configuredProvider(ctx context.Context) string {
+	return aiString(ctx, "provider", "openai")
+}
+
 func globalSystemPrompt(ctx context.Context) string {
 	const fallback = "You are StackChan, a friendly desktop robot assistant."
-	if prompt := aiString(ctx, "system_prompt", ""); prompt != "" {
-		return prompt
+	if prompt, ok := storedSetting("system_prompt"); ok {
+		if prompt != "" {
+			return prompt
+		}
+		return fallback
 	}
 	encoded := g.Cfg().MustGet(ctx, "ai.system_prompt_b64", "").String()
 	if raw, err := base64.StdEncoding.DecodeString(encoded); err == nil && len(raw) > 0 {
@@ -125,7 +132,7 @@ func dialProvider(
 	cb RealtimeCallbacks,
 ) (RealtimeSession, error) {
 	p := deviceProfileFor(ctx, deviceID)
-	provider := override(p.Provider, aiString(ctx, "provider", "openai"))
+	provider := override(p.Provider, configuredProvider(ctx))
 	sysPrompt := override(p.SystemPrompt, globalSystemPrompt(ctx))
 
 	switch provider {

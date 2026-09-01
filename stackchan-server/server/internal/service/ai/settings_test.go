@@ -47,3 +47,26 @@ func TestGeminiFeatureFlagsUseGUISettingsForNewSessions(t *testing.T) {
 		t.Fatal("Gemini Search should be enabled by GUI settings")
 	}
 }
+
+func TestConfiguredProviderUsesGUISettingsForNewSessions(t *testing.T) {
+	t.Setenv("STACKCHAN_DATA_DIR", t.TempDir())
+	if err := writeSettings(map[string]string{"provider": "gemini"}); err != nil {
+		t.Fatalf("writeSettings() error = %v", err)
+	}
+	if got := configuredProvider(context.Background()); got != "gemini" {
+		t.Fatalf("configuredProvider() = %q, want gemini", got)
+	}
+}
+
+func TestGUICanClearAConfiguredStringSetting(t *testing.T) {
+	t.Setenv("STACKCHAN_DATA_DIR", t.TempDir())
+	if err := writeSettings(map[string]string{"openai_api_key": ""}); err != nil {
+		t.Fatalf("writeSettings() error = %v", err)
+	}
+	if got := aiString(context.Background(), "openai_api_key", "fallback-key"); got != "" {
+		t.Fatalf("aiString() = %q, want an explicitly saved empty value", got)
+	}
+	if got := settingsForUI(context.Background())["openai_api_key"]; got != "" {
+		t.Fatalf("settingsForUI() returned %q, want an explicitly saved empty value", got)
+	}
+}
