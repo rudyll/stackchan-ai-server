@@ -128,7 +128,7 @@ docker compose -f docker-compose.standalone.yml up --build -d
 | **OpenAI**（当 `ai_provider=openai`） | | |
 | `openai_api_key` | ✅ | OpenAI API Key，在 [platform.openai.com](https://platform.openai.com) 获取。 |
 | `openai_realtime_model` | | Realtime 模型名（自由输入），默认 `gpt-realtime`。账号可用的其他模型 ID 也可直接填写。 |
-| `openai_tts_voice` | | TTS 语音，默认 `alloy`。女声推荐：`nova`、`shimmer`、`coral`、`sage`、`cedar`、`marin`、`cove`。 |
+| `openai_tts_voice` | | Realtime 声音，默认 `alloy`。内置声音包括 `alloy`、`ash`、`ballad`、`coral`、`echo`、`sage`、`shimmer`、`verse`、`marin` 和 `cedar`。 |
 | **Gemini**（当 `ai_provider=gemini`） | | |
 | `gemini_api_key` | ✅ | Google AI Studio API Key，在 [aistudio.google.com](https://aistudio.google.com/app/apikey) 获取。 |
 | `gemini_model` | | Gemini Live 模型名（自由输入），默认 `gemini-2.5-flash-native-audio-latest`。Gemini Live 支持的其他模型 ID 也可直接填写。 |
@@ -140,9 +140,9 @@ docker compose -f docker-compose.standalone.yml up --build -d
 | `llm_*` | | 可选的独立 LLM Base URL、API Key 和模型。 |
 | `tts_*` | | 可选的独立 TTS Base URL、API Key、模型和音色。 |
 | `compatible_*` | | 三段均未单独填写时的向后兼容回退值。 |
-| TokenHub | | 选择 `tokenhub`，填写 `tokenhub_base_url`、`tokenhub_api_key` 与上述 compatible 模型字段。 |
-| OpenRouter | | 选择 `openrouter`，填写 `openrouter_api_key` 与上述 compatible 模型字段；Base URL 自动使用 `https://openrouter.ai/api/v1`。 |
-| 通用兼容端点 | | 选择 `openai_compatible`，填写 `compatible_base_url`、`compatible_api_key` 和模型字段。 |
+| TokenHub | | 选择 `tokenhub`，填写 `tokenhub_base_url`、`tokenhub_api_key`，再按需要配置 `stt_*`、`llm_*`、`tts_*` 三段字段。 |
+| OpenRouter | | 选择 `openrouter`，填写 `openrouter_api_key`，再配置 LLM 模型和 STT/TTS 字段；Base URL 自动使用 `https://openrouter.ai/api/v1`。 |
+| 通用兼容端点 | | 选择 `openai_compatible`，在 GUI 中使用 `llm_*`、`stt_*`、`tts_*` 字段；旧的 `compatible_*` 仍作为回退值保留。 |
 | **后台任务（Beta）**（当前仅 `ai_provider=openai`） | | 长任务进入每台设备独立的后台队列，实时语音会话可继续对话。 |
 | `background_tasks_enabled` | | 是否启用后台任务，默认关闭。 |
 | `background_agent_base_url` | | 支持 `/v1/chat/completions` 的 OpenAI-compatible Base URL。 |

@@ -128,7 +128,7 @@ Pick **one** AI provider via `ai_provider` and fill in only its API key. The oth
 | **OpenAI** (when `ai_provider=openai`) | | |
 | `openai_api_key` | ✅ | Your OpenAI API key from [platform.openai.com](https://platform.openai.com). |
 | `openai_realtime_model` | | Realtime model name (free text). Default: `gpt-realtime`. Other model IDs may be entered when available to your account. |
-| `openai_tts_voice` | | TTS voice. Default: `alloy`. Female voices: `nova`, `shimmer`, `coral`, `sage`, `cedar`, `marin`, `cove`. |
+| `openai_tts_voice` | | Realtime voice. Default: `alloy`. Built-in voices include `alloy`, `ash`, `ballad`, `coral`, `echo`, `sage`, `shimmer`, `verse`, `marin`, and `cedar`. |
 | **Gemini** (when `ai_provider=gemini`) | | |
 | `gemini_api_key` | ✅ | Your Google AI Studio API key from [aistudio.google.com](https://aistudio.google.com/app/apikey). |
 | `gemini_model` | | Gemini Live model name (free text). Default: `gemini-2.5-flash-native-audio-latest`. Other model IDs may be entered when supported by Gemini Live. |
@@ -140,9 +140,9 @@ Pick **one** AI provider via `ai_provider` and fill in only its API key. The oth
 | `llm_*` | | Optional independent LLM Base URL, API Key, and model. |
 | `tts_*` | | Optional independent TTS Base URL, API Key, model, and voice. |
 | `compatible_*` | | Backward-compatible fallback values for all three stages when their stage-specific values are blank. |
-| TokenHub | | Select `tokenhub`; set `tokenhub_base_url`, `tokenhub_api_key`, plus compatible model fields. |
-| OpenRouter | | Select `openrouter`; set `openrouter_api_key`, plus compatible model fields. The base URL is set automatically. |
-| Generic compatible endpoint | | Select `openai_compatible`; set `compatible_base_url`, `compatible_api_key`, and compatible model fields. |
+| TokenHub | | Select `tokenhub`; set `tokenhub_base_url` and `tokenhub_api_key`, then configure stage-specific `stt_*`, `llm_*`, and `tts_*` fields as needed. |
+| OpenRouter | | Select `openrouter`; set `openrouter_api_key` and configure the LLM model plus STT/TTS fields. The base URL is set automatically. |
+| Generic compatible endpoint | | Select `openai_compatible`; use the GUI's `llm_*`, `stt_*`, and `tts_*` fields. Legacy `compatible_*` values remain as fallbacks. |
 | **Background tasks (Beta)** (currently `ai_provider=openai` only) | | Long-running work enters a per-device queue while the realtime conversation remains available. |
 | `background_tasks_enabled` | | Enable background tasks. Default: off. |
 | `background_agent_base_url` | | OpenAI-compatible base URL supporting `/v1/chat/completions`. |
