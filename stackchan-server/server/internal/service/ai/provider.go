@@ -137,43 +137,7 @@ func dialProvider(
 
 	switch provider {
 	case "openai_compatible", "tokenhub", "openrouter":
-		compatibleBaseURL := aiString(ctx, "compatible_base_url", "")
-		compatibleAPIKey := aiString(ctx, "compatible_api_key", "")
-		llmBaseURL, llmAPIKey := compatibleBaseURL, compatibleAPIKey
-		if provider == "tokenhub" {
-			llmBaseURL = aiString(ctx, "tokenhub_base_url", llmBaseURL)
-			llmAPIKey = aiString(ctx, "tokenhub_api_key", llmAPIKey)
-		}
-		if provider == "openrouter" {
-			llmBaseURL = aiString(ctx, "openrouter_base_url", "https://openrouter.ai/api/v1")
-			llmAPIKey = aiString(ctx, "openrouter_api_key", llmAPIKey)
-		}
-		// Stage-specific values override the legacy compatible endpoint. This
-		// enables e.g. domestic STT + TokenHub LLM + local TTS without breaking
-		// existing single-endpoint configurations.
-		sttBaseURL := override(aiString(ctx, "stt_base_url", ""), compatibleBaseURL)
-		sttAPIKey := override(aiString(ctx, "stt_api_key", ""), compatibleAPIKey)
-		ttsBaseURL := override(aiString(ctx, "tts_base_url", ""), compatibleBaseURL)
-		ttsAPIKey := override(aiString(ctx, "tts_api_key", ""), compatibleAPIKey)
-		llmBaseURL = override(aiString(ctx, "llm_base_url", ""), llmBaseURL)
-		llmAPIKey = override(aiString(ctx, "llm_api_key", ""), llmAPIKey)
-		sttModel := override(p.CompatibleSTTModel, override(aiString(ctx, "stt_model", ""), aiString(ctx, "compatible_stt_model", "whisper-1")))
-		llmModel := override(p.CompatibleModel, override(aiString(ctx, "llm_model", ""), aiString(ctx, "compatible_model", "")))
-		ttsModel := override(p.CompatibleTTSModel, override(aiString(ctx, "tts_model", ""), aiString(ctx, "compatible_tts_model", "tts-1")))
-		voice := override(p.CompatibleTTSVoice, override(aiString(ctx, "tts_voice", ""), aiString(ctx, "compatible_tts_voice", "alloy")))
-		return dialCompatibleSession(ctx, compatibleConfig{
-			STTBaseURL: sttBaseURL,
-			STTAPIKey:  sttAPIKey,
-			STTModel:   sttModel,
-			LLMBaseURL: llmBaseURL,
-			LLMAPIKey:  llmAPIKey,
-			LLMModel:   llmModel,
-			TTSBaseURL: ttsBaseURL,
-			TTSAPIKey:  ttsAPIKey,
-			TTSModel:   ttsModel,
-			Voice:      voice,
-			Prompt:     sysPrompt,
-		}, ha, cb)
+		return dialCompatibleSession(ctx, compatibleConfigFor(ctx, p, provider, sysPrompt), ha, cb)
 
 	case "gemini":
 		apiKey := aiString(ctx, "gemini_api_key", "")
@@ -195,5 +159,45 @@ func dialProvider(
 
 	default:
 		return nil, fmt.Errorf("unknown ai.provider %q", provider)
+	}
+}
+
+func compatibleConfigFor(ctx context.Context, profile deviceProfile, provider, sysPrompt string) compatibleConfig {
+	compatibleBaseURL := aiString(ctx, "compatible_base_url", "")
+	compatibleAPIKey := aiString(ctx, "compatible_api_key", "")
+	llmBaseURL, llmAPIKey := compatibleBaseURL, compatibleAPIKey
+	if provider == "tokenhub" {
+		llmBaseURL = aiString(ctx, "tokenhub_base_url", llmBaseURL)
+		llmAPIKey = aiString(ctx, "tokenhub_api_key", llmAPIKey)
+	}
+	if provider == "openrouter" {
+		llmBaseURL = aiString(ctx, "openrouter_base_url", "https://openrouter.ai/api/v1")
+		llmAPIKey = aiString(ctx, "openrouter_api_key", llmAPIKey)
+	}
+	// Stage-specific values override the legacy compatible endpoint. This
+	// enables e.g. domestic STT + TokenHub LLM + local TTS without breaking
+	// existing single-endpoint configurations.
+	sttBaseURL := override(aiString(ctx, "stt_base_url", ""), compatibleBaseURL)
+	sttAPIKey := override(aiString(ctx, "stt_api_key", ""), compatibleAPIKey)
+	ttsBaseURL := override(aiString(ctx, "tts_base_url", ""), compatibleBaseURL)
+	ttsAPIKey := override(aiString(ctx, "tts_api_key", ""), compatibleAPIKey)
+	llmBaseURL = override(aiString(ctx, "llm_base_url", ""), llmBaseURL)
+	llmAPIKey = override(aiString(ctx, "llm_api_key", ""), llmAPIKey)
+	sttModel := override(profile.CompatibleSTTModel, override(aiString(ctx, "stt_model", ""), aiString(ctx, "compatible_stt_model", "whisper-1")))
+	llmModel := override(profile.CompatibleModel, override(aiString(ctx, "llm_model", ""), aiString(ctx, "compatible_model", "")))
+	ttsModel := override(profile.CompatibleTTSModel, override(aiString(ctx, "tts_model", ""), aiString(ctx, "compatible_tts_model", "tts-1")))
+	voice := override(profile.CompatibleTTSVoice, override(aiString(ctx, "tts_voice", ""), aiString(ctx, "compatible_tts_voice", "alloy")))
+	return compatibleConfig{
+		STTBaseURL: sttBaseURL,
+		STTAPIKey:  sttAPIKey,
+		STTModel:   sttModel,
+		LLMBaseURL: llmBaseURL,
+		LLMAPIKey:  llmAPIKey,
+		LLMModel:   llmModel,
+		TTSBaseURL: ttsBaseURL,
+		TTSAPIKey:  ttsAPIKey,
+		TTSModel:   ttsModel,
+		Voice:      voice,
+		Prompt:     sysPrompt,
 	}
 }
