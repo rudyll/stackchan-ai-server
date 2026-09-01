@@ -93,3 +93,27 @@ func TestProviderCatalogRouteDoesNotPersistUnsupportedCheck(t *testing.T) {
 		t.Fatal("expected unsupported provider error")
 	}
 }
+
+func TestConfigUISettingsRoundTrip(t *testing.T) {
+	t.Setenv("STACKCHAN_DATA_DIR", t.TempDir())
+	handler := configUIHandler()
+	request := httptest.NewRequest(http.MethodPut, "/api/settings", strings.NewReader(`{"provider":"gemini","gemini_model":"gemini-live-test"}`))
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("PUT status = %d, want %d", response.Code, http.StatusOK)
+	}
+
+	response = httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/settings", nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("GET status = %d, want %d", response.Code, http.StatusOK)
+	}
+	values := map[string]string{}
+	if err := json.NewDecoder(response.Body).Decode(&values); err != nil {
+		t.Fatalf("decode settings: %v", err)
+	}
+	if values["provider"] != "gemini" || values["gemini_model"] != "gemini-live-test" {
+		t.Fatalf("settings = %#v, want saved provider and model", values)
+	}
+}
