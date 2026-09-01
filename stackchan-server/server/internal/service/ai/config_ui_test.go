@@ -95,6 +95,8 @@ func TestConfigUIIncludesProviderCatalogControls(t *testing.T) {
 		"gemini_enable_search",
 		"syncGeminiFlags",
 		"syncRuntimeMode",
+		"ui_ha_enabled",
+		"delete values.ui_ha_enabled",
 		"Tencent TokenHub",
 		"OpenRouter",
 		"OpenAI-compatible",

@@ -93,7 +93,7 @@ func aiBool(ctx context.Context, key string, fallback bool) bool {
 
 func settingsForUI(ctx context.Context) map[string]string {
 	values := readSettings()
-	values["ha_enabled"] = strconv.FormatBool(aiBool(ctx, "ha_enabled", true))
+	values["ui_ha_enabled"] = strconv.FormatBool(aiBool(ctx, "ha_enabled", true))
 	keys := []string{
 		"provider", "openai_api_key", "openai_realtime_model", "openai_tts_voice",
 		"gemini_api_key", "gemini_model", "gemini_voice", "gemini_enable_tools", "gemini_enable_search", "tokenhub_base_url", "tokenhub_api_key",

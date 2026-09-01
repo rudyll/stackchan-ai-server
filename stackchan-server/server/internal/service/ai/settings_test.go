@@ -70,3 +70,14 @@ func TestGUICanClearAConfiguredStringSetting(t *testing.T) {
 		t.Fatalf("settingsForUI() returned %q, want an explicitly saved empty value", got)
 	}
 }
+
+func TestSettingsUIExposesRuntimeModeAsReadOnlyMetadata(t *testing.T) {
+	t.Setenv("STACKCHAN_DATA_DIR", t.TempDir())
+	values := settingsForUI(context.Background())
+	if values["ui_ha_enabled"] == "" {
+		t.Fatal("settingsForUI() did not expose runtime mode metadata")
+	}
+	if _, ok := values["ha_enabled"]; ok {
+		t.Fatal("settingsForUI() must not expose writable ha_enabled configuration")
+	}
+}
