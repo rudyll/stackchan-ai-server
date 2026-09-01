@@ -90,7 +90,7 @@ func settingsForUI(ctx context.Context) map[string]string {
 	values := readSettings()
 	keys := []string{
 		"provider", "openai_api_key", "openai_realtime_model", "openai_tts_voice",
-		"gemini_api_key", "gemini_model", "gemini_voice", "tokenhub_base_url", "tokenhub_api_key",
+		"gemini_api_key", "gemini_model", "gemini_voice", "gemini_enable_tools", "gemini_enable_search", "tokenhub_base_url", "tokenhub_api_key",
 		"openrouter_api_key", "compatible_base_url", "compatible_api_key", "compatible_model",
 		"stt_base_url", "stt_api_key", "stt_model", "llm_base_url", "llm_api_key", "llm_model",
 		"tts_base_url", "tts_api_key", "tts_model", "tts_voice", "device_profiles",

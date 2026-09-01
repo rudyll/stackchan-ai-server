@@ -79,9 +79,8 @@ func dialGeminiSession(
 
 	// Setup message — single shot; must be the first frame on the socket.
 	// Wire format is camelCase per https://ai.google.dev/api/live.
-	cfg := g.Cfg()
-	enableTools := cfg.MustGet(gctx.New(), "ai.gemini_enable_tools", true).Bool()
-	enableSearch := cfg.MustGet(gctx.New(), "ai.gemini_enable_search", false).Bool()
+	enableTools := aiBool(ctx, "gemini_enable_tools", true)
+	enableSearch := aiBool(ctx, "gemini_enable_search", false)
 	if enableTools && ha == nil {
 		g.Log().Infof(s.logCtx, "[GM] HA tools disabled because Home Assistant is unavailable")
 		enableTools = false

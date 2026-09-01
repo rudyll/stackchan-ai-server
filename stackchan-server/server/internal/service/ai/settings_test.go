@@ -5,7 +5,10 @@ SPDX-License-Identifier: MIT
 
 package ai
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
 func TestWriteSettingsPreservesFieldsNotShownByCurrentUI(t *testing.T) {
 	t.Setenv("STACKCHAN_DATA_DIR", t.TempDir())
@@ -25,5 +28,22 @@ func TestWriteSettingsPreservesFieldsNotShownByCurrentUI(t *testing.T) {
 	}
 	if values["provider"] != "openai" {
 		t.Fatalf("provider = %q, want openai", values["provider"])
+	}
+}
+
+func TestGeminiFeatureFlagsUseGUISettingsForNewSessions(t *testing.T) {
+	t.Setenv("STACKCHAN_DATA_DIR", t.TempDir())
+	if err := writeSettings(map[string]string{
+		"gemini_enable_tools":  "false",
+		"gemini_enable_search": "true",
+	}); err != nil {
+		t.Fatalf("writeSettings() error = %v", err)
+	}
+	ctx := context.Background()
+	if aiBool(ctx, "gemini_enable_tools", true) {
+		t.Fatal("Gemini tools should be disabled by GUI settings")
+	}
+	if !aiBool(ctx, "gemini_enable_search", false) {
+		t.Fatal("Gemini Search should be enabled by GUI settings")
 	}
 }

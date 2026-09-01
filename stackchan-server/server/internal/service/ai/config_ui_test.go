@@ -59,6 +59,7 @@ func TestConfigUIIncludesProviderCatalogControls(t *testing.T) {
 	for _, text := range []string{
 		"OpenAI Realtime",
 		"Gemini Live",
+		"gemini_enable_search",
 		"Tencent TokenHub",
 		"OpenRouter",
 		"OpenAI-compatible",
