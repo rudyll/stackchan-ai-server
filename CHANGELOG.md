@@ -10,6 +10,9 @@
 - Aligned the add-on OpenAI voice schema with the current GUI/provider voice catalog.
 - Added a browser login page for the standalone settings UI; the token is exchanged for a short-lived HttpOnly session cookie.
 - Disabled HA-only tools and background-task controls in the standalone GUI while keeping Gemini Search available.
+- Documented how to retrieve the generated settings token after detached Compose startup and how to use a custom settings host port.
+- Added TokenHub and OpenRouter environment examples, plus custom-port support and regression coverage in the NVS OTA injector for same-host HA and standalone deployments.
+- Kept standalone runtime mode read-only at the API and persistence layers, filtered settings responses to GUI fields, rejected unsupported updates, and serialized concurrent settings writes.
 
 ## 2.8.0-beta.2 (Beta)
 
