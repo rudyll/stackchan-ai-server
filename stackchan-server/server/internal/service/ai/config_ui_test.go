@@ -6,6 +6,8 @@ SPDX-License-Identifier: MIT
 package ai
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -60,11 +62,32 @@ func TestConfigUIIncludesProviderCatalogControls(t *testing.T) {
 		"Tencent TokenHub",
 		"OpenRouter",
 		"OpenAI-compatible",
+		"system_prompt",
 		"/api/provider-catalog",
 		"检测 Provider、模型和声音",
 	} {
 		if !strings.Contains(configUIHTML, text) {
 			t.Fatalf("config UI is missing %q", text)
 		}
+	}
+}
+
+func TestProviderCatalogRouteDoesNotPersistUnsupportedCheck(t *testing.T) {
+	payload, err := json.Marshal(providerCatalogSettings{Provider: "unknown", Settings: map[string]string{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := httptest.NewRequest(http.MethodPost, "/api/provider-catalog", bytes.NewReader(payload))
+	response := httptest.NewRecorder()
+	configUIHandler().ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusOK)
+	}
+	result := providerCatalog{}
+	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if result.Error == "" {
+		t.Fatal("expected unsupported provider error")
 	}
 }

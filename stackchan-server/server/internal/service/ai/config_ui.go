@@ -18,6 +18,23 @@ import (
 // StartConfigUI serves the settings UI on the configured address. HA add-ons
 // rely on Ingress authentication; standalone runtime supplies a Bearer token.
 func StartConfigUI() {
+	ctx := gctx.New()
+	listenAddress := g.Cfg().MustGet(ctx, "ai.settings_listen_address", ":8099").String()
+	authToken := g.Cfg().MustGet(ctx, "ai.settings_auth_token", "").String()
+	requireAuth := !aiBool(ctx, "ha_enabled", true)
+	if requireAuth && strings.TrimSpace(authToken) == "" {
+		g.Log().Errorf(ctx, "[CONFIG] standalone settings UI has no auth token; all requests will be rejected")
+	}
+	handler := configUIAuth(configUIHandler(), authToken, requireAuth)
+	go func() {
+		g.Log().Infof(gctx.New(), "[CONFIG] settings UI listening on %s (auth_required=%t)", listenAddress, requireAuth)
+		if err := http.ListenAndServe(listenAddress, handler); err != nil {
+			g.Log().Errorf(gctx.New(), "[CONFIG] settings UI: %v", err)
+		}
+	}()
+}
+
+func configUIHandler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/settings", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -58,20 +75,7 @@ func StartConfigUI() {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		_, _ = w.Write([]byte(configUIHTML))
 	})
-	ctx := gctx.New()
-	listenAddress := g.Cfg().MustGet(ctx, "ai.settings_listen_address", ":8099").String()
-	authToken := g.Cfg().MustGet(ctx, "ai.settings_auth_token", "").String()
-	requireAuth := !aiBool(ctx, "ha_enabled", true)
-	if requireAuth && strings.TrimSpace(authToken) == "" {
-		g.Log().Errorf(ctx, "[CONFIG] standalone settings UI has no auth token; all requests will be rejected")
-	}
-	handler := configUIAuth(mux, authToken, requireAuth)
-	go func() {
-		g.Log().Infof(gctx.New(), "[CONFIG] settings UI listening on %s (auth_required=%t)", listenAddress, requireAuth)
-		if err := http.ListenAndServe(listenAddress, handler); err != nil {
-			g.Log().Errorf(gctx.New(), "[CONFIG] settings UI: %v", err)
-		}
-	}()
+	return mux
 }
 
 func configUIAuth(next http.Handler, token string, required bool) http.Handler {

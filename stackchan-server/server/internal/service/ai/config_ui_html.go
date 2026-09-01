@@ -26,6 +26,7 @@ const configUIHTML = `<!doctype html>
 <div class="provider-card" data-for="tokenhub"><div class="grid"><div class="field"><label>TokenHub Base URL</label><input name="tokenhub_base_url" placeholder="https://.../v1"></div><div class="field"><label>TokenHub API Key</label><input name="tokenhub_api_key" type="password" autocomplete="off"></div></div><p class="hint">TokenHub 主要作为 LLM；STT/TTS 请在“语音管线”中分别填写。</p></div>
 <div class="provider-card" data-for="openrouter"><div class="field"><label>OpenRouter API Key</label><input name="openrouter_api_key" type="password" autocomplete="off"></div><p class="hint">默认使用 https://openrouter.ai/api/v1；LLM model、STT 和 TTS 请在“语音管线”中填写。</p></div>
 <div class="provider-card" data-for="openai_compatible"><p class="hint">请在“语音管线”中填写 LLM Base URL、API Key 和 model。该入口要求兼容 OpenAI 的 /models 和 /v1/chat/completions；STT/TTS 也在同一处配置。</p></div>
+<div class="field"><label>System prompt</label><textarea name="system_prompt" placeholder="定义助手的语言、人格和回答风格"></textarea></div>
 <div class="actions"><button class="primary" id="detect">检测 Provider、模型和声音</button></div>
 <div class="catalog" id="catalog"><strong>检测结果</strong><span class="hint">填写 API Key 后点击检测。模型列表来自 Provider API；声音列表使用该 Provider 的能力目录。</span></div>
 </section>
