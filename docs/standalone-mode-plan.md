@@ -34,7 +34,7 @@ Build standalone mode into this project in small, separately releasable steps.
 - Make Home Assistant tools conditional instead of mandatory.
 - Use a custom firmware endpoint as the normal onboarding path. DNS/OTA interception for stock firmware remains an advanced option because it adds TLS, DNS, and network setup risk.
 
-## Phase 0 — Define the runtime contract
+## Phase 0 — Define the runtime contract (implemented)
 
 Add a documented `ha_enabled` setting and define two supported modes.
 
@@ -52,13 +52,13 @@ Acceptance criteria:
 - Prompts, tool lists, and logs do not imply that smart-home control is available in standalone mode.
 - Existing HA add-on behavior remains unchanged when `ha_enabled=true`.
 
-## Phase 1 — Make Home Assistant optional in the server
+## Phase 1 — Make Home Assistant optional in the server (implemented)
 
 Change the WebSocket session setup so it does not always dial `ai.ha_ws_url` and close when that connection fails. Introduce a no-op tool path or nullable HA client, and only register HA and background-task tools when Home Assistant is enabled and connected.
 
 Update the system prompt and provider setup so standalone users receive a normal voice assistant rather than smart-home instructions. Add regression tests for both modes, including the negative case where no HA URL or token exists.
 
-## Phase 2 — Add a standalone runtime and secure settings
+## Phase 2 — Add a standalone runtime and secure settings (implemented; beta)
 
 The current launcher reads `/data/options.json`, writes generated configuration, assumes the Supervisor hostname `homeassistant`, and relies on HA Ingress to protect port 8099. Add a separate runtime path with:
 
@@ -75,6 +75,8 @@ Acceptance criteria:
 - A fresh Docker Compose installation can serve one device using an OpenAI-compatible provider without HA.
 - Secrets persist only in the mounted data directory and are excluded from example files.
 - The settings UI rejects unauthenticated reads and writes in standalone mode.
+
+Implemented in the current beta: Docker Compose and environment-based startup, a persistent `/data` directory, generated or supplied settings token, loopback-only settings port mapping, and conditional HA/background-task startup.
 
 ## Phase 3 — Device onboarding
 

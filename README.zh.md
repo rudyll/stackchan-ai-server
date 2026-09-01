@@ -1,4 +1,4 @@
-# StackChan HA Add-ons
+# StackChan AI Server
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -6,9 +6,9 @@
 
 ## 项目介绍
 
-**StackChan HA Add-ons** 让你的 [StackChan](https://github.com/m5stack/StackChan) 桌面机器人成为由 GPT-4 / Gemini 驱动、深度集成 Home Assistant 的语音助手——无需小智账号，无需修改固件，无需维护意图脚本。
+**StackChan AI Server** 让你的 [StackChan](https://github.com/m5stack/StackChan) 桌面机器人变成可配置的实时或 OpenAI-compatible 语音助手，并可选集成 Home Assistant——无需小智账号，无需维护意图脚本。
 
-StackChan 是基于 M5Stack CoreS3（ESP32-S3）的掌心大小机器人，官方固件原本依赖小智云提供语音识别、语言模型和语音合成服务。本插件将小智云完全替换：可选择原生实时 provider，或分别配置 OpenAI-compatible 的 STT、LLM、TTS；HA 设备控制通过本地 HA WebSocket API 执行，不出局域网。
+StackChan 是基于 M5Stack CoreS3（ESP32-S3）的掌心大小机器人，官方固件原本依赖小智云提供语音识别、语言模型和语音合成服务。本项目用自托管服务替代该依赖：可以作为 Home Assistant add-on 或 standalone Docker 服务运行，选择原生实时 provider，或分别配置 OpenAI-compatible 的 STT、LLM、TTS；只有连接 HA runtime 时才启用智能家居控制。
 
 ### 为什么不用 HA Assist？
 
@@ -27,24 +27,25 @@ StackChan 是基于 M5Stack CoreS3（ESP32-S3）的掌心大小机器人，官�
 - 全程多轮对话——同一会话内 AI 记住上下文
 - 语音控制灯光、空调、窗帘、媒体播放器、脚本、场景及自动化
 - 支持区域控制（如"把客厅所有灯关掉"）
-- 无需小智账号——HA 保留在本地局域网
+- Home Assistant 可选——standalone Docker 可以在没有 HA 的情况下提供语音对话
+- 无需小智账号——音频交给你配置的 provider 处理，启用 HA 时设备控制仍留在局域网
 - 使用官方固件，无需重新编译
 
 ## 工作原理
 
-本插件完全取代小智云服务。StackChan 设备以为自己在和小智服务器通信，实际上连接的是运行在你的 Home Assistant 上的本地服务器。
+本项目完全取代小智云服务。StackChan 设备以为自己在和小智服务器通信，实际上连接的是运行在 Home Assistant add-on 或 standalone Docker 中的自托管服务器。
 
 ```
 StackChan ESP32-S3（未修改的 xiaozhi-esp32 固件）
     │  Xiaozhi WebSocket 协议 v3（OPUS 音频 + JSON）
     ▼
-StackChan AI Server（本插件，运行在 HA 的 12800 端口）
+StackChan AI Server（HA add-on 或 standalone Docker，使用 12800 端口）
     ├─ /xiaozhi/ota/  → 返回本地 WebSocket 地址
     └─ /xiaozhi/ws    → WebSocket 会话
          ├─ OpenAI Realtime API  ─┐
          │                        ├─ STT + LLM + TTS，流式（任选其一）
          └─ Gemini Live API     ──┘
-         └─ Home Assistant WebSocket API（设备控制）
+         └─ Home Assistant WebSocket API（可选的设备控制）
 ```
 
 **音频流水线（流式，延迟约 0.5–1.5 秒）：**
@@ -61,7 +62,7 @@ StackChan AI Server（本插件，运行在 HA 的 12800 端口）
 
 ---
 
-## 插件列表
+## 运行方式
 
 ### StackChan AI Server
 
@@ -74,6 +75,8 @@ StackChan AI Server（本插件，运行在 HA 的 12800 端口）
 - 支持区域控制（如"把客厅所有灯关掉"）
 - 全程多轮对话——同一会话内 AI 记住上下文
 - OpenAI 与 Gemini 的模型名均可自由填写
+
+同一套 server 也支持 standalone Docker；配置方式见下方说明。
 
 ---
 
@@ -111,7 +114,7 @@ docker compose -f docker-compose.standalone.yml up --build -d
 
 | 选项 | 必填 | 说明 |
 |------|------|------|
-| `local_host` | ✅ | Home Assistant 的局域网 IP（如 `192.168.1.100`）。设备通过此 IP 连接。 |
+| `local_host` | ✅ | 运行 StackChan AI Server 的主机局域网 IP（如 `192.168.1.100`）。add-on 通常填写 HA 主机；standalone 填写 Docker 宿主机。 |
 | `ha_enabled` | | 是否启用 Home Assistant 工具和后台任务。HA add-on 默认为 `true`；standalone runtime 将默认为 `false`。 |
 | `ha_mcp_token` | 启用 HA 时必填 | HA 长期访问令牌。在 **个人资料 → 安全 → 长期访问令牌** 中创建；standalone 模式留空。 |
 | `ai_provider` | ✅ | `openai`（默认）或 `gemini`。选择由谁处理语音 + LLM + TTS。 |
@@ -194,7 +197,7 @@ docker compose -f docker-compose.standalone.yml up --build -d
 
 ## 固件配置
 
-设备固件需要知道你的本地服务器地址，而不是小智云。有以下两种方式。
+设备固件需要知道你的本地服务器地址，而不是小智云。服务器可以是 Home Assistant add-on，也可以是 standalone Docker；有以下两种方式。
 
 > **选哪种方式？**
 > 大多数情况下使用**方式 A（NVS 写入）**——重新注入只需两条命令，无需重新编译。
@@ -244,10 +247,10 @@ python3 $IDF_PATH/components/partition_table/parttool.py \
 cat > nvs.csv << 'EOF'
 key,type,encoding,value
 wifi,namespace,,
-ota_url,data,string,http://<你的HA_IP>:12800/xiaozhi/ota/
+ota_url,data,string,http://<你的服务器局域网IP>:12800/xiaozhi/ota/
 EOF
 ```
-将 `<你的HA_IP>` 替换为 Home Assistant 的局域网 IP（与插件配置中的 `local_host` 相同）。
+将 `<你的服务器局域网IP>` 替换为运行 StackChan AI Server 的主机局域网 IP。使用 add-on 时通常是 Home Assistant 主机；使用 standalone 时是 Docker 宿主机。
 
 **第三步 — 生成 NVS 二进制文件**（将 `0x4000` 替换为第一步查到的实际大小）：
 ```bash
@@ -291,7 +294,7 @@ python3 $IDF_PATH/components/partition_table/parttool.py \
    idf.py menuconfig
    ```
    - 按 `/` 搜索 `OTA_URL`
-   - 改为 `http://<你的HA_IP>:12800/xiaozhi/ota/`
+   - 改为 `http://<你的服务器局域网IP>:12800/xiaozhi/ota/`
    - 保存并退出
 
 4. 编译并烧录：
@@ -313,7 +316,7 @@ python3 $IDF_PATH/components/partition_table/parttool.py \
 1. 下载 **StackChan World** App（iOS / Android）
 2. 打开 App，按照"添加设备"流程操作
 3. App 通过蓝牙将 Wi-Fi 信息推送到设备
-4. 连网后，设备会使用你配置的 OTA 地址（通过 NVS 写入或 menuconfig）连接本地插件，而不是小智云
+4. 连网后，设备会使用你配置的 OTA 地址（通过 NVS 写入或 menuconfig）连接本地 StackChan AI Server，而不是小智云
 
 ### 固件 OTA 升级后
 

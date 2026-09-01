@@ -1,4 +1,4 @@
-# StackChan HA Add-ons
+# StackChan AI Server
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -6,9 +6,9 @@ English | [中文](README.zh.md)
 
 ## About
 
-**StackChan HA Add-ons** turns your [StackChan](https://github.com/m5stack/StackChan) desktop robot into a configurable realtime or OpenAI-compatible voice assistant with full Home Assistant control — no Xiaozhi cloud account, no firmware modifications, no intent scripts to maintain.
+**StackChan AI Server** turns your [StackChan](https://github.com/m5stack/StackChan) desktop robot into a configurable realtime or OpenAI-compatible voice assistant, with optional Home Assistant control — no Xiaozhi cloud account, no intent scripts to maintain.
 
-StackChan is a palm-sized robot built on the M5Stack CoreS3 (ESP32-S3). The official firmware normally relies on the Xiaozhi cloud for speech recognition, language model, and TTS. This add-on replaces that entirely: choose a native realtime provider, or configure independent OpenAI-compatible STT, LLM, and TTS stages; Home Assistant device control happens locally over the HA WebSocket API.
+StackChan is a palm-sized robot built on the M5Stack CoreS3 (ESP32-S3). The official firmware normally relies on the Xiaozhi cloud for speech recognition, language model, and TTS. This project replaces that dependency with a self-hosted server: run it as a Home Assistant add-on or standalone Docker service, choose a native realtime provider, or configure independent OpenAI-compatible STT, LLM, and TTS stages. Home Assistant device control is enabled only when the HA runtime is connected.
 
 ### Why not just use HA Assist?
 
@@ -27,24 +27,25 @@ StackChan is a palm-sized robot built on the M5Stack CoreS3 (ESP32-S3). The offi
 - Full multi-turn conversation — the AI remembers context across utterances within a session
 - Controls lights, climate, covers, media players, scripts, scenes and automations by voice
 - Area-based control ("turn off all lights in the living room")
-- No Xiaozhi account — audio is processed by OpenAI/Gemini, HA stays on your LAN
+- Home Assistant is optional — standalone Docker provides voice conversation without HA
+- No Xiaozhi account — audio is processed by your configured provider, while HA stays on your LAN when enabled
 - Unmodified official firmware — no recompile needed
 
 ## How It Works
 
-This add-on replaces the Xiaozhi cloud entirely. The StackChan device thinks it's talking to Xiaozhi's servers, but it's actually talking to this local server running on your Home Assistant.
+This project replaces the Xiaozhi cloud entirely. The StackChan device thinks it's talking to Xiaozhi's servers, but it's actually talking to this self-hosted server running either as a Home Assistant add-on or a standalone Docker service.
 
 ```
 StackChan ESP32-S3  (unmodified xiaozhi-esp32 firmware)
     │  Xiaozhi WebSocket protocol v3 (OPUS audio + JSON)
     ▼
-StackChan AI Server  (this add-on, on your HA at port 12800)
+StackChan AI Server  (HA add-on or standalone Docker, port 12800)
     ├─ /xiaozhi/ota/  → returns local WebSocket address
     └─ /xiaozhi/ws    → WebSocket session
          ├─ OpenAI Realtime API  ─┐
          │                        ├─ STT + LLM + TTS, streaming (pick one)
          └─ Gemini Live API     ──┘
-         └─ Home Assistant WebSocket API (device control)
+         └─ Home Assistant WebSocket API (device control, optional)
 ```
 
 **Audio pipeline (streaming, ~0.5–1.5s latency):**
@@ -61,7 +62,7 @@ No Xiaozhi account is needed. The cloud dependency is whichever provider or comp
 
 ---
 
-## Add-ons
+## Distributions
 
 ### StackChan AI Server
 
@@ -75,6 +76,8 @@ Low-latency speech-to-speech conversation powered by **OpenAI Realtime API** (`g
 - Full multi-turn conversation — context maintained across utterances within a session
 - OpenAI and Gemini model names can be entered as free text
 
+The same server is also available as a standalone Docker runtime. See the standalone section below for setup and device onboarding.
+
 ---
 
 ## Installation
@@ -86,6 +89,8 @@ Low-latency speech-to-speech conversation powered by **OpenAI Realtime API** (`g
    https://github.com/rudyll/stackchan-ai-server
    ```
 4. Find **StackChan AI Server** in the store and click **Install**
+5. Go to the add-on **Configuration** tab and fill in the required fields (see below)
+6. Start the add-on
 
 ### Standalone Docker (beta)
 
@@ -98,8 +103,6 @@ docker compose -f docker-compose.standalone.yml up --build -d
 ```
 
 The WebSocket server is available on port `12800`. The settings UI is bound to `127.0.0.1:8099`; the first startup prints a Bearer token and persists it under `./data/settings-token`. Standalone mode does not connect to Home Assistant or expose the port-443 OTA interception. Configure the device OTA URL as `http://<server-LAN-IP>:12800/xiaozhi/ota/`.
-5. Go to the add-on **Configuration** tab and fill in the required fields (see below)
-6. Start the add-on
 
 ---
 
@@ -111,7 +114,7 @@ Pick **one** AI provider via `ai_provider` and fill in only its API key. The oth
 
 | Option | Required | Description |
 |--------|----------|-------------|
-| `local_host` | ✅ | LAN IP of your Home Assistant instance (e.g. `192.168.1.100`). The device uses this to connect. |
+| `local_host` | ✅ | LAN IP of the host running StackChan AI Server (e.g. `192.168.1.100`). For the add-on this is normally the HA host; for standalone it is the Docker host. |
 | `ha_enabled` | | Keep Home Assistant tools and background tasks enabled. The add-on defaults to `true`; standalone runtime will default to `false`. |
 | `ha_mcp_token` | When HA is enabled | HA Long-Lived Access Token. Create one in **Profile → Security → Long-Lived Access Tokens**. Leave it empty in standalone mode. |
 | `ai_provider` | ✅ | `openai` (default), `gemini`, `tokenhub`, `openrouter`, or `openai_compatible`. |
@@ -186,7 +189,7 @@ Wake-word detection and always-listening behaviour belong to the StackChan firmw
 
 ## Firmware Setup
 
-The device firmware needs to know your local server address instead of the Xiaozhi cloud. There are two ways to do this.
+The device firmware needs to know your local server address instead of the Xiaozhi cloud. The server can be a Home Assistant add-on or a standalone Docker host. There are two ways to configure the device.
 
 > **Which method should I use?**
 > Use **Method A (NVS)** for most cases — re-injection is just two commands and doesn't require recompiling.
@@ -236,10 +239,10 @@ Note the `size` value (commonly `0x4000` or `0x6000`). Replace `/dev/tty.usbseri
 cat > nvs.csv << 'EOF'
 key,type,encoding,value
 wifi,namespace,,
-ota_url,data,string,http://<YOUR_HA_IP>:12800/xiaozhi/ota/
+ota_url,data,string,http://<YOUR_SERVER_LAN_IP>:12800/xiaozhi/ota/
 EOF
 ```
-Replace `<YOUR_HA_IP>` with your Home Assistant's LAN IP (same as `local_host` in the add-on config).
+Replace `<YOUR_SERVER_LAN_IP>` with the LAN IP of the host running StackChan AI Server. For the add-on this is normally the Home Assistant host; for standalone it is the Docker host.
 
 **Step 3 — Generate the NVS binary** (replace `0x4000` with the actual size from Step 1):
 ```bash
@@ -283,7 +286,7 @@ Same ESP-IDF installation and environment activation as Method A above.
    idf.py menuconfig
    ```
    - Press `/` and search for `OTA_URL`
-   - Set it to `http://<YOUR_HA_IP>:12800/xiaozhi/ota/`
+   - Set it to `http://<YOUR_SERVER_LAN_IP>:12800/xiaozhi/ota/`
    - Save and exit
 
 4. Build and flash:
@@ -305,7 +308,7 @@ If the device has no Wi-Fi credentials (factory reset or first flash):
 1. Download the **StackChan World** app (iOS / Android)
 2. Open the app and follow the "Add device" flow
 3. The app uses Bluetooth to push your Wi-Fi credentials to the device
-4. Once connected, the device will use the OTA URL you configured (via NVS or menuconfig) to reach your local add-on instead of the Xiaozhi cloud
+4. Once connected, the device will use the OTA URL you configured (via NVS or menuconfig) to reach your local StackChan AI Server instead of the Xiaozhi cloud
 
 ### After a firmware OTA upgrade
 

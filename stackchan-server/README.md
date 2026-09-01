@@ -1,14 +1,14 @@
-# StackChan HA Add-ons
+# StackChan AI Server
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Home Assistant add-on repository for [StackChan](https://github.com/m5stack/StackChan) — an AI robot built on M5Stack CoreS3.
+Home Assistant add-on and standalone Docker runtime for [StackChan](https://github.com/m5stack/StackChan) — an AI robot built on M5Stack CoreS3.
 
-## Add-ons
+## Distributions
 
 ### StackChan AI Server
 
-A local AI server that gives your StackChan robot **GPT-4 / Gemini-level voice intelligence with full Home Assistant control** — no Xiaozhi cloud account, no firmware modifications, no intent scripts to maintain.
+A self-hosted AI server that gives your StackChan robot **GPT-4 / Gemini-level voice intelligence**, with optional Home Assistant control — no Xiaozhi cloud account or intent scripts to maintain.
 
 ### Why not just use HA Assist?
 
@@ -27,7 +27,7 @@ A local AI server that gives your StackChan robot **GPT-4 / Gemini-level voice i
 ```
 StackChan device (official firmware, unmodified)
     ↓  Xiaozhi WebSocket protocol (port 12800)
-StackChan AI Server  (this add-on, running on HA)
+StackChan AI Server  (HA add-on or standalone Docker, port 12800)
     ├──▶  OpenAI Realtime API  (voice-to-voice, GPT-4o)
     │         or
     ├──▶  Google Gemini Live API  (voice-to-voice, Gemini 2.5)
@@ -37,8 +37,8 @@ StackChan AI Server  (this add-on, running on HA)
 
 1. The device connects to this server instead of the Xiaozhi cloud
 2. Voice is streamed end-to-end to OpenAI or Gemini — no separate STT/TTS steps
-3. When the AI wants to control a device it calls built-in HA tools: list areas, search entities, list scenes/scripts/automations, call services, get state
-4. All HA calls are executed locally via the HA WebSocket API — nothing leaves your network except the AI audio stream
+3. When HA is enabled and the AI wants to control a device, it calls built-in HA tools: list areas, search entities, list scenes/scripts/automations, call services, get state
+4. All HA calls are executed locally via the HA WebSocket API; standalone mode omits them
 
 ## Installation
 
@@ -65,7 +65,7 @@ The server listens on port `12800`. The settings UI is bound to `127.0.0.1:8099`
 
 Flash the official StackChan firmware from [github.com/m5stack/StackChan](https://github.com/m5stack/StackChan) — no firmware modifications needed.
 
-The add-on intercepts the OTA check on port 443 and redirects the device to the local server automatically. Just make sure:
+The HA add-on intercepts the OTA check on port 443 and redirects the device to the local server automatically. Standalone Docker uses the NVS OTA URL or compiled firmware method described in the root README. For the add-on, make sure:
 
 - The device and HA are on the same LAN
 - `local_host` in the add-on config is set to the LAN IP of your HA instance
@@ -74,7 +74,7 @@ The add-on intercepts the OTA check on port 443 and redirects the device to the 
 
 | Option | Description |
 |--------|-------------|
-| `local_host` | LAN IP of this HA instance (e.g. `192.168.1.100`). The device uses this to connect back. |
+| `local_host` | LAN IP of the host running StackChan AI Server (e.g. `192.168.1.100`). For the add-on this is normally the HA host; for standalone it is the Docker host. |
 | `ha_enabled` | Enable Home Assistant tools and background tasks. The HA add-on defaults to `true`; standalone runtime uses `false`. |
 | `ha_mcp_token` | HA Long-Lived Access Token for device control when HA is enabled. Leave empty in standalone mode. |
 | `ai_provider` | `openai` or `gemini` |
