@@ -83,6 +83,24 @@ func TestConfigUILoginCookieAuthorizesBrowserRequests(t *testing.T) {
 	}
 }
 
+func TestConfigUILogoutClearsSessionCookie(t *testing.T) {
+	handler := configUIAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}), "test-token", true)
+
+	request := httptest.NewRequest(http.MethodGet, "/logout", nil)
+	request.AddCookie(&http.Cookie{Name: settingsSessionCookie, Value: "test-token"})
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusSeeOther || response.Header().Get("Location") != "/login" {
+		t.Fatalf("logout response = %d/%q, want redirect to login", response.Code, response.Header().Get("Location"))
+	}
+	cookies := response.Result().Cookies()
+	if len(cookies) != 1 || cookies[0].Name != settingsSessionCookie || cookies[0].MaxAge >= 0 || !cookies[0].HttpOnly {
+		t.Fatalf("logout cookies = %#v, want expired HttpOnly session cookie", cookies)
+	}
+}
+
 func TestConfigUIKeepsIngressCompatibilityWithoutRequiredAuth(t *testing.T) {
 	handler := configUIAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
