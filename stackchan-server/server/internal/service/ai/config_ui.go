@@ -88,7 +88,18 @@ func configUIHandler() http.Handler {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		_, _ = w.Write([]byte(configUIHTML))
 	})
-	return mux
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setConfigUISecurityHeaders(w)
+		mux.ServeHTTP(w, r)
+	})
+}
+
+func setConfigUISecurityHeaders(w http.ResponseWriter) {
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("X-Frame-Options", "DENY")
+	w.Header().Set("Referrer-Policy", "no-referrer")
+	w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'")
 }
 
 func settingsUpdateError(values map[string]string) string {
@@ -135,6 +146,7 @@ func configUIAuth(next http.Handler, token string, required bool) http.Handler {
 		return next
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setConfigUISecurityHeaders(w)
 		if r.URL.Path == "/login" {
 			handleConfigUILogin(w, r, token)
 			return

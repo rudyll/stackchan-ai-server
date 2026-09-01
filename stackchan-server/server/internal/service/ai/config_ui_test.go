@@ -48,6 +48,9 @@ func TestConfigUIRequiresBearerTokenWhenEnabled(t *testing.T) {
 	if resp.Code != http.StatusOK || !strings.Contains(resp.Body.String(), "Settings token") {
 		t.Fatalf("unauthenticated root status/body = %d/%q, want login page", resp.Code, resp.Body.String())
 	}
+	if resp.Header().Get("Cache-Control") != "no-store" || resp.Header().Get("X-Frame-Options") != "DENY" {
+		t.Fatalf("security headers = %#v, want no-store and DENY", resp.Header())
+	}
 }
 
 func TestConfigUILoginCookieAuthorizesBrowserRequests(t *testing.T) {
