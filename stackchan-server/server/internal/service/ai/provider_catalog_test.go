@@ -36,6 +36,23 @@ func TestFetchOpenAIModelsUsesBearerTokenAndSortsResults(t *testing.T) {
 	}
 }
 
+func TestFetchGeminiModelsKeepsLiveModelsOnly(t *testing.T) {
+	client := &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		if request.URL.Query().Get("key") != "secret" {
+			return nil, fmt.Errorf("missing Gemini API key")
+		}
+		return jsonResponse(`{"models":[{"name":"models/gemini-2.0-flash","displayName":"Live","supportedGenerationMethods":["bidiGenerateContent","generateContent"]},{"name":"models/gemini-2.0-flash-lite","displayName":"Text only","supportedGenerationMethods":["generateContent"]}]}`), nil
+	})}
+
+	models, err := fetchGeminiModelsWithClient(context.Background(), "secret", client)
+	if err != nil {
+		t.Fatalf("fetchGeminiModels() error = %v", err)
+	}
+	if len(models) != 1 || models[0].ID != "gemini-2.0-flash" {
+		t.Fatalf("models = %#v, want only the Live model", models)
+	}
+}
+
 type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {

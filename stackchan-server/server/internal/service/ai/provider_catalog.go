@@ -158,6 +158,10 @@ func fetchOpenAIModelsWithClient(ctx context.Context, baseURL, apiKey string, cl
 }
 
 func fetchGeminiModels(ctx context.Context, apiKey string) ([]catalogOption, error) {
+	return fetchGeminiModelsWithClient(ctx, apiKey, &http.Client{Timeout: 10 * time.Second})
+}
+
+func fetchGeminiModelsWithClient(ctx context.Context, apiKey string, client *http.Client) ([]catalogOption, error) {
 	endpoint, err := url.Parse("https://generativelanguage.googleapis.com/v1beta/models")
 	if err != nil {
 		return nil, err
@@ -167,11 +171,14 @@ func fetchGeminiModels(ctx context.Context, apiKey string) ([]catalogOption, err
 	query.Set("pageSize", "1000")
 	endpoint.RawQuery = query.Encode()
 	var payload geminiModelList
-	if err := fetchJSON(ctx, &http.Client{Timeout: 10 * time.Second}, endpoint.String(), "", &payload); err != nil {
+	if err := fetchJSON(ctx, client, endpoint.String(), "", &payload); err != nil {
 		return nil, err
 	}
 	models := make([]catalogOption, 0, len(payload.Models))
 	for _, model := range payload.Models {
+		if !supportsGeminiLive(model.SupportedActionMethods) {
+			continue
+		}
 		id := strings.TrimPrefix(strings.TrimSpace(model.Name), "models/")
 		if id == "" {
 			id = strings.TrimSpace(model.BaseModelID)
@@ -183,6 +190,15 @@ func fetchGeminiModels(ctx context.Context, apiKey string) ([]catalogOption, err
 	}
 	sortCatalogOptions(models)
 	return limitCatalogOptions(models, 200), nil
+}
+
+func supportsGeminiLive(methods []string) bool {
+	for _, method := range methods {
+		if strings.EqualFold(strings.TrimSpace(method), "bidiGenerateContent") {
+			return true
+		}
+	}
+	return false
 }
 
 func modelsEndpoint(baseURL string) (string, error) {
