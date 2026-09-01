@@ -7,6 +7,7 @@ OPTIONS=/data/options.json
 get() { jq -r --arg k "$1" --arg d "$2" '.[$k] // $d' "$OPTIONS"; }
 
 LOCAL_HOST=$(get local_host "127.0.0.1")
+HA_ENABLED=$(get ha_enabled "true")
 HA_MCP_TOKEN=$(get ha_mcp_token "")
 AI_PROVIDER=$(get ai_provider "openai")
 OPENAI_KEY=$(get openai_api_key "")
@@ -81,6 +82,10 @@ xiaozhi:
 ai:
   local_host: "${LOCAL_HOST}"
   local_port: 12800
+  ha_enabled: ${HA_ENABLED}
+  ota_https_enabled: true
+  settings_listen_address: ":8099"
+  settings_auth_token: ""
   ha_ws_url: "ws://homeassistant:8123/api/websocket"
   ha_mcp_token: "${HA_MCP_TOKEN}"
   provider: "${AI_PROVIDER}"

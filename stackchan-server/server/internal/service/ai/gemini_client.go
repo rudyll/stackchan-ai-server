@@ -82,6 +82,10 @@ func dialGeminiSession(
 	cfg := g.Cfg()
 	enableTools := cfg.MustGet(gctx.New(), "ai.gemini_enable_tools", true).Bool()
 	enableSearch := cfg.MustGet(gctx.New(), "ai.gemini_enable_search", false).Bool()
+	if enableTools && ha == nil {
+		g.Log().Infof(s.logCtx, "[GM] HA tools disabled because Home Assistant is unavailable")
+		enableTools = false
+	}
 
 	setupBody := map[string]any{
 		"model": "models/" + model,

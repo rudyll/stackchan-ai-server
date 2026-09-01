@@ -44,6 +44,11 @@ ai:
   # IP/hostname of this server, sent to device via OTA so it knows where to connect.
   local_host: "192.168.1.100"
   local_port: 12800
+  # Connect to Home Assistant for smart-home tools and background tasks.
+  ha_enabled: true
+  ota_https_enabled: true
+  settings_listen_address: ":8099"
+  settings_auth_token: ""
   # Home Assistant MCP WebSocket URL (ha-mcp-for-stackchan integration).
   ha_mcp_url: "ws://homeassistant.local:8123/api/ws_mcp_server/ws"
   # HA Long-Lived Access Token (create in HA → Profile → Long-Lived Access Tokens).

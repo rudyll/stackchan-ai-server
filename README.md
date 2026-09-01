@@ -86,6 +86,18 @@ Low-latency speech-to-speech conversation powered by **OpenAI Realtime API** (`g
    https://github.com/rudyll/stackchan_ha_addons
    ```
 4. Find **StackChan AI Server** in the store and click **Install**
+
+### Standalone Docker (beta)
+
+Home Assistant is optional. To run the server with Docker Compose, copy `stackchan-server/.env.standalone.example` to `.env`, set `STACKCHAN_LOCAL_HOST` to the Docker host's LAN IP, add an AI API key, then run:
+
+```bash
+cd stackchan-server
+cp .env.standalone.example .env
+docker compose -f docker-compose.standalone.yml up --build -d
+```
+
+The WebSocket server is available on port `12800`. The settings UI is bound to `127.0.0.1:8099`; the first startup prints a Bearer token and persists it under `./data/settings-token`. Standalone mode does not connect to Home Assistant or expose the port-443 OTA interception. Configure the device OTA URL as `http://<server-LAN-IP>:12800/xiaozhi/ota/`.
 5. Go to the add-on **Configuration** tab and fill in the required fields (see below)
 6. Start the add-on
 
@@ -100,7 +112,8 @@ Pick **one** AI provider via `ai_provider` and fill in only its API key. The oth
 | Option | Required | Description |
 |--------|----------|-------------|
 | `local_host` | ✅ | LAN IP of your Home Assistant instance (e.g. `192.168.1.100`). The device uses this to connect. |
-| `ha_mcp_token` | ✅ | HA Long-Lived Access Token. Create one in **Profile → Security → Long-Lived Access Tokens**. |
+| `ha_enabled` | | Keep Home Assistant tools and background tasks enabled. The add-on defaults to `true`; standalone runtime will default to `false`. |
+| `ha_mcp_token` | When HA is enabled | HA Long-Lived Access Token. Create one in **Profile → Security → Long-Lived Access Tokens**. Leave it empty in standalone mode. |
 | `ai_provider` | ✅ | `openai` (default), `gemini`, `tokenhub`, `openrouter`, or `openai_compatible`. |
 | `system_prompt` | | Custom personality/instructions for the assistant. |
 | **OpenAI** (when `ai_provider=openai`) | | |

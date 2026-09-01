@@ -168,6 +168,10 @@ func sanitizeGeminiSchema(v any) any {
 // dispatchHATool executes a named HA tool call and returns a result string.
 // Called by both the OpenAI and Gemini providers.
 func dispatchHATool(ha *haWSClient, name string, args map[string]any) (string, error) {
+	if ha == nil {
+		return "", fmt.Errorf("Home Assistant tools are unavailable in standalone mode")
+	}
+
 	strVal := func(key string) string {
 		v, _ := args[key].(string)
 		return v

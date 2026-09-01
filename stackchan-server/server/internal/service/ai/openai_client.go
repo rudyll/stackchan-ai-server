@@ -129,7 +129,7 @@ func (c *openAIClient) Chat(ctx context.Context, history []chatMessage, ha *haWS
 	msgs := make([]chatMessage, 0, len(history)+1)
 	msgs = append(msgs, chatMessage{Role: "system", Content: sysContent})
 	msgs = append(msgs, history...)
-	tools := haOpenAITools()
+	tools := haOpenAITools(ha)
 
 	for {
 		body, _ := json.Marshal(map[string]any{
@@ -199,7 +199,10 @@ func (c *openAIClient) Speak(ctx context.Context, text string) ([]int16, error) 
 }
 
 // haOpenAITools converts the 7 HA tool defs (MCP inputSchema format) to OpenAI function calling format.
-func haOpenAITools() []map[string]any {
+func haOpenAITools(ha *haWSClient) []map[string]any {
+	if ha == nil {
+		return []map[string]any{}
+	}
 	defs := haToolDefs()
 	tools := make([]map[string]any, 0, len(defs))
 	for _, t := range defs {

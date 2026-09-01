@@ -50,6 +50,17 @@ StackChan AI Server  (this add-on, running on HA)
    ```
 4. Find **StackChan AI Server** in the store and click **Install**
 
+### Standalone Docker (beta)
+
+Copy `.env.standalone.example` to `.env`, set `STACKCHAN_LOCAL_HOST` to the Docker host's LAN IP, add an AI API key, and run:
+
+```bash
+cp .env.standalone.example .env
+docker compose -f docker-compose.standalone.yml up --build -d
+```
+
+The server listens on port `12800`. The settings UI is bound to `127.0.0.1:8099` and requires the Bearer token printed on first startup. Standalone mode does not connect to Home Assistant or start the port-443 OTA interception.
+
 ## Device Setup
 
 Flash the official StackChan firmware from [github.com/m5stack/StackChan](https://github.com/m5stack/StackChan) — no firmware modifications needed.
@@ -64,7 +75,8 @@ The add-on intercepts the OTA check on port 443 and redirects the device to the 
 | Option | Description |
 |--------|-------------|
 | `local_host` | LAN IP of this HA instance (e.g. `192.168.1.100`). The device uses this to connect back. |
-| `ha_mcp_token` | HA Long-Lived Access Token for device control. Create one in **Profile → Security → Long-Lived Access Tokens**. |
+| `ha_enabled` | Enable Home Assistant tools and background tasks. The HA add-on defaults to `true`; standalone runtime uses `false`. |
+| `ha_mcp_token` | HA Long-Lived Access Token for device control when HA is enabled. Leave empty in standalone mode. |
 | `ai_provider` | `openai` or `gemini` |
 | `openai_api_key` | OpenAI API key (required when provider is `openai`) |
 | `openai_realtime_model` | OpenAI Realtime model to use |

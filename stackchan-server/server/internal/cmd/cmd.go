@@ -56,8 +56,11 @@ var (
 			// heartBeat
 			boot.InitCron()
 
-			// HTTPS OTA intercept on :443 (for DNS override of api.tenclass.net)
-			ai.StartOTAHTTPS()
+			// HTTPS OTA intercept on :443 (for DNS override of api.tenclass.net).
+			// Standalone users normally configure the device OTA URL directly.
+			if g.Cfg().MustGet(ctx, "ai.ota_https_enabled", true).Bool() {
+				ai.StartOTAHTTPS()
+			}
 
 			///Configuration file access
 			s.Group("/file", func(group *ghttp.RouterGroup) {

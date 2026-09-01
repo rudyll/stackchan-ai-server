@@ -6,15 +6,17 @@ SPDX-License-Identifier: MIT
 package ai
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gctx"
 )
 
-// StartConfigUI serves only on the add-on ingress port (not a host-mapped
-// port). Home Assistant authenticates access before proxying it here.
+// StartConfigUI serves the settings UI on the configured address. HA add-ons
+// rely on Ingress authentication; standalone runtime supplies a Bearer token.
 func StartConfigUI() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/settings", func(w http.ResponseWriter, r *http.Request) {
@@ -42,12 +44,41 @@ func StartConfigUI() {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		_, _ = w.Write([]byte(configUIHTML))
 	})
+	ctx := gctx.New()
+	listenAddress := g.Cfg().MustGet(ctx, "ai.settings_listen_address", ":8099").String()
+	authToken := g.Cfg().MustGet(ctx, "ai.settings_auth_token", "").String()
+	requireAuth := !aiBool(ctx, "ha_enabled", true)
+	if requireAuth && strings.TrimSpace(authToken) == "" {
+		g.Log().Errorf(ctx, "[CONFIG] standalone settings UI has no auth token; all requests will be rejected")
+	}
+	handler := configUIAuth(mux, authToken, requireAuth)
 	go func() {
-		g.Log().Infof(gctx.New(), "[CONFIG] ingress settings UI listening on :8099")
-		if err := http.ListenAndServe(":8099", mux); err != nil {
-			g.Log().Errorf(gctx.New(), "[CONFIG] ingress UI: %v", err)
+		g.Log().Infof(gctx.New(), "[CONFIG] settings UI listening on %s (auth_required=%t)", listenAddress, requireAuth)
+		if err := http.ListenAndServe(listenAddress, handler); err != nil {
+			g.Log().Errorf(gctx.New(), "[CONFIG] settings UI: %v", err)
 		}
 	}()
+}
+
+func configUIAuth(next http.Handler, token string, required bool) http.Handler {
+	if !required {
+		return next
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		const prefix = "Bearer "
+		authorization := r.Header.Get("Authorization")
+		if !strings.HasPrefix(authorization, prefix) {
+			w.Header().Set("WWW-Authenticate", `Bearer realm="StackChan settings"`)
+			http.Error(w, "authentication required", http.StatusUnauthorized)
+			return
+		}
+		provided := strings.TrimSpace(strings.TrimPrefix(authorization, prefix))
+		if token == "" || subtle.ConstantTimeCompare([]byte(provided), []byte(token)) != 1 {
+			http.Error(w, "invalid credentials", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 const configUIHTML = `<!doctype html><html lang="zh-CN"><meta name="viewport" content="width=device-width,initial-scale=1"><title>StackChan 设置</title><style>

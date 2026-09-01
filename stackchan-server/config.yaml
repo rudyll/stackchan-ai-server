@@ -22,6 +22,7 @@ ports_description:
 # User fills these in the add-on UI instead of editing config.yaml manually.
 options:
   local_host: "192.168.1.100"
+  ha_enabled: true
   ha_mcp_token: ""
   ai_provider: "openai"
   openai_api_key: ""
@@ -63,6 +64,7 @@ options:
 
 schema:
   local_host: str
+  ha_enabled: bool
   ha_mcp_token: str
   ai_provider: list(openai|gemini|tokenhub|openrouter|openai_compatible)
   openai_api_key: str?

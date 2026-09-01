@@ -14,6 +14,7 @@ RUN apk add --no-cache opus opusfile jq bash ca-certificates
 WORKDIR /app
 COPY --from=builder /build/stackchan-server .
 COPY run.sh /run.sh
-RUN chmod +x /run.sh
+COPY standalone.sh /standalone.sh
+RUN chmod +x /run.sh /standalone.sh
 
 CMD ["/run.sh"]

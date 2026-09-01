@@ -74,3 +74,18 @@ func TestResamplePCM16ToRealtimeRate(t *testing.T) {
 		t.Fatalf("expected interpolated middle sample, got %d", output[1])
 	}
 }
+
+func TestStandaloneModeDoesNotRegisterHATools(t *testing.T) {
+	if tools := haOpenAITools(nil); len(tools) != 0 {
+		t.Fatalf("expected no OpenAI tools without HA, got %d", len(tools))
+	}
+	if tools := realtimeToolsFor(nil); len(tools) != 0 {
+		t.Fatalf("expected no Realtime tools without HA, got %d", len(tools))
+	}
+}
+
+func TestDispatchHAToolWithoutConnectionReturnsError(t *testing.T) {
+	if _, err := dispatchHATool(nil, "ha_get_state", map[string]any{"entity_id": "light.test"}); err == nil {
+		t.Fatal("expected standalone HA tool call to return an error")
+	}
+}

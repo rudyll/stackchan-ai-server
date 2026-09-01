@@ -11,16 +11,26 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/gogf/gf/v2/frame/g"
 )
 
 // User-managed settings live outside supervisor-owned options.json. The file
-// is only served through the add-on's unexposed ingress port.
-const settingsPath = "/data/stackchan-settings.json"
+// is only served through the protected settings UI.
+func stackChanDataDir() string {
+	if value := strings.TrimSpace(os.Getenv("STACKCHAN_DATA_DIR")); value != "" {
+		return filepath.Clean(value)
+	}
+	return "/data"
+}
+
+func settingsFilePath() string {
+	return filepath.Join(stackChanDataDir(), "stackchan-settings.json")
+}
 
 func readSettings() map[string]string {
-	data, err := os.ReadFile(settingsPath)
+	data, err := os.ReadFile(settingsFilePath())
 	if err != nil {
 		return map[string]string{}
 	}
@@ -36,6 +46,7 @@ func writeSettings(values map[string]string) error {
 	if err != nil {
 		return err
 	}
+	settingsPath := settingsFilePath()
 	tmp := settingsPath + ".tmp"
 	if err := os.MkdirAll(filepath.Dir(settingsPath), 0700); err != nil {
 		return err

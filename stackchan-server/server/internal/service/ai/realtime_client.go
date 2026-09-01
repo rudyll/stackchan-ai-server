@@ -86,14 +86,19 @@ func dialOpenAIRealtimeSession(
 	}
 
 	deliveryCtx, deliveryCancel := context.WithCancel(context.Background())
-	taskEvents, unsubscribeTasks := defaultBackgroundTasks.subscribe()
+	taskRunner := loadBackgroundAgentConfig(ctx).runner()
+	var taskEvents <-chan struct{}
+	unsubscribeTasks := func() {}
+	if taskRunner != nil {
+		taskEvents, unsubscribeTasks = defaultBackgroundTasks.subscribe()
+	}
 	s := &openaiRealtimeSession{
 		conn:             conn,
 		ha:               ha,
 		logCtx:           gctx.New(),
 		deviceID:         deviceID,
 		tasks:            defaultBackgroundTasks,
-		taskRunner:       loadBackgroundAgentConfig(ctx).runner(),
+		taskRunner:       taskRunner,
 		claimantID:       "voice_" + deviceID + "_" + fmt.Sprint(time.Now().UnixNano()),
 		deliveryWake:     make(chan struct{}, 1),
 		deliveryCancel:   deliveryCancel,
@@ -105,7 +110,7 @@ func dialOpenAIRealtimeSession(
 	now := time.Now().Format("2006-01-02 15:04:05 MST")
 	instructions := fmt.Sprintf("Current date/time: %s\n\n%s", now, sysPrompt)
 
-	tools := haRealtimeTools()
+	tools := realtimeToolsFor(ha)
 	if s.taskRunner != nil {
 		tools = append(tools, backgroundRealtimeTools()...)
 		instructions += "\n\n后台任务规则：开灯、查询状态等短操作继续直接调用 Home Assistant 工具。只有分析或多步骤长任务才调用 start_background_task；调用成功后立即简短确认，不要等待任务完成。用户询问进度或要求取消时，使用对应的后台任务工具。"
@@ -116,8 +121,10 @@ func dialOpenAIRealtimeSession(
 	}
 
 	go s.readLoop(ctx)
-	go s.deliveryLoop(deliveryCtx, taskEvents)
-	s.wakeDelivery()
+	if taskRunner != nil {
+		go s.deliveryLoop(deliveryCtx, taskEvents)
+		s.wakeDelivery()
+	}
 	return s, nil
 }
 
@@ -378,6 +385,13 @@ func (s *openaiRealtimeSession) readLoop(ctx context.Context) {
 			g.Log().Warningf(s.logCtx, "[RT] API error: %v", errObj)
 		}
 	}
+}
+
+func realtimeToolsFor(ha *haWSClient) []map[string]any {
+	if ha == nil {
+		return []map[string]any{}
+	}
+	return haRealtimeTools()
 }
 
 // openAIRealtimeSessionUpdate builds the current GA session shape. The

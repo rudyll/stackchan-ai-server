@@ -33,8 +33,6 @@ const (
 	backgroundNotificationDelivered  = "delivered"
 )
 
-const backgroundTasksPath = "/data/background-tasks.json"
-
 type backgroundTask struct {
 	ID                    string    `json:"id"`
 	OwnerID               string    `json:"owner_id"`
@@ -83,7 +81,7 @@ func newBackgroundTaskManager(storePath string, ttl time.Duration) *backgroundTa
 	return m
 }
 
-var defaultBackgroundTasks = newBackgroundTaskManager(backgroundTasksPath, 7*24*time.Hour)
+var defaultBackgroundTasks = newBackgroundTaskManager(filepath.Join(stackChanDataDir(), "background-tasks.json"), 7*24*time.Hour)
 
 func cloneBackgroundTask(task *backgroundTask) *backgroundTask {
 	if task == nil {
@@ -475,8 +473,9 @@ func loadBackgroundAgentConfig(ctx context.Context) backgroundAgentConfig {
 		model = override(aiString(ctx, "llm_model", ""), aiString(ctx, "compatible_model", ""))
 	}
 	timeoutSeconds := aiInt(ctx, "background_agent_timeout_seconds", 300)
+	haEnabled := aiBool(ctx, "ha_enabled", true)
 	return backgroundAgentConfig{
-		Enabled: aiBool(ctx, "background_tasks_enabled", false) && apiKey != "" && model != "",
+		Enabled: haEnabled && aiBool(ctx, "background_tasks_enabled", false) && apiKey != "" && model != "",
 		BaseURL: baseURL,
 		APIKey:  apiKey,
 		Model:   model,

@@ -80,26 +80,30 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	haURL := cfg.MustGet(ctx, "ai.ha_ws_url", "ws://homeassistant:8123/api/websocket").String()
-	haToken := cfg.MustGet(ctx, "ai.ha_mcp_token", "").String()
 	provider := cfg.MustGet(ctx, "ai.provider", "openai").String()
 
 	deviceID := r.Header.Get("Device-Id")
-	g.Log().Infof(ctx, "[WS] device=%s connecting HA at %s", deviceID, haURL)
-
-	ha, err := dialHAWebSocket(haURL, haToken)
-	if err != nil {
-		g.Log().Warningf(ctx, "[WS] device=%s HA connect failed: %v", deviceID, err)
-		conn.Close()
-		return
+	var ha *haWSClient
+	if aiBool(ctx, "ha_enabled", true) {
+		haURL := cfg.MustGet(ctx, "ai.ha_ws_url", "ws://homeassistant:8123/api/websocket").String()
+		haToken := cfg.MustGet(ctx, "ai.ha_mcp_token", "").String()
+		g.Log().Infof(ctx, "[WS] device=%s connecting HA at %s", deviceID, haURL)
+		ha, err = dialHAWebSocket(haURL, haToken)
+		if err != nil {
+			g.Log().Warningf(ctx, "[WS] device=%s HA connect failed: %v", deviceID, err)
+			conn.Close()
+			return
+		}
+		g.Log().Infof(ctx, "[WS] device=%s HA connected", deviceID)
+	} else {
+		g.Log().Infof(ctx, "[WS] device=%s running without Home Assistant", deviceID)
 	}
-	g.Log().Infof(ctx, "[WS] device=%s HA connected", deviceID)
 
 	opusDec, err := newOpusDecoder()
 	if err != nil {
 		g.Log().Errorf(ctx, "[WS] device=%s opus decoder init: %v", deviceID, err)
 		conn.Close()
-		ha.Close()
+		closeHAClient(ha)
 		return
 	}
 
@@ -217,7 +221,7 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		g.Log().Errorf(ctx, "[WS] device=%s provider connect: %v", deviceID, err)
 		conn.Close()
-		ha.Close()
+		closeHAClient(ha)
 		return
 	}
 	s.rt = rt
@@ -229,7 +233,13 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 
 	g.Log().Infof(ctx, "[WS] device=%s session closed", deviceID)
 	rt.Close()
-	ha.Close()
+	closeHAClient(ha)
+}
+
+func closeHAClient(ha *haWSClient) {
+	if ha != nil {
+		ha.Close()
+	}
 }
 
 // pacingLoop delivers OPUS frames to the device at a steady 60ms per frame.

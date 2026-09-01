@@ -89,6 +89,18 @@ StackChan AI Server（本插件，运行在 HA 的 12800 端口）
 5. 进入插件的 **配置** 选项卡，填写必要字段（见下文）
 6. 启动插件
 
+### Standalone Docker（Beta）
+
+Home Assistant 不是必需项。使用 Docker Compose 时，复制 `stackchan-server/.env.standalone.example` 为 `.env`，将 `STACKCHAN_LOCAL_HOST` 设置为 Docker 宿主机的局域网 IP，填写 AI API Key，然后运行：
+
+```bash
+cd stackchan-server
+cp .env.standalone.example .env
+docker compose -f docker-compose.standalone.yml up --build -d
+```
+
+语音 WebSocket 服务使用 `12800` 端口；设置页默认只绑定 `127.0.0.1:8099`。首次启动日志会显示 Bearer token，并持久化到 `./data/settings-token`。standalone 不连接 Home Assistant，也不启动 443 端口 OTA 劫持；设备 OTA 地址配置为 `http://<服务器局域网IP>:12800/xiaozhi/ota/`。
+
 ---
 
 ## 配置项
@@ -100,7 +112,8 @@ StackChan AI Server（本插件，运行在 HA 的 12800 端口）
 | 选项 | 必填 | 说明 |
 |------|------|------|
 | `local_host` | ✅ | Home Assistant 的局域网 IP（如 `192.168.1.100`）。设备通过此 IP 连接。 |
-| `ha_mcp_token` | ✅ | HA 长期访问令牌。在 **个人资料 → 安全 → 长期访问令牌** 中创建。 |
+| `ha_enabled` | | 是否启用 Home Assistant 工具和后台任务。HA add-on 默认为 `true`；standalone runtime 将默认为 `false`。 |
+| `ha_mcp_token` | 启用 HA 时必填 | HA 长期访问令牌。在 **个人资料 → 安全 → 长期访问令牌** 中创建；standalone 模式留空。 |
 | `ai_provider` | ✅ | `openai`（默认）或 `gemini`。选择由谁处理语音 + LLM + TTS。 |
 | `system_prompt` | | 助手的自定义角色设定或指令。 |
 | **OpenAI**（当 `ai_provider=openai`） | | |
