@@ -153,3 +153,20 @@ func TestConfigUISettingsRoundTrip(t *testing.T) {
 		t.Fatalf("settings = %#v, want saved provider and model", values)
 	}
 }
+
+func TestConfigUIRejectsRuntimeModeWrites(t *testing.T) {
+	t.Setenv("STACKCHAN_DATA_DIR", t.TempDir())
+	for _, key := range []string{"ha_enabled", "ui_ha_enabled"} {
+		t.Run(key, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodPut, "/api/settings", strings.NewReader(`{"`+key+`":"true"}`))
+			response := httptest.NewRecorder()
+			configUIHandler().ServeHTTP(response, request)
+			if response.Code != http.StatusBadRequest {
+				t.Fatalf("PUT status = %d, want %d", response.Code, http.StatusBadRequest)
+			}
+			if _, ok := readSettings()[key]; ok {
+				t.Fatalf("read-only setting %q was persisted", key)
+			}
+		})
+	}
+}

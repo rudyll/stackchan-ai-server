@@ -7,7 +7,10 @@ package ai
 
 import (
 	"context"
+	"strconv"
 	"testing"
+
+	"github.com/gogf/gf/v2/frame/g"
 )
 
 func TestWriteSettingsPreservesFieldsNotShownByCurrentUI(t *testing.T) {
@@ -79,5 +82,25 @@ func TestSettingsUIExposesRuntimeModeAsReadOnlyMetadata(t *testing.T) {
 	}
 	if _, ok := values["ha_enabled"]; ok {
 		t.Fatal("settingsForUI() must not expose writable ha_enabled configuration")
+	}
+}
+
+func TestStoredRuntimeModeCannotOverrideStandaloneConfiguration(t *testing.T) {
+	t.Setenv("STACKCHAN_DATA_DIR", t.TempDir())
+	if err := writeSettings(map[string]string{"ha_enabled": "true", "ui_ha_enabled": "true"}); err != nil {
+		t.Fatalf("writeSettings() error = %v", err)
+	}
+	ctx := context.Background()
+	fallback := true
+	configured := g.Cfg().MustGet(ctx, "ai.ha_enabled", fallback).Bool()
+	if got := aiBool(ctx, "ha_enabled", fallback); got != configured {
+		t.Fatalf("aiBool(ha_enabled) = %t, want config value %t", got, configured)
+	}
+	values := settingsForUI(ctx)
+	if _, ok := values["ha_enabled"]; ok {
+		t.Fatal("settingsForUI() exposed stored ha_enabled")
+	}
+	if got := values["ui_ha_enabled"]; got != strconv.FormatBool(configured) {
+		t.Fatalf("ui_ha_enabled = %q, want %q", got, strconv.FormatBool(configured))
 	}
 }

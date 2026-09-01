@@ -19,6 +19,11 @@ const settingsSessionCookie = "stackchan_settings_session"
 
 const settingsSessionMaxAge = 12 * 60 * 60
 
+var readOnlySettings = map[string]struct{}{
+	"ha_enabled":    {},
+	"ui_ha_enabled": {},
+}
+
 // StartConfigUI serves the settings UI on the configured address. HA add-ons
 // rely on Ingress authentication; standalone runtime supplies a Bearer token.
 func StartConfigUI() {
@@ -51,6 +56,10 @@ func configUIHandler() http.Handler {
 				http.Error(w, "invalid settings", http.StatusBadRequest)
 				return
 			}
+			if containsReadOnlySetting(values) {
+				http.Error(w, "runtime mode is read-only", http.StatusBadRequest)
+				return
+			}
 			if err := writeSettings(values); err != nil {
 				http.Error(w, "could not save settings", http.StatusInternalServerError)
 				return
@@ -80,6 +89,15 @@ func configUIHandler() http.Handler {
 		_, _ = w.Write([]byte(configUIHTML))
 	})
 	return mux
+}
+
+func containsReadOnlySetting(values map[string]string) bool {
+	for key := range values {
+		if _, ok := readOnlySettings[key]; ok {
+			return true
+		}
+	}
+	return false
 }
 
 func configUIAuth(next http.Handler, token string, required bool) http.Handler {

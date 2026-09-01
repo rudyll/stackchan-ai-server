@@ -83,9 +83,13 @@ func aiInt(ctx context.Context, key string, fallback int) int {
 }
 
 func aiBool(ctx context.Context, key string, fallback bool) bool {
-	if value := readSettings()[key]; value != "" {
-		if parsed, err := strconv.ParseBool(value); err == nil {
-			return parsed
+	// Runtime mode is owned by the add-on/container configuration. A stale
+	// value from an older GUI version must never turn standalone back into HA.
+	if key != "ha_enabled" {
+		if value := readSettings()[key]; value != "" {
+			if parsed, err := strconv.ParseBool(value); err == nil {
+				return parsed
+			}
 		}
 	}
 	return g.Cfg().MustGet(ctx, "ai."+key, fallback).Bool()
@@ -93,6 +97,8 @@ func aiBool(ctx context.Context, key string, fallback bool) bool {
 
 func settingsForUI(ctx context.Context) map[string]string {
 	values := readSettings()
+	delete(values, "ha_enabled")
+	delete(values, "ui_ha_enabled")
 	values["ui_ha_enabled"] = strconv.FormatBool(aiBool(ctx, "ha_enabled", true))
 	keys := []string{
 		"provider", "openai_api_key", "openai_realtime_model", "openai_tts_voice",
