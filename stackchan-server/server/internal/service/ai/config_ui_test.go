@@ -60,6 +60,7 @@ func TestConfigUIIncludesProviderCatalogControls(t *testing.T) {
 		"OpenAI Realtime",
 		"Gemini Live",
 		"gemini_enable_search",
+		"syncGeminiFlags",
 		"Tencent TokenHub",
 		"OpenRouter",
 		"OpenAI-compatible",
