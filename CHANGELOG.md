@@ -13,6 +13,7 @@
 - Documented how to retrieve the generated settings token after detached Compose startup and how to use a custom settings host port.
 - Added TokenHub and OpenRouter environment examples, plus custom-port support and regression coverage in the NVS OTA injector for same-host HA and standalone deployments.
 - Kept standalone runtime mode read-only at the API and persistence layers, filtered settings responses to GUI fields, rejected unsupported updates, and serialized concurrent settings writes.
+- Reject invalid `device_profiles` JSON in the settings API, and allow an explicitly cleared profile field to override older environment configuration.
 
 ## 2.8.0-beta.2 (Beta)
 

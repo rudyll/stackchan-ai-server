@@ -92,12 +92,18 @@ func configUIHandler() http.Handler {
 }
 
 func settingsUpdateError(values map[string]string) string {
-	for key := range values {
+	for key, value := range values {
 		if _, ok := readOnlySettings[key]; ok {
 			return "runtime mode is read-only"
 		}
 		if !isSettingsUIKey(key) {
 			return "unsupported setting"
+		}
+		if key == "device_profiles" && strings.TrimSpace(value) != "" {
+			profiles := map[string]deviceProfile{}
+			if err := json.Unmarshal([]byte(value), &profiles); err != nil {
+				return "device_profiles must be valid JSON"
+			}
 		}
 	}
 	return ""
