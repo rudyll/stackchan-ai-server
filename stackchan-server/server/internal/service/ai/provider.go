@@ -182,7 +182,7 @@ func dialProvider(
 		if apiKey == "" {
 			return nil, fmt.Errorf("ai.openai_api_key is required when provider=openai")
 		}
-		model := override(p.OpenAIRealtimeModel, aiString(ctx, "openai_realtime_model", "gpt-realtime-1.5"))
+		model := override(p.OpenAIRealtimeModel, aiString(ctx, "openai_realtime_model", "gpt-realtime"))
 		voice := override(p.OpenAITTSVoice, aiString(ctx, "openai_tts_voice", "alloy"))
 		return dialOpenAIRealtimeSession(ctx, deviceID, apiKey, model, voice, sysPrompt, ha, cb)
 

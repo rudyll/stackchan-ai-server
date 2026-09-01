@@ -77,6 +77,31 @@ func decodeOpusFrame(dec *opus.Decoder, frame []byte) ([]int16, error) {
 	return pcmBuf[:n], nil
 }
 
+// resamplePCM16 converts mono PCM between sample rates using linear
+// interpolation. OpenAI's current Realtime PCM format is fixed at 24kHz,
+// while the StackChan device sends 16kHz audio.
+func resamplePCM16(pcm []int16, fromRate, toRate int) []int16 {
+	if len(pcm) == 0 || fromRate <= 0 || toRate <= 0 || fromRate == toRate {
+		return pcm
+	}
+
+	outputLen := (len(pcm)*toRate + fromRate/2) / fromRate
+	output := make([]int16, outputLen)
+	for i := range output {
+		position := i * fromRate
+		index := position / toRate
+		remainder := position % toRate
+		if index >= len(pcm)-1 {
+			output[i] = pcm[len(pcm)-1]
+			continue
+		}
+		leftWeight := int64(toRate - remainder)
+		rightWeight := int64(remainder)
+		output[i] = int16((int64(pcm[index])*leftWeight + int64(pcm[index+1])*rightWeight) / int64(toRate))
+	}
+	return output
+}
+
 // opusStreamEncoder buffers 24kHz PCM and emits complete 60ms OPUS frames on Encode calls.
 type opusStreamEncoder struct {
 	enc *opus.Encoder

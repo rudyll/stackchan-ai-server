@@ -1,6 +1,6 @@
 name: "StackChan AI Server"
 description: "StackChan AI server: realtime or OpenAI-compatible voice pipeline + Home Assistant device control"
-version: "2.8.0-beta.1"
+version: "2.8.0-beta.2"
 slug: "stackchan_ai_server"
 init: false
 ingress: true
@@ -25,7 +25,7 @@ options:
   ha_mcp_token: ""
   ai_provider: "openai"
   openai_api_key: ""
-  openai_realtime_model: "gpt-realtime-1.5"
+  openai_realtime_model: "gpt-realtime"
   openai_tts_voice: "alloy"
   gemini_api_key: ""
   gemini_model: "gemini-2.5-flash-native-audio-latest"
@@ -66,10 +66,10 @@ schema:
   ha_mcp_token: str
   ai_provider: list(openai|gemini|tokenhub|openrouter|openai_compatible)
   openai_api_key: str?
-  openai_realtime_model: list(gpt-realtime-1.5|gpt-realtime-mini|gpt-4o-realtime-preview|gpt-4o-mini-realtime-preview)
+  openai_realtime_model: str
   openai_tts_voice: list(alloy|echo|fable|onyx|nova|shimmer|ash|coral|sage|verse|cedar|marin|cove)
   gemini_api_key: str?
-  gemini_model: list(gemini-2.5-flash-native-audio-latest|gemini-2.5-flash-native-audio-preview-09-2025|gemini-2.5-flash-native-audio-preview-12-2025|gemini-3.1-flash-live-preview)
+  gemini_model: str
   gemini_voice: list(Aoede|Charon|Fenrir|Kore|Puck|Leda|Orus|Zephyr|Achernar|Achird|Algenib|Algieba|Alnilam|Autonoe|Callirrhoe|Despina|Enceladus|Erinome|Gacrux|Iapetus|Laomedeia|Pulcherrima|Rasalgethi|Sadachbia|Sadaltager|Schedar|Sulafat|Umbriel|Vindemiatrix|Zubenelgenubi)
   gemini_enable_tools: bool
   gemini_enable_search: bool

@@ -65,7 +65,7 @@ No Xiaozhi account is needed. The cloud dependency is whichever provider or comp
 
 ### StackChan AI Server
 
-Low-latency speech-to-speech conversation powered by **OpenAI Realtime API** (`gpt-realtime-1.5`) **or Google Gemini Live API** (`gemini-2.5-flash-native-audio-latest`) — pick your provider in the add-on UI. Both options give natural-language control of Home Assistant devices.
+Low-latency speech-to-speech conversation powered by **OpenAI Realtime API** (`gpt-realtime`) **or Google Gemini Live API** (`gemini-2.5-flash-native-audio-latest`) — pick your provider in the add-on UI. Both options give natural-language control of Home Assistant devices.
 
 **Features:**
 - Switchable AI provider: OpenAI Realtime / Gemini Live (dropdown)
@@ -73,7 +73,7 @@ Low-latency speech-to-speech conversation powered by **OpenAI Realtime API** (`g
 - Controls HA devices by voice: lights, climate, covers, media players, scripts, scenes and automations
 - Area-based control ("turn off all lights in the living room")
 - Full multi-turn conversation — context maintained across utterances within a session
-- 13 OpenAI voices / 30 Gemini native audio voices, configurable via dropdown
+- OpenAI and Gemini model names can be entered as free text
 
 ---
 
@@ -105,11 +105,11 @@ Pick **one** AI provider via `ai_provider` and fill in only its API key. The oth
 | `system_prompt` | | Custom personality/instructions for the assistant. |
 | **OpenAI** (when `ai_provider=openai`) | | |
 | `openai_api_key` | ✅ | Your OpenAI API key from [platform.openai.com](https://platform.openai.com). |
-| `openai_realtime_model` | | Realtime model. Default: `gpt-realtime-1.5`. Mini (cheaper): `gpt-realtime-mini`, `gpt-4o-mini-realtime-preview`. |
+| `openai_realtime_model` | | Realtime model name (free text). Default: `gpt-realtime`. Other model IDs may be entered when available to your account. |
 | `openai_tts_voice` | | TTS voice. Default: `alloy`. Female voices: `nova`, `shimmer`, `coral`, `sage`, `cedar`, `marin`, `cove`. |
 | **Gemini** (when `ai_provider=gemini`) | | |
 | `gemini_api_key` | ✅ | Your Google AI Studio API key from [aistudio.google.com](https://aistudio.google.com/app/apikey). |
-| `gemini_model` | | Gemini Live model. Default: `gemini-2.5-flash-native-audio-latest`. |
+| `gemini_model` | | Gemini Live model name (free text). Default: `gemini-2.5-flash-native-audio-latest`. Other model IDs may be entered when supported by Gemini Live. |
 | `gemini_voice` | | TTS voice. Default: `Aoede`. 30 native audio voices available via dropdown (Aoede, Charon, Fenrir, Kore, Puck, Leda, Orus, Zephyr, and more). |
 | `gemini_enable_tools` | | Enable HA device control tools for Gemini. Default: on. |
 | `gemini_enable_search` | | Enable Google Search grounding for Gemini. Default: off. **⚠️ Mutually exclusive with `gemini_enable_tools`** — Gemini does not allow grounding and function calling simultaneously. Enabling both causes 1011 connection errors. To use web search, set `gemini_enable_tools=false`. |

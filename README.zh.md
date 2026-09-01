@@ -65,7 +65,7 @@ StackChan AI Server（本插件，运行在 HA 的 12800 端口）
 
 ### StackChan AI Server
 
-低延迟语音对话，可选 **OpenAI Realtime API**（`gpt-realtime-1.5`）或 **Google Gemini Live API**（`gemini-2.5-flash-native-audio-latest`），在插件 UI 中切换。两种后端都支持自然语言控制 Home Assistant 设备。
+低延迟语音对话，可选 **OpenAI Realtime API**（`gpt-realtime`）或 **Google Gemini Live API**（`gemini-2.5-flash-native-audio-latest`），在插件 UI 中切换。两种后端都支持自然语言控制 Home Assistant 设备。
 
 **功能特性：**
 - AI 后端可切换：OpenAI Realtime / Gemini Live（下拉选择）
@@ -73,7 +73,7 @@ StackChan AI Server（本插件，运行在 HA 的 12800 端口）
 - 语音控制 HA 设备：灯光、空调、窗帘、媒体播放器、脚本、场景及自动化
 - 支持区域控制（如"把客厅所有灯关掉"）
 - 全程多轮对话——同一会话内 AI 记住上下文
-- 13 种 OpenAI 语音 / 30 种 Gemini 原生音频语音，下拉选择
+- OpenAI 与 Gemini 的模型名均可自由填写
 
 ---
 
@@ -105,11 +105,11 @@ StackChan AI Server（本插件，运行在 HA 的 12800 端口）
 | `system_prompt` | | 助手的自定义角色设定或指令。 |
 | **OpenAI**（当 `ai_provider=openai`） | | |
 | `openai_api_key` | ✅ | OpenAI API Key，在 [platform.openai.com](https://platform.openai.com) 获取。 |
-| `openai_realtime_model` | | Realtime 模型，默认 `gpt-realtime-1.5`。Mini（更便宜）：`gpt-realtime-mini`、`gpt-4o-mini-realtime-preview`。 |
+| `openai_realtime_model` | | Realtime 模型名（自由输入），默认 `gpt-realtime`。账号可用的其他模型 ID 也可直接填写。 |
 | `openai_tts_voice` | | TTS 语音，默认 `alloy`。女声推荐：`nova`、`shimmer`、`coral`、`sage`、`cedar`、`marin`、`cove`。 |
 | **Gemini**（当 `ai_provider=gemini`） | | |
 | `gemini_api_key` | ✅ | Google AI Studio API Key，在 [aistudio.google.com](https://aistudio.google.com/app/apikey) 获取。 |
-| `gemini_model` | | Gemini Live 模型，默认 `gemini-2.5-flash-native-audio-latest`。 |
+| `gemini_model` | | Gemini Live 模型名（自由输入），默认 `gemini-2.5-flash-native-audio-latest`。Gemini Live 支持的其他模型 ID 也可直接填写。 |
 | `gemini_voice` | | TTS 语音，默认 `Aoede`。共 30 种原生音频语音可选（下拉菜单）。 |
 | `gemini_enable_tools` | | 启用 Gemini 的 HA 设备控制工具（默认开启）。 |
 | `gemini_enable_search` | | 启用 Gemini 的 Google Search 联网搜索（默认关闭）。**⚠️ 与 `gemini_enable_tools` 互斥** — Gemini 不支持同时使用 grounding（联网搜索）和 function calling（HA 工具调用），两者同时开启会导致 1011 连接错误。如需联网搜索，请将 `gemini_enable_tools` 设为关闭。 |

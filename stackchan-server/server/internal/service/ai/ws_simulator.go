@@ -4,7 +4,7 @@ SPDX-License-Identifier: MIT
 */
 
 // Package ai implements a Xiaozhi WebSocket protocol v3 simulator backed by
-// the OpenAI Realtime API (gpt-realtime-1.5).
+// the OpenAI Realtime API (gpt-realtime).
 //
 // Audio path:
 //

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.8.0-beta.2 (Beta)
+
+- Updated the OpenAI Realtime session configuration to the current GA `audio.input` and `audio.output` schema.
+- Resampled 16 kHz device audio to the 24 kHz PCM format required by OpenAI Realtime and handled current output audio and transcript event names.
+- Changed the OpenAI Realtime and Gemini Live model settings from fixed lists to free-text fields so newly available model IDs can be used without an add-on release.
+- Updated the default OpenAI Realtime model to the stable `gpt-realtime` alias.
+- Added regression tests for the Realtime session shape and input-audio resampling.
+
+### Beta testing notes
+
+- Automated Go tests and builds pass, but a live OpenAI API session and physical StackChan audio test were not run because no API key or device was available in this workspace.
+
 ## 2.8.0-beta.1 (Beta)
 
 - Added per-device background task queues for OpenAI Realtime conversations, with create, status, and cancellation tools.

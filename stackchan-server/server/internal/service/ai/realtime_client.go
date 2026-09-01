@@ -4,7 +4,7 @@ SPDX-License-Identifier: MIT
 */
 
 // Package ai — OpenAI Realtime API client.
-// Bridges Xiaozhi WS protocol ↔ OpenAI Realtime WS (gpt-realtime-1.5 or compatible).
+// Bridges Xiaozhi WS protocol ↔ OpenAI Realtime WS (gpt-realtime or compatible).
 // Audio flow: device OPUS (16kHz) → PCM → Realtime → PCM (24kHz) → device OPUS.
 package ai
 
@@ -110,32 +110,7 @@ func dialOpenAIRealtimeSession(
 		tools = append(tools, backgroundRealtimeTools()...)
 		instructions += "\n\n后台任务规则：开灯、查询状态等短操作继续直接调用 Home Assistant 工具。只有分析或多步骤长任务才调用 start_background_task；调用成功后立即简短确认，不要等待任务完成。用户询问进度或要求取消时，使用对应的后台任务工具。"
 	}
-	if err := s.send(map[string]any{
-		"type": "session.update",
-		"session": map[string]any{
-			// session.type is required since the Realtime API GA — without it
-			// the server returns "Missing required parameter: 'session.type'".
-			"type":                "realtime",
-			"modalities":          []string{"text", "audio"},
-			"instructions":        instructions,
-			"voice":               voice,
-			"input_audio_format":  "pcm16",
-			"output_audio_format": "pcm16",
-			// Enable transcription so the device can display what was said.
-			"input_audio_transcription": map[string]any{
-				"model": "whisper-1",
-			},
-			// Server-side VAD: model detects end-of-speech, no client timeout needed.
-			"turn_detection": map[string]any{
-				"type":                "server_vad",
-				"threshold":           0.5,
-				"prefix_padding_ms":   300,
-				"silence_duration_ms": 300,
-			},
-			"tools":       tools,
-			"tool_choice": "auto",
-		},
-	}); err != nil {
+	if err := s.send(openAIRealtimeSessionUpdate(instructions, voice, tools)); err != nil {
 		conn.Close()
 		return nil, err
 	}
@@ -148,6 +123,7 @@ func dialOpenAIRealtimeSession(
 
 // AppendAudio sends a PCM16 16kHz mono chunk to the Realtime input buffer.
 func (s *openaiRealtimeSession) AppendAudio(pcm []int16) error {
+	pcm = resamplePCM16(pcm, deviceSampleRate, serverSampleRate)
 	buf := make([]byte, len(pcm)*2)
 	for i, v := range pcm {
 		binary.LittleEndian.PutUint16(buf[i*2:], uint16(v))
@@ -246,6 +222,23 @@ func (s *openaiRealtimeSession) readLoop(ctx context.Context) {
 		}
 	}()
 	var textBuf strings.Builder
+	flushText := func(evt map[string]any) {
+		text := strings.TrimSpace(textBuf.String())
+		if text == "" {
+			text, _ = evt["text"].(string)
+			if text == "" {
+				text, _ = evt["transcript"].(string)
+			}
+			text = strings.TrimSpace(text)
+		}
+		if text != "" {
+			g.Log().Infof(s.logCtx, "[RT] LLM: %q", text)
+			if s.cb.OnText != nil {
+				s.cb.OnText(text)
+			}
+		}
+		textBuf.Reset()
+	}
 
 	for {
 		_, raw, err := s.conn.ReadMessage()
@@ -309,7 +302,7 @@ func (s *openaiRealtimeSession) readLoop(ctx context.Context) {
 				s.cb.OnStart()
 			}
 
-		case "response.audio.delta":
+		case "response.output_audio.delta", "response.audio.delta":
 			b64, _ := evt["delta"].(string)
 			if b64 == "" {
 				continue
@@ -326,18 +319,12 @@ func (s *openaiRealtimeSession) readLoop(ctx context.Context) {
 				s.cb.OnAudio(pcm)
 			}
 
-		case "response.text.delta":
+		case "response.output_text.delta", "response.output_audio_transcript.delta", "response.text.delta", "response.audio_transcript.delta":
 			chunk, _ := evt["delta"].(string)
 			textBuf.WriteString(chunk)
 
-		case "response.text.done":
-			if text := strings.TrimSpace(textBuf.String()); text != "" {
-				g.Log().Infof(s.logCtx, "[RT] LLM: %q", text)
-				if s.cb.OnText != nil {
-					s.cb.OnText(text)
-				}
-			}
-			textBuf.Reset()
+		case "response.output_text.done", "response.output_audio_transcript.done", "response.text.done", "response.audio_transcript.done":
+			flushText(evt)
 
 		case "response.output_item.done":
 			// Handle HA tool calls.
@@ -390,6 +377,48 @@ func (s *openaiRealtimeSession) readLoop(ctx context.Context) {
 			errObj, _ := evt["error"].(map[string]any)
 			g.Log().Warningf(s.logCtx, "[RT] API error: %v", errObj)
 		}
+	}
+}
+
+// openAIRealtimeSessionUpdate builds the current GA session shape. The
+// legacy input_audio_format/output_audio_format fields are rejected by newer
+// Realtime endpoints, and audio input is fixed at 24kHz PCM.
+func openAIRealtimeSessionUpdate(instructions, voice string, tools []map[string]any) map[string]any {
+	return map[string]any{
+		"type": "session.update",
+		"session": map[string]any{
+			"type":              "realtime",
+			"output_modalities": []string{"audio"},
+			"instructions":      instructions,
+			"audio": map[string]any{
+				"input": map[string]any{
+					"format": map[string]any{
+						"type": "audio/pcm",
+						"rate": serverSampleRate,
+					},
+					// Enable transcription so the device can display what was said.
+					"transcription": map[string]any{
+						"model": "whisper-1",
+					},
+					// Server-side VAD: model detects end-of-speech, no client timeout needed.
+					"turn_detection": map[string]any{
+						"type":                "server_vad",
+						"threshold":           0.5,
+						"prefix_padding_ms":   300,
+						"silence_duration_ms": 300,
+					},
+				},
+				"output": map[string]any{
+					"format": map[string]any{
+						"type": "audio/pcm",
+						"rate": serverSampleRate,
+					},
+					"voice": voice,
+				},
+			},
+			"tools":       tools,
+			"tool_choice": "auto",
+		},
 	}
 }
 
