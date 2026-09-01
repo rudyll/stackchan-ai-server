@@ -73,6 +73,8 @@ If the HA add-on and standalone Docker share one host, keep the add-on on host p
 
 Each device has one active OTA/WebSocket target. Devices configured with the HA add-on URL connect to the add-on; devices configured with the standalone URL connect to standalone. Without an NVS override or a compiled `OTA_URL`, stock firmware will not discover standalone automatically.
 
+The optional `STACKCHAN_DEVICE_PROFILES`, `STACKCHAN_SYSTEM_PROMPT`, `STACKCHAN_AUDIO_PREBUFFER_MS`, and `STACKCHAN_AUDIO_PREBUFFER_MAX_WAIT_MS` variables are first-start defaults. Prefer the GUI for later edits; saved values persist in the mounted data directory.
+
 ## Device Setup
 
 Flash the official StackChan firmware from [github.com/m5stack/StackChan](https://github.com/m5stack/StackChan) — no firmware modifications needed.

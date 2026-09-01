@@ -20,6 +20,7 @@
 - Show actionable settings API validation errors in the standalone GUI instead of a generic save failure.
 - Add a standalone-only logout link to the settings GUI.
 - Show the active runtime mode in the settings GUI, including whether Home Assistant is connected or omitted.
+- Document the standalone first-start defaults for Device-Id profiles, system prompt, and audio buffering.
 
 ## 2.8.0-beta.2 (Beta)
 

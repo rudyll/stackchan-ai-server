@@ -116,6 +116,8 @@ If the HA add-on and standalone Docker run on the same host, keep the add-on on 
 
 Each device has one active OTA/WebSocket target. Devices configured with the HA add-on URL connect to the add-on; devices configured with the standalone URL connect to standalone. A stock firmware device with neither an NVS override nor a compiled `OTA_URL` continues to use its original cloud/HA interception path and will not discover standalone automatically.
 
+The optional `STACKCHAN_DEVICE_PROFILES`, `STACKCHAN_SYSTEM_PROMPT`, `STACKCHAN_AUDIO_PREBUFFER_MS`, and `STACKCHAN_AUDIO_PREBUFFER_MAX_WAIT_MS` variables provide first-start defaults. After startup, the GUI is the recommended way to edit them; saved values are persisted under the mounted data directory.
+
 ---
 
 ## Configuration

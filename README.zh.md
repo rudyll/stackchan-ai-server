@@ -116,6 +116,8 @@ docker compose -f docker-compose.standalone.yml logs --no-color --tail=50 stackc
 
 每台设备同时只会使用一个 OTA/WebSocket 目标：配置 HA add-on 地址的设备连接 add-on，配置 standalone 地址的设备连接 standalone。如果既没有写入 NVS 覆盖值，也没有在编译固件时设置 `OTA_URL`，官方固件仍会使用原来的云端/HA 劫持路径，不会自动发现 standalone。
 
+可选的 `STACKCHAN_DEVICE_PROFILES`、`STACKCHAN_SYSTEM_PROMPT`、`STACKCHAN_AUDIO_PREBUFFER_MS` 和 `STACKCHAN_AUDIO_PREBUFFER_MAX_WAIT_MS` 是首次启动默认值。服务启动后建议直接通过 GUI 修改；保存后的值会持久化到挂载的数据目录。
+
 ---
 
 ## 配置项
