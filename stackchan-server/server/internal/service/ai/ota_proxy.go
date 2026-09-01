@@ -23,13 +23,17 @@ func HandleOTA(w http.ResponseWriter, r *http.Request) {
 	localHost := cfg.MustGet(otaCtx, "ai.local_host", "127.0.0.1").String()
 	localPort := cfg.MustGet(otaCtx, "ai.local_port", 12800).Int()
 
-	resp := map[string]any{
+	resp := otaResponse(localHost, localPort)
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(resp)
+}
+
+func otaResponse(localHost string, localPort int) map[string]any {
+	return map[string]any{
 		"websocket": map[string]any{
 			"url":     fmt.Sprintf("ws://%s:%d/xiaozhi/ws", localHost, localPort),
 			"token":   "",
 			"version": 3,
 		},
 	}
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(resp)
 }

@@ -48,6 +48,8 @@ StackChan AI Server  (HA add-on or standalone Docker, port 12800)
          └─ Home Assistant WebSocket API (device control, optional)
 ```
 
+The device's audio and WebSocket traffic goes directly to StackChan AI Server; Home Assistant is not a transport relay. When HA is enabled, the server makes a separate local HA WebSocket API connection only for smart-home control. Standalone mode has no HA hop.
+
 **Audio pipeline (streaming, ~0.5–1.5s latency):**
 
 ```
@@ -102,7 +104,11 @@ cp .env.standalone.example .env
 docker compose -f docker-compose.standalone.yml up --build -d
 ```
 
-The WebSocket server is available on port `12800`. The settings UI is bound to `127.0.0.1:8099`; the first startup prints a Bearer token and persists it under `./data/settings-token`. Standalone mode does not connect to Home Assistant or expose the port-443 OTA interception. Configure the device OTA URL as `http://<server-LAN-IP>:12800/xiaozhi/ota/`.
+By default, the WebSocket server is published on host port `12800` (the container listens on `12800`). The settings UI is bound to `127.0.0.1:8099`; the first startup prints a Bearer token and persists it under `./data/settings-token`. Standalone mode does not connect to Home Assistant or expose the port-443 OTA interception. Configure the device OTA URL as `http://<server-LAN-IP>:12800/xiaozhi/ota/`.
+
+If the HA add-on and standalone Docker run on the same host, keep the add-on on `12800` and set `STACKCHAN_WS_PORT=12801` (and optionally `STACKCHAN_SETTINGS_PORT=8100`) before starting Compose. Then configure the device with `http://<server-LAN-IP>:12801/xiaozhi/ota/`. The container still listens internally on `12800`; the launcher returns the selected public port in the WebSocket URL.
+
+Each device has one active OTA/WebSocket target. Devices configured with the HA add-on URL connect to the add-on; devices configured with the standalone URL connect to standalone. A stock firmware device with neither an NVS override nor a compiled `OTA_URL` continues to use its original cloud/HA interception path and will not discover standalone automatically.
 
 ---
 
@@ -201,7 +207,7 @@ The device firmware needs to know your local server address instead of the Xiaoz
 
 ### Method A — Write NVS key (recommended)
 
-The firmware checks NVS (non-volatile storage) for an OTA URL override before using its hardcoded default. This setting **persists across firmware OTA upgrades**, so you only need to do it once.
+The firmware checks NVS (non-volatile storage) for an OTA URL override before using its hardcoded default. The setting remains in place until a full firmware OTA rewrites the NVS partition; after that, re-inject it with Steps 3–4.
 
 #### Prerequisites
 
@@ -239,10 +245,10 @@ Note the `size` value (commonly `0x4000` or `0x6000`). Replace `/dev/tty.usbseri
 cat > nvs.csv << 'EOF'
 key,type,encoding,value
 wifi,namespace,,
-ota_url,data,string,http://<YOUR_SERVER_LAN_IP>:12800/xiaozhi/ota/
+ota_url,data,string,http://<YOUR_SERVER_LAN_IP>:<PUBLIC_WS_PORT>/xiaozhi/ota/
 EOF
 ```
-Replace `<YOUR_SERVER_LAN_IP>` with the LAN IP of the host running StackChan AI Server. For the add-on this is normally the Home Assistant host; for standalone it is the Docker host.
+Replace `<YOUR_SERVER_LAN_IP>` with the LAN IP of the host running StackChan AI Server and `<PUBLIC_WS_PORT>` with the service's reachable port (`12800` by default; use `STACKCHAN_WS_PORT` for a custom standalone host port). For the add-on the host is normally the Home Assistant host; for standalone it is the Docker host.
 
 **Step 3 — Generate the NVS binary** (replace `0x4000` with the actual size from Step 1):
 ```bash
@@ -286,7 +292,7 @@ Same ESP-IDF installation and environment activation as Method A above.
    idf.py menuconfig
    ```
    - Press `/` and search for `OTA_URL`
-   - Set it to `http://<YOUR_SERVER_LAN_IP>:12800/xiaozhi/ota/`
+   - Set it to `http://<YOUR_SERVER_LAN_IP>:<PUBLIC_WS_PORT>/xiaozhi/ota/` (`12800` by default; use `STACKCHAN_WS_PORT` when standalone uses a custom host port)
    - Save and exit
 
 4. Build and flash:

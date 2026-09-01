@@ -45,7 +45,15 @@ int_value() {
 	esac
 }
 
+port_value() {
+	case "${1:-}" in
+		''|0|*[!0-9]*) printf '%s' "$2" ;;
+		*) printf '%s' "$1" ;;
+	esac
+}
+
 LOCAL_HOST="${STACKCHAN_LOCAL_HOST:?Set STACKCHAN_LOCAL_HOST to the Docker host LAN IP}"
+WS_PORT=$(port_value "${STACKCHAN_WS_PORT:-}" 12800)
 AI_PROVIDER="${STACKCHAN_AI_PROVIDER:-openai}"
 OPENAI_KEY="${STACKCHAN_OPENAI_API_KEY:-}"
 OPENAI_RT_MODEL="${STACKCHAN_OPENAI_REALTIME_MODEL:-gpt-realtime}"
@@ -120,7 +128,7 @@ xiaozhi:
 
 ai:
   local_host: $(yaml_string "$LOCAL_HOST")
-  local_port: 12800
+  local_port: ${WS_PORT}
   ha_enabled: false
   ota_https_enabled: false
   settings_listen_address: ":8099"
@@ -164,7 +172,7 @@ ai:
   system_prompt_b64: $(yaml_string "$SYSTEM_PROMPT_B64")
 EOF
 
-echo "INFO: Starting standalone StackChan AI server on :12800"
+echo "INFO: Starting standalone StackChan AI server on :12800 (public port ${WS_PORT})"
 echo "INFO: local_host=${LOCAL_HOST}  provider=${AI_PROVIDER}  settings_ui=127.0.0.1:8099"
 
 exec /app/stackchan-server

@@ -48,6 +48,8 @@ StackChan AI Server（HA add-on 或 standalone Docker，使用 12800 端口）
          └─ Home Assistant WebSocket API（可选的设备控制）
 ```
 
+设备的音频和 WebSocket 流量是直接发给 StackChan AI Server 的，Home Assistant 不承担中转。启用 HA 时，Server 只会为了智能家居控制另外连接本地 HA WebSocket API；standalone 不经过 HA。
+
 **音频流水线（流式，延迟约 0.5–1.5 秒）：**
 
 ```
@@ -102,7 +104,11 @@ cp .env.standalone.example .env
 docker compose -f docker-compose.standalone.yml up --build -d
 ```
 
-语音 WebSocket 服务使用 `12800` 端口；设置页默认只绑定 `127.0.0.1:8099`。首次启动日志会显示 Bearer token，并持久化到 `./data/settings-token`。standalone 不连接 Home Assistant，也不启动 443 端口 OTA 劫持；设备 OTA 地址配置为 `http://<服务器局域网IP>:12800/xiaozhi/ota/`。
+默认情况下，语音 WebSocket 服务发布在宿主机 `12800` 端口（容器内部仍监听 `12800`）；设置页默认只绑定 `127.0.0.1:8099`。首次启动日志会显示 Bearer token，并持久化到 `./data/settings-token`。standalone 不连接 Home Assistant，也不启动 443 端口 OTA 劫持；设备 OTA 地址配置为 `http://<服务器局域网IP>:12800/xiaozhi/ota/`。
+
+如果同一台主机上同时运行 HA add-on 和 standalone Docker，建议让 add-on 继续使用 `12800`，在启动 Compose 前将 `STACKCHAN_WS_PORT=12801`（如有需要再将 `STACKCHAN_SETTINGS_PORT=8100`）。此时设备应配置为 `http://<服务器局域网IP>:12801/xiaozhi/ota/`。容器内部仍监听 `12800`，启动脚本会把选定的宿主机端口写入设备后续使用的 WebSocket 地址。
+
+每台设备同时只会使用一个 OTA/WebSocket 目标：配置 HA add-on 地址的设备连接 add-on，配置 standalone 地址的设备连接 standalone。如果既没有写入 NVS 覆盖值，也没有在编译固件时设置 `OTA_URL`，官方固件仍会使用原来的云端/HA 劫持路径，不会自动发现 standalone。
 
 ---
 
@@ -209,7 +215,7 @@ docker compose -f docker-compose.standalone.yml up --build -d
 
 ### 方式 A — 写入 NVS（推荐）
 
-固件启动时会先检查 NVS（非易失性存储）中是否有 OTA 地址覆盖值，优先于内置默认值。此设置**在固件 OTA 升级后依然保留**，只需操作一次即可。
+固件启动时会先检查 NVS（非易失性存储）中是否有 OTA 地址覆盖值，优先于内置默认值。该设置会一直保留，直到完整固件 OTA 重写 NVS 分区；之后需重新执行第三、四步注入。
 
 #### 前置条件
 
@@ -247,10 +253,10 @@ python3 $IDF_PATH/components/partition_table/parttool.py \
 cat > nvs.csv << 'EOF'
 key,type,encoding,value
 wifi,namespace,,
-ota_url,data,string,http://<你的服务器局域网IP>:12800/xiaozhi/ota/
+ota_url,data,string,http://<你的服务器局域网IP>:<对外 WebSocket 端口>/xiaozhi/ota/
 EOF
 ```
-将 `<你的服务器局域网IP>` 替换为运行 StackChan AI Server 的主机局域网 IP。使用 add-on 时通常是 Home Assistant 主机；使用 standalone 时是 Docker 宿主机。
+将 `<你的服务器局域网IP>` 替换为运行 StackChan AI Server 的主机局域网 IP，并将 `<对外 WebSocket 端口>` 替换为设备可访问的端口（默认 `12800`；standalone 使用自定义宿主机端口时填写 `STACKCHAN_WS_PORT`）。使用 add-on 时主机通常是 Home Assistant 主机；使用 standalone 时是 Docker 宿主机。
 
 **第三步 — 生成 NVS 二进制文件**（将 `0x4000` 替换为第一步查到的实际大小）：
 ```bash
@@ -294,7 +300,7 @@ python3 $IDF_PATH/components/partition_table/parttool.py \
    idf.py menuconfig
    ```
    - 按 `/` 搜索 `OTA_URL`
-   - 改为 `http://<你的服务器局域网IP>:12800/xiaozhi/ota/`
+   - 改为 `http://<你的服务器局域网IP>:<对外 WebSocket 端口>/xiaozhi/ota/`（默认是 `12800`；standalone 使用自定义宿主机端口时填写 `STACKCHAN_WS_PORT`）
    - 保存并退出
 
 4. 编译并烧录：
