@@ -103,6 +103,36 @@ func TestGUICanClearConfiguredDeviceProfiles(t *testing.T) {
 	}
 }
 
+func TestSettingsUIPreservesConfiguredDeviceProfilesOnFirstSave(t *testing.T) {
+	t.Setenv("STACKCHAN_DATA_DIR", t.TempDir())
+	profiles := map[string]deviceProfile{
+		"device-1": {Provider: "gemini", GeminiModel: "profile-model"},
+	}
+	raw, err := json.Marshal(profiles)
+	if err != nil {
+		t.Fatalf("json.Marshal() error = %v", err)
+	}
+	encoded := base64.StdEncoding.EncodeToString(raw)
+	adapter, err := gcfg.NewAdapterContent(`{"ai":{"device_profiles_b64":"` + encoded + `"}}`)
+	if err != nil {
+		t.Fatalf("gcfg.NewAdapterContent() error = %v", err)
+	}
+	previousAdapter := g.Cfg().GetAdapter()
+	g.Cfg().SetAdapter(adapter)
+	t.Cleanup(func() { g.Cfg().SetAdapter(previousAdapter) })
+
+	values := settingsForUI(context.Background())
+	if values["device_profiles"] != string(raw) {
+		t.Fatalf("device_profiles = %q, want decoded configured profiles", values["device_profiles"])
+	}
+	if err := writeSettings(map[string]string{"provider": "openai"}); err != nil {
+		t.Fatalf("writeSettings() error = %v", err)
+	}
+	if got := deviceProfileFor(context.Background(), "device-1"); got.Provider != "gemini" || got.GeminiModel != "profile-model" {
+		t.Fatalf("deviceProfileFor() = %#v, want configured profile after unrelated save", got)
+	}
+}
+
 func TestSettingsUIExposesRuntimeModeAsReadOnlyMetadata(t *testing.T) {
 	t.Setenv("STACKCHAN_DATA_DIR", t.TempDir())
 	values := settingsForUI(context.Background())

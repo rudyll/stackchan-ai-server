@@ -40,22 +40,32 @@ func deviceProfileFor(ctx context.Context, deviceID string) deviceProfile {
 		if raw == "" {
 			return deviceProfile{}
 		}
-		profiles := map[string]deviceProfile{}
-		if json.Unmarshal([]byte(raw), &profiles) == nil {
-			return profiles[deviceID]
-		}
-		return deviceProfile{}
+		return deviceProfileFromJSON(raw, deviceID)
+	}
+	return deviceProfileFromJSON(configuredDeviceProfiles(ctx), deviceID)
+}
+
+func configuredDeviceProfiles(ctx context.Context) string {
+	if value := g.Cfg().MustGet(ctx, "ai.device_profiles", "").String(); value != "" {
+		return value
 	}
 	encoded := g.Cfg().MustGet(ctx, "ai.device_profiles_b64", "").String()
-	if encoded == "" || deviceID == "" {
-		return deviceProfile{}
+	if encoded == "" {
+		return ""
 	}
 	raw, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil {
+		return ""
+	}
+	return string(raw)
+}
+
+func deviceProfileFromJSON(raw, deviceID string) deviceProfile {
+	if raw == "" || deviceID == "" {
 		return deviceProfile{}
 	}
 	profiles := map[string]deviceProfile{}
-	if json.Unmarshal(raw, &profiles) != nil {
+	if json.Unmarshal([]byte(raw), &profiles) != nil {
 		return deviceProfile{}
 	}
 	return profiles[deviceID]

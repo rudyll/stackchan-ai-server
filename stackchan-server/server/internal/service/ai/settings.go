@@ -124,6 +124,10 @@ func settingsForUI(ctx context.Context) map[string]string {
 	values["ui_ha_enabled"] = strconv.FormatBool(aiBool(ctx, "ha_enabled", true))
 	for _, key := range settingsUIKeys {
 		if _, ok := values[key]; !ok {
+			if key == "device_profiles" {
+				values[key] = configuredDeviceProfiles(ctx)
+				continue
+			}
 			values[key] = g.Cfg().MustGet(ctx, "ai."+key, "").String()
 		}
 	}

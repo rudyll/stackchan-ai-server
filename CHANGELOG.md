@@ -15,6 +15,7 @@
 - Kept standalone runtime mode read-only at the API and persistence layers, filtered settings responses to GUI fields, rejected unsupported updates, and serialized concurrent settings writes.
 - Reject invalid `device_profiles` JSON in the settings API, and allow an explicitly cleared profile field to override older environment configuration.
 - Reject unknown Provider values at the settings API instead of deferring the error until a device connects.
+- Preserve standalone environment-configured Device-Id profiles when the settings UI is opened and an unrelated field is saved.
 
 ## 2.8.0-beta.2 (Beta)
 
