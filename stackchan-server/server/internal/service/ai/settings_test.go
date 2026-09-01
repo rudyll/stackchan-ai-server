@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"os"
 	"strconv"
 	"sync"
 	"testing"
@@ -35,6 +36,20 @@ func TestWriteSettingsPreservesFieldsNotShownByCurrentUI(t *testing.T) {
 	}
 	if values["provider"] != "openai" {
 		t.Fatalf("provider = %q, want openai", values["provider"])
+	}
+}
+
+func TestWriteSettingsKeepsCredentialsFilePrivate(t *testing.T) {
+	t.Setenv("STACKCHAN_DATA_DIR", t.TempDir())
+	if err := writeSettings(map[string]string{"openai_api_key": "test-key"}); err != nil {
+		t.Fatalf("writeSettings() error = %v", err)
+	}
+	info, err := os.Stat(settingsFilePath())
+	if err != nil {
+		t.Fatalf("os.Stat() error = %v", err)
+	}
+	if got := info.Mode().Perm(); got != 0600 {
+		t.Fatalf("settings file permissions = %04o, want 0600", got)
 	}
 }
 
