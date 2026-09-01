@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -106,6 +107,20 @@ func TestConfigUIIncludesProviderCatalogControls(t *testing.T) {
 	} {
 		if !strings.Contains(configUIHTML, text) {
 			t.Fatalf("config UI is missing %q", text)
+		}
+	}
+}
+
+func TestConfigUIFieldsHaveSettingsPersistenceCoverage(t *testing.T) {
+	namePattern := regexp.MustCompile(`<(?:input|select|textarea)[^>]*\sname="([^"]+)"`)
+	allowed := make(map[string]struct{}, len(settingsUIKeys))
+	for _, key := range settingsUIKeys {
+		allowed[key] = struct{}{}
+	}
+	for _, match := range namePattern.FindAllStringSubmatch(configUIHTML, -1) {
+		name := match[1]
+		if _, ok := allowed[name]; !ok {
+			t.Fatalf("GUI field %q is missing from settingsUIKeys", name)
 		}
 	}
 }
