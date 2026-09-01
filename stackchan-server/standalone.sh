@@ -46,10 +46,16 @@ int_value() {
 }
 
 port_value() {
-	case "${1:-}" in
-		''|0|*[!0-9]*) printf '%s' "$2" ;;
-		*) printf '%s' "$1" ;;
+	local value="${1:-}"
+	case "$value" in
+		''|*[!0-9]*|??????*) printf '%s' "$2"; return ;;
+		*) ;;
 	esac
+	if [ "$value" -lt 1 ] || [ "$value" -gt 65535 ]; then
+		printf '%s' "$2"
+	else
+		printf '%s' "$value"
+	fi
 }
 
 LOCAL_HOST="${STACKCHAN_LOCAL_HOST:?Set STACKCHAN_LOCAL_HOST to the Docker host LAN IP}"

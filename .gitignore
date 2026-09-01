@@ -1,2 +1,4 @@
 /stackchan-server/.env
 /stackchan-server/data/
+__pycache__/
+*.py[cod]
