@@ -124,7 +124,7 @@ func settingsUpdateError(values map[string]string) string {
 }
 
 func isSupportedProvider(provider string) bool {
-	switch strings.TrimSpace(provider) {
+	switch provider {
 	case "", "openai", "gemini", "tokenhub", "openrouter", "openai_compatible":
 		return true
 	default:

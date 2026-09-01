@@ -232,17 +232,21 @@ func TestConfigUIRejectsUnknownSettingWrites(t *testing.T) {
 
 func TestConfigUIRejectsUnknownProviderWrites(t *testing.T) {
 	t.Setenv("STACKCHAN_DATA_DIR", t.TempDir())
-	request := httptest.NewRequest(http.MethodPut, "/api/settings", strings.NewReader(`{"provider":"not-a-provider"}`))
-	response := httptest.NewRecorder()
-	configUIHandler().ServeHTTP(response, request)
-	if response.Code != http.StatusBadRequest {
-		t.Fatalf("PUT status = %d, want %d", response.Code, http.StatusBadRequest)
-	}
-	if !strings.Contains(response.Body.String(), "unsupported provider") {
-		t.Fatalf("response = %q, want provider validation error", response.Body.String())
-	}
-	if values := readSettings(); len(values) != 0 {
-		t.Fatalf("unknown provider was persisted: %#v", values)
+	for _, provider := range []string{"not-a-provider", " openai "} {
+		t.Run(provider, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodPut, "/api/settings", strings.NewReader(`{"provider":"`+provider+`"}`))
+			response := httptest.NewRecorder()
+			configUIHandler().ServeHTTP(response, request)
+			if response.Code != http.StatusBadRequest {
+				t.Fatalf("PUT status = %d, want %d", response.Code, http.StatusBadRequest)
+			}
+			if !strings.Contains(response.Body.String(), "unsupported provider") {
+				t.Fatalf("response = %q, want provider validation error", response.Body.String())
+			}
+			if values := readSettings(); len(values) != 0 {
+				t.Fatalf("unknown provider was persisted: %#v", values)
+			}
+		})
 	}
 }
 
