@@ -8,6 +8,7 @@ package ai
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -207,7 +208,15 @@ func fetchJSON(ctx context.Context, client *http.Client, endpoint, apiKey string
 	}
 	response, err := client.Do(request)
 	if err != nil {
-		return fmt.Errorf("model request failed: %w", err)
+		if errors.Is(err, context.DeadlineExceeded) {
+			return fmt.Errorf("model request timed out; check provider availability")
+		}
+		if errors.Is(err, context.Canceled) {
+			return fmt.Errorf("model request canceled")
+		}
+		// Do not return the underlying error: Gemini puts the API key in the
+		// query string, and net/http may include the full URL in its error.
+		return fmt.Errorf("model request failed; check provider availability")
 	}
 	defer response.Body.Close()
 	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {

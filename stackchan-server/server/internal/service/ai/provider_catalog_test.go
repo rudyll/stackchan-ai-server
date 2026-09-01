@@ -68,3 +68,16 @@ func TestModelsEndpointRejectsInvalidURL(t *testing.T) {
 		t.Fatal("expected non-http model URL to be rejected")
 	}
 }
+
+func TestFetchJSONDoesNotExposeCredentialsInNetworkErrors(t *testing.T) {
+	client := &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		return nil, fmt.Errorf("dial failed for %s", request.URL)
+	})}
+	err := fetchJSON(context.Background(), client, "https://provider.test/models?key=secret", "", &map[string]any{})
+	if err == nil {
+		t.Fatal("expected network error")
+	}
+	if strings.Contains(err.Error(), "secret") {
+		t.Fatalf("network error leaked credential: %v", err)
+	}
+}
