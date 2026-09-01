@@ -56,8 +56,8 @@ func configUIHandler() http.Handler {
 				http.Error(w, "invalid settings", http.StatusBadRequest)
 				return
 			}
-			if containsReadOnlySetting(values) {
-				http.Error(w, "runtime mode is read-only", http.StatusBadRequest)
+			if reason := settingsUpdateError(values); reason != "" {
+				http.Error(w, reason, http.StatusBadRequest)
 				return
 			}
 			if err := writeSettings(values); err != nil {
@@ -91,9 +91,21 @@ func configUIHandler() http.Handler {
 	return mux
 }
 
-func containsReadOnlySetting(values map[string]string) bool {
+func settingsUpdateError(values map[string]string) string {
 	for key := range values {
 		if _, ok := readOnlySettings[key]; ok {
+			return "runtime mode is read-only"
+		}
+		if !isSettingsUIKey(key) {
+			return "unsupported setting"
+		}
+	}
+	return ""
+}
+
+func isSettingsUIKey(key string) bool {
+	for _, allowed := range settingsUIKeys {
+		if key == allowed {
 			return true
 		}
 	}

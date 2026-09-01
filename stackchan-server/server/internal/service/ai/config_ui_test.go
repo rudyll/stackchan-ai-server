@@ -185,3 +185,16 @@ func TestConfigUIRejectsRuntimeModeWrites(t *testing.T) {
 		})
 	}
 }
+
+func TestConfigUIRejectsUnknownSettingWrites(t *testing.T) {
+	t.Setenv("STACKCHAN_DATA_DIR", t.TempDir())
+	request := httptest.NewRequest(http.MethodPut, "/api/settings", strings.NewReader(`{"provider":"openai","typo_setting":"ignored"}`))
+	response := httptest.NewRecorder()
+	configUIHandler().ServeHTTP(response, request)
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("PUT status = %d, want %d", response.Code, http.StatusBadRequest)
+	}
+	if values := readSettings(); len(values) != 0 {
+		t.Fatalf("unknown settings were persisted: %#v", values)
+	}
+}
