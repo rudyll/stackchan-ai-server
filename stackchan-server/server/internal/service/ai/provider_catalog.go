@@ -72,10 +72,17 @@ var geminiVoices = []catalogOption{
 }
 
 func discoverProviderCatalog(ctx context.Context, provider string, settings map[string]string) providerCatalog {
+	return discoverProviderCatalogWithClient(ctx, provider, settings, &http.Client{Timeout: 10 * time.Second})
+}
+
+func discoverProviderCatalogWithClient(ctx context.Context, provider string, settings map[string]string, client *http.Client) providerCatalog {
 	provider = strings.TrimSpace(provider)
 	result := providerCatalog{Provider: provider, Models: []catalogOption{}, Voices: []catalogOption{}}
 	if settings == nil {
 		settings = map[string]string{}
+	}
+	if client == nil {
+		client = &http.Client{Timeout: 10 * time.Second}
 	}
 
 	var (
@@ -123,9 +130,9 @@ func discoverProviderCatalog(ctx context.Context, provider string, settings map[
 	defer cancel()
 	var err error
 	if provider == "gemini" {
-		result.Models, err = fetchGeminiModels(requestCtx, apiKey)
+		result.Models, err = fetchGeminiModelsWithClient(requestCtx, apiKey, client)
 	} else {
-		result.Models, err = fetchOpenAIModels(requestCtx, baseURL, apiKey)
+		result.Models, err = fetchOpenAIModelsWithClient(requestCtx, baseURL, apiKey, client)
 	}
 	if err != nil {
 		result.Error = err.Error()

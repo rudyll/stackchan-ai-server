@@ -80,6 +80,70 @@ func TestDiscoverProviderCatalogRequiresCredentials(t *testing.T) {
 	}
 }
 
+func TestDiscoverProviderCatalogUsesEachOpenAIStyleProviderEndpoint(t *testing.T) {
+	tests := []struct {
+		name     string
+		provider string
+		settings map[string]string
+		endpoint string
+		modelKey string
+	}{
+		{
+			name:     "openai",
+			provider: "openai",
+			settings: map[string]string{"openai_api_key": "openai-key"},
+			endpoint: "https://api.openai.com/v1/models",
+			modelKey: "openai_realtime_model",
+		},
+		{
+			name:     "openrouter",
+			provider: "openrouter",
+			settings: map[string]string{"openrouter_api_key": "router-key"},
+			endpoint: "https://openrouter.ai/api/v1/models",
+			modelKey: "llm_model",
+		},
+		{
+			name:     "tokenhub",
+			provider: "tokenhub",
+			settings: map[string]string{"tokenhub_base_url": "https://tokenhub.test/v1", "tokenhub_api_key": "token-key"},
+			endpoint: "https://tokenhub.test/v1/models",
+			modelKey: "llm_model",
+		},
+		{
+			name:     "openai-compatible",
+			provider: "openai_compatible",
+			settings: map[string]string{"llm_base_url": "https://compatible.test/v1", "llm_api_key": "compatible-key"},
+			endpoint: "https://compatible.test/v1/models",
+			modelKey: "llm_model",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			client := &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+				if request.URL.String() != test.endpoint {
+					return nil, fmt.Errorf("endpoint = %s, want %s", request.URL, test.endpoint)
+				}
+				if request.Header.Get("Authorization") == "" {
+					return nil, fmt.Errorf("missing Authorization header")
+				}
+				return jsonResponse(`{"data":[{"id":"model-b"},{"id":"model-a"}]}`), nil
+			})}
+
+			result := discoverProviderCatalogWithClient(context.Background(), test.provider, test.settings, client)
+			if result.Error != "" {
+				t.Fatalf("discoverProviderCatalog() error = %q", result.Error)
+			}
+			if result.ModelKey != test.modelKey {
+				t.Fatalf("model key = %q, want %q", result.ModelKey, test.modelKey)
+			}
+			if len(result.Models) != 2 || result.Models[0].ID != "model-a" || result.Models[1].ID != "model-b" {
+				t.Fatalf("models = %#v, want sorted model list", result.Models)
+			}
+		})
+	}
+}
+
 func TestModelsEndpointRejectsInvalidURL(t *testing.T) {
 	if _, err := modelsEndpoint("file:///tmp/provider"); err == nil {
 		t.Fatal("expected non-http model URL to be rejected")
