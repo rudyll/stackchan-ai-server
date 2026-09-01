@@ -7,11 +7,14 @@ package ai
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"strconv"
 	"sync"
 	"testing"
 
 	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/os/gcfg"
 )
 
 func TestWriteSettingsPreservesFieldsNotShownByCurrentUI(t *testing.T) {
@@ -72,6 +75,31 @@ func TestGUICanClearAConfiguredStringSetting(t *testing.T) {
 	}
 	if got := settingsForUI(context.Background())["openai_api_key"]; got != "" {
 		t.Fatalf("settingsForUI() returned %q, want an explicitly saved empty value", got)
+	}
+}
+
+func TestGUICanClearConfiguredDeviceProfiles(t *testing.T) {
+	t.Setenv("STACKCHAN_DATA_DIR", t.TempDir())
+	profiles := map[string]deviceProfile{
+		"device-1": {Provider: "gemini", GeminiModel: "profile-model"},
+	}
+	raw, err := json.Marshal(profiles)
+	if err != nil {
+		t.Fatalf("json.Marshal() error = %v", err)
+	}
+	encoded := base64.StdEncoding.EncodeToString(raw)
+	adapter, err := gcfg.NewAdapterContent(`{"ai":{"device_profiles_b64":"` + encoded + `"}}`)
+	if err != nil {
+		t.Fatalf("gcfg.NewAdapterContent() error = %v", err)
+	}
+	previousAdapter := g.Cfg().GetAdapter()
+	g.Cfg().SetAdapter(adapter)
+	t.Cleanup(func() { g.Cfg().SetAdapter(previousAdapter) })
+	if err := writeSettings(map[string]string{"device_profiles": ""}); err != nil {
+		t.Fatalf("writeSettings() error = %v", err)
+	}
+	if got := deviceProfileFor(context.Background(), "device-1"); got != (deviceProfile{}) {
+		t.Fatalf("deviceProfileFor() = %#v, want cleared profile", got)
 	}
 }
 

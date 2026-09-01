@@ -36,11 +36,15 @@ type deviceProfile struct {
 }
 
 func deviceProfileFor(ctx context.Context, deviceID string) deviceProfile {
-	if raw := readSettings()["device_profiles"]; raw != "" {
+	if raw, ok := storedSetting("device_profiles"); ok {
+		if raw == "" {
+			return deviceProfile{}
+		}
 		profiles := map[string]deviceProfile{}
 		if json.Unmarshal([]byte(raw), &profiles) == nil {
 			return profiles[deviceID]
 		}
+		return deviceProfile{}
 	}
 	encoded := g.Cfg().MustGet(ctx, "ai.device_profiles_b64", "").String()
 	if encoded == "" || deviceID == "" {
