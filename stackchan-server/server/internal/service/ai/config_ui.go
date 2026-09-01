@@ -99,6 +99,9 @@ func settingsUpdateError(values map[string]string) string {
 		if !isSettingsUIKey(key) {
 			return "unsupported setting"
 		}
+		if key == "provider" && !isSupportedProvider(value) {
+			return "unsupported provider"
+		}
 		if key == "device_profiles" && strings.TrimSpace(value) != "" {
 			profiles := map[string]deviceProfile{}
 			if err := json.Unmarshal([]byte(value), &profiles); err != nil {
@@ -107,6 +110,15 @@ func settingsUpdateError(values map[string]string) string {
 		}
 	}
 	return ""
+}
+
+func isSupportedProvider(provider string) bool {
+	switch strings.TrimSpace(provider) {
+	case "", "openai", "gemini", "tokenhub", "openrouter", "openai_compatible":
+		return true
+	default:
+		return false
+	}
 }
 
 func isSettingsUIKey(key string) bool {
