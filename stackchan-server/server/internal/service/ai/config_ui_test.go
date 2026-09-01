@@ -8,6 +8,7 @@ package ai
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -49,5 +50,21 @@ func TestConfigUIKeepsIngressCompatibilityWithoutRequiredAuth(t *testing.T) {
 	handler.ServeHTTP(resp, httptest.NewRequest(http.MethodGet, "/", nil))
 	if resp.Code != http.StatusNoContent {
 		t.Fatalf("status = %d, want %d", resp.Code, http.StatusNoContent)
+	}
+}
+
+func TestConfigUIIncludesProviderCatalogControls(t *testing.T) {
+	for _, text := range []string{
+		"OpenAI Realtime",
+		"Gemini Live",
+		"Tencent TokenHub",
+		"OpenRouter",
+		"OpenAI-compatible",
+		"/api/provider-catalog",
+		"检测 Provider、模型和声音",
+	} {
+		if !strings.Contains(configUIHTML, text) {
+			t.Fatalf("config UI is missing %q", text)
+		}
 	}
 }

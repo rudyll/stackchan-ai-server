@@ -42,7 +42,11 @@ func readSettings() map[string]string {
 }
 
 func writeSettings(values map[string]string) error {
-	data, err := json.MarshalIndent(values, "", "  ")
+	merged := readSettings()
+	for key, value := range values {
+		merged[key] = value
+	}
+	data, err := json.MarshalIndent(merged, "", "  ")
 	if err != nil {
 		return err
 	}

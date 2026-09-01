@@ -76,7 +76,7 @@ Acceptance criteria:
 - Secrets persist only in the mounted data directory and are excluded from example files.
 - The settings UI rejects unauthenticated reads and writes in standalone mode.
 
-Implemented in the current beta: Docker Compose and environment-based startup, a persistent `/data` directory, generated or supplied settings token, loopback-only settings port mapping, and conditional HA/background-task startup.
+Implemented in the current beta: Docker Compose and environment-based startup, a persistent `/data` directory, generated or supplied settings token, loopback-only settings port mapping, conditional HA/background-task startup, and a protected GUI with multiple provider entries plus model/voice catalog discovery.
 
 ## Phase 3 — Device onboarding
 

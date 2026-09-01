@@ -1,0 +1,60 @@
+/*
+SPDX-FileCopyrightText: 2026 M5Stack Technology CO LTD
+SPDX-License-Identifier: MIT
+*/
+
+package ai
+
+const configUIHTML = `<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>StackChan AI Server</title>
+<style>
+:root{color-scheme:dark}body{margin:0;background:#10131a;color:#e8edf5;font:15px system-ui,-apple-system,sans-serif}main{max-width:900px;margin:auto;padding:24px}h1{font-size:25px;margin:0 0 8px}h2{font-size:18px;margin-top:0}.muted,.hint{color:#a7b2c6;font-size:13px}.hint{margin:6px 0}.notice{min-height:22px;margin:14px 0;color:#8de0ad}.warn{color:#ffd280}.error{color:#ff9b9b}.toolbar{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}button{border:0;border-radius:8px;padding:10px 14px;background:#273246;color:#fff;cursor:pointer}button:hover{filter:brightness(1.15)}button.primary{background:#3d7eff}.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0}.tab.active{background:#3d7eff}.panel{display:none;background:#18202d;padding:20px;border-radius:12px}.panel.active{display:block}.provider-card{display:none}.provider-card.show{display:block}.field{margin:15px 0}.field label{display:block;font-weight:650;margin-bottom:6px}input,select,textarea{box-sizing:border-box;width:100%;padding:10px;border:1px solid #3c4960;border-radius:7px;background:#101722;color:#fff}textarea{min-height:110px;font-family:ui-monospace,monospace}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}.catalog{margin-top:14px;padding:12px;border:1px solid #33415a;border-radius:8px;background:#121925}.catalog strong{display:block;margin-bottom:6px}.tag{display:inline-block;margin:3px 5px 3px 0;padding:4px 8px;border-radius:999px;background:#273246;color:#dce7fa;font-size:12px}.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+</style>
+</head>
+<body><main>
+<h1>StackChan AI Server</h1>
+<p class="muted">配置语音 Provider、模型和声音。保存后，新建设备会话使用新设置；检测不会保存表单内容。</p>
+<div class="tabs"><button class="tab active" data-tab="provider">Provider</button><button class="tab" data-tab="pipeline">语音管线</button><button class="tab" data-tab="background">后台任务</button><button class="tab" data-tab="devices">设备 Profile</button></div>
+
+<section id="provider" class="panel active">
+<div class="field"><label for="provider-select">AI Provider</label><select name="provider" id="provider-select"><option value="openai">OpenAI Realtime</option><option value="gemini">Gemini Live</option><option value="tokenhub">Tencent TokenHub</option><option value="openrouter">OpenRouter</option><option value="openai_compatible">OpenAI-compatible</option></select><p class="hint" id="provider-hint"></p></div>
+<div class="provider-card" data-for="openai"><div class="grid"><div class="field"><label>OpenAI API Key</label><input name="openai_api_key" type="password" autocomplete="off"></div><div class="field"><label>Realtime model</label><input name="openai_realtime_model" list="model-options" placeholder="gpt-realtime"></div><div class="field"><label>Voice</label><input name="openai_tts_voice" list="voice-options" placeholder="alloy"></div></div></div>
+<div class="provider-card" data-for="gemini"><div class="grid"><div class="field"><label>Gemini API Key</label><input name="gemini_api_key" type="password" autocomplete="off"></div><div class="field"><label>Live model</label><input name="gemini_model" list="model-options" placeholder="gemini-2.5-flash-native-audio-latest"></div><div class="field"><label>Voice</label><input name="gemini_voice" list="voice-options" placeholder="Aoede"></div></div></div>
+<div class="provider-card" data-for="tokenhub"><div class="grid"><div class="field"><label>TokenHub Base URL</label><input name="tokenhub_base_url" placeholder="https://.../v1"></div><div class="field"><label>TokenHub API Key</label><input name="tokenhub_api_key" type="password" autocomplete="off"></div></div><p class="hint">TokenHub 主要作为 LLM；STT/TTS 请在“语音管线”中分别填写。</p></div>
+<div class="provider-card" data-for="openrouter"><div class="field"><label>OpenRouter API Key</label><input name="openrouter_api_key" type="password" autocomplete="off"></div><p class="hint">默认使用 https://openrouter.ai/api/v1；LLM model、STT 和 TTS 请在“语音管线”中填写。</p></div>
+<div class="provider-card" data-for="openai_compatible"><p class="hint">请在“语音管线”中填写 LLM Base URL、API Key 和 model。该入口要求兼容 OpenAI 的 /models 和 /v1/chat/completions；STT/TTS 也在同一处配置。</p></div>
+<div class="actions"><button class="primary" id="detect">检测 Provider、模型和声音</button></div>
+<div class="catalog" id="catalog"><strong>检测结果</strong><span class="hint">填写 API Key 后点击检测。模型列表来自 Provider API；声音列表使用该 Provider 的能力目录。</span></div>
+</section>
+
+<section id="pipeline" class="panel">
+<p class="hint">TokenHub、OpenRouter 和 OpenAI-compatible 使用逐句 STT → LLM → TTS 管线。每段可以使用不同服务。</p>
+<div class="grid"><div class="field"><label>STT Base URL</label><input name="stt_base_url" placeholder="https://.../v1"></div><div class="field"><label>STT API Key</label><input name="stt_api_key" type="password" autocomplete="off"></div><div class="field"><label>STT model</label><input name="stt_model" placeholder="whisper-1"></div></div>
+<div class="grid"><div class="field"><label>LLM Base URL（可覆盖 Provider 默认值）</label><input name="llm_base_url" placeholder="https://.../v1"></div><div class="field"><label>LLM API Key</label><input name="llm_api_key" type="password" autocomplete="off"></div><div class="field"><label>LLM model</label><input name="llm_model" list="model-options" placeholder="chat model"></div></div>
+<div class="grid"><div class="field"><label>TTS Base URL</label><input name="tts_base_url" placeholder="https://.../v1"></div><div class="field"><label>TTS API Key</label><input name="tts_api_key" type="password" autocomplete="off"></div><div class="field"><label>TTS model</label><input name="tts_model" placeholder="tts-1"></div><div class="field"><label>TTS voice</label><input name="tts_voice" list="voice-options" placeholder="alloy"></div></div>
+<div class="grid"><div class="field"><label>Initial audio buffer (ms)</label><input name="audio_prebuffer_ms" type="number" placeholder="300"></div><div class="field"><label>Maximum wait (ms)</label><input name="audio_prebuffer_max_wait_ms" type="number" placeholder="900"></div></div>
+</section>
+
+<section id="background" class="panel"><p class="hint">仅 OpenAI Realtime 前台使用。standalone 无 Home Assistant，因此后台任务会保持关闭。</p><div class="field"><label>启用后台任务</label><select name="background_tasks_enabled"><option value="false">关闭</option><option value="true">开启</option></select></div><div class="grid"><div class="field"><label>Agent Base URL</label><input name="background_agent_base_url" placeholder="https://api.openai.com"></div><div class="field"><label>Agent API Key</label><input name="background_agent_api_key" type="password" autocomplete="off"></div><div class="field"><label>Agent model</label><input name="background_agent_model" placeholder="Chat Completions model"></div><div class="field"><label>任务超时（秒）</label><input name="background_agent_timeout_seconds" type="number" min="10" max="1800" placeholder="300"></div></div><div class="field"><label>后台 Agent prompt</label><textarea name="background_agent_prompt"></textarea></div></section>
+
+<section id="devices" class="panel"><p class="hint">按设备 WebSocket Device-Id 覆盖 Provider、prompt、模型或声音。API Key 仍使用基础设置。</p><textarea name="device_profiles" placeholder='{"AA:BB:CC:DD:EE:FF":{"system_prompt":"...","tts_voice":"..."}}'></textarea></section>
+
+<datalist id="model-options"></datalist><datalist id="voice-options"></datalist>
+<p id="status" class="notice"></p><div class="toolbar"><button class="primary" id="save">保存设置</button></div>
+</main>
+<script>
+const q=s=>document.querySelector(s),all=s=>[...document.querySelectorAll(s)];let data={};
+const hints={openai:'使用 OpenAI Realtime API；模型目录会从 /v1/models 获取。',gemini:'使用 Gemini Live API；模型目录会从 Gemini models.list 获取。',tokenhub:'使用 TokenHub LLM；请同时配置兼容的 STT/TTS。',openrouter:'使用 OpenRouter LLM；请同时配置兼容的 STT/TTS。',openai_compatible:'使用你自己的 OpenAI-compatible LLM/STT/TTS 服务。'};
+function show(){const p=q('#provider-select').value;all('.provider-card').forEach(x=>x.classList.toggle('show',x.dataset.for===p));q('#provider-hint').textContent=hints[p]||''}
+function collect(){const values=Object.assign({},data);all('[name]').forEach(e=>values[e.name]=e.value);return values}
+function fillList(id,items){const list=q('#'+id);list.replaceChildren();(items||[]).forEach(item=>{const option=document.createElement('option');option.value=item.id;option.label=item.name&&item.name!==item.id?item.name:item.id;option.title=item.description||'';list.appendChild(option)})}
+function showCatalog(result){const box=q('#catalog');box.replaceChildren();const title=document.createElement('strong');title.textContent='检测结果';box.appendChild(title);if(result.error){const p=document.createElement('p');p.className='error';p.textContent=result.error;box.appendChild(p)}else{const p=document.createElement('p');p.className='notice';p.textContent='Provider API 可访问。模型 '+result.models.length+' 个；声音 '+result.voices.length+' 个。';box.appendChild(p);if(result.warnings){result.warnings.forEach(w=>{const x=document.createElement('p');x.className='hint';x.textContent=w;box.appendChild(x)})}const m=document.createElement('div');m.innerHTML='<b>可用模型</b> ';(result.models||[]).slice(0,30).forEach(item=>{const tag=document.createElement('span');tag.className='tag';tag.textContent=item.id;m.appendChild(tag)});box.appendChild(m);const v=document.createElement('div');v.innerHTML='<b>可用声音</b> ';(result.voices||[]).forEach(item=>{const tag=document.createElement('span');tag.className='tag';tag.textContent=item.id;v.appendChild(tag)});box.appendChild(v)}fillList('model-options',result.models);fillList('voice-options',result.voices)}
+all('.tab').forEach(b=>b.onclick=()=>{all('.tab,.panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');q('#'+b.dataset.tab).classList.add('active')});
+q('#provider-select').onchange=show;
+q('#detect').onclick=async()=>{q('#status').textContent='正在检测 Provider...';q('#status').className='notice';try{const response=await fetch('/api/provider-catalog',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider:q('#provider-select').value,settings:collect()})});const result=await response.json();showCatalog(result);q('#status').textContent=result.error?'检测失败，请检查地址、Key 和网络。':'检测完成；列表仅用于选择，不会自动修改当前设置。';q('#status').className=result.error?'notice error':'notice'}catch(error){q('#status').textContent='检测请求失败，请确认服务仍在运行。';q('#status').className='notice error'}};
+q('#save').onclick=async()=>{q('#status').textContent='正在保存...';try{const response=await fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(collect())});q('#status').textContent=response.ok?'已保存。新建或重连设备后生效。':'保存失败，请检查配置。';q('#status').className=response.ok?'notice':'notice error'}catch(error){q('#status').textContent='保存请求失败，请确认服务仍在运行。';q('#status').className='notice error'}};
+fetch('/api/settings').then(r=>r.json()).then(x=>{data=x;all('[name]').forEach(e=>{if(x[e.name]!==undefined)e.value=x[e.name]});show()}).catch(()=>{q('#status').textContent='读取设置失败，请确认服务仍在运行。';q('#status').className='notice error'});
+</script></body></html>`

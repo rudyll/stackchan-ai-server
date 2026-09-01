@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Added the standalone settings GUI with separate OpenAI Realtime, Gemini Live, TokenHub, OpenRouter, and OpenAI-compatible provider entries.
+- Added protected provider catalog discovery: model names are fetched from the configured Provider API, while native voice catalogs are populated for OpenAI and Gemini.
+- Added clearer discovery errors and kept catalog checks separate from saving settings, so a failed check cannot overwrite the active configuration.
+
 ## 2.8.0-beta.2 (Beta)
 
 - Updated the OpenAI Realtime session configuration to the current GA `audio.input` and `audio.output` schema.
