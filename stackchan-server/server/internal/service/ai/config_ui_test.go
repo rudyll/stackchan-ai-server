@@ -51,6 +51,9 @@ func TestConfigUIRequiresBearerTokenWhenEnabled(t *testing.T) {
 	if resp.Header().Get("Cache-Control") != "no-store" || resp.Header().Get("X-Frame-Options") != "DENY" {
 		t.Fatalf("security headers = %#v, want no-store and DENY", resp.Header())
 	}
+	if !strings.Contains(resp.Header().Get("Content-Security-Policy"), "connect-src 'self'") {
+		t.Fatalf("CSP = %q, want same-origin API connections allowed", resp.Header().Get("Content-Security-Policy"))
+	}
 }
 
 func TestConfigUILoginCookieAuthorizesBrowserRequests(t *testing.T) {
