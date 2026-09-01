@@ -113,6 +113,7 @@ func TestConfigUIIncludesProviderCatalogControls(t *testing.T) {
 		"保存失败：",
 		"response.text()",
 		"/logout",
+		"href=\"/logout\" hidden",
 		"logout.hidden=!standalone",
 	} {
 		if !strings.Contains(configUIHTML, text) {

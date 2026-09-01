@@ -44,7 +44,7 @@ const configUIHTML = `<!doctype html>
 <section id="devices" class="panel"><p class="hint">按设备 WebSocket Device-Id 覆盖 Provider、prompt、模型或声音。API Key 仍使用基础设置。</p><textarea name="device_profiles" placeholder='{"AA:BB:CC:DD:EE:FF":{"system_prompt":"...","tts_voice":"..."}}'></textarea></section>
 
 <datalist id="model-options"></datalist><datalist id="voice-options"></datalist>
-<p id="status" class="notice"></p><div class="toolbar"><button class="primary" id="save">保存设置</button><a class="logout" id="logout" href="/logout">退出登录</a></div>
+<p id="status" class="notice"></p><div class="toolbar"><button class="primary" id="save">保存设置</button><a class="logout" id="logout" href="/logout" hidden>退出登录</a></div>
 </main>
 <script>
 const q=s=>document.querySelector(s),all=s=>[...document.querySelectorAll(s)];let data={};
