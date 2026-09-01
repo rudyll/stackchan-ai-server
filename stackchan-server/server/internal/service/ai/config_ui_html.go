@@ -17,6 +17,7 @@ const configUIHTML = `<!doctype html>
 <body><main>
 <h1>StackChan AI Server</h1>
 <p class="muted">配置语音 Provider、模型和声音。保存后，新建设备会话使用新设置；检测不会保存表单内容。</p>
+<p class="hint" id="runtime-mode">运行模式检测中...</p>
 <div class="tabs"><button class="tab active" data-tab="provider">Provider</button><button class="tab" data-tab="pipeline">语音管线</button><button class="tab" data-tab="background">后台任务</button><button class="tab" data-tab="devices">设备 Profile</button></div>
 
 <section id="provider" class="panel active">
@@ -57,7 +58,7 @@ all('.tab').forEach(b=>b.onclick=()=>{all('.tab,.panel').forEach(x=>x.classList.
 q('#provider-select').onchange=show;
 function syncGeminiFlags(changed){const tools=q('[name="gemini_enable_tools"]'),search=q('[name="gemini_enable_search"]');if(!tools||!search)return;if((changed==='tools'||changed==='initial')&&tools.value==='true')search.value='false';if(changed==='search'&&search.value==='true')tools.value='false'}
 q('[name="gemini_enable_tools"]').onchange=()=>syncGeminiFlags('tools');q('[name="gemini_enable_search"]').onchange=()=>syncGeminiFlags('search');
-function syncRuntimeMode(){const standalone=data.ui_ha_enabled==='false',tools=q('[name="gemini_enable_tools"]'),background=q('[name="background_tasks_enabled"]'),logout=q('#logout');if(tools){tools.disabled=standalone;if(standalone)tools.value='false'}if(background){background.disabled=standalone;if(standalone)background.value='false'}if(logout)logout.hidden=!standalone}
+function syncRuntimeMode(){const standalone=data.ui_ha_enabled==='false',tools=q('[name="gemini_enable_tools"]'),background=q('[name="background_tasks_enabled"]'),logout=q('#logout'),mode=q('#runtime-mode');if(tools){tools.disabled=standalone;if(standalone)tools.value='false'}if(background){background.disabled=standalone;if(standalone)background.value='false'}if(logout)logout.hidden=!standalone;if(mode)mode.textContent=standalone?'运行模式：Standalone（不连接 Home Assistant）':'运行模式：Home Assistant add-on（由 Ingress 保护设置页）'}
 q('#detect').onclick=async()=>{q('#status').textContent='正在检测 Provider...';q('#status').className='notice';try{const response=await fetch('/api/provider-catalog',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider:q('#provider-select').value,settings:collect()})});const result=await response.json();showCatalog(result);q('#status').textContent=result.error?'检测失败，请检查地址、Key 和网络。':'检测完成；列表仅用于选择，不会自动修改当前设置。';q('#status').className=result.error?'notice error':'notice'}catch(error){q('#status').textContent='检测请求失败，请确认服务仍在运行。';q('#status').className='notice error'}};
 q('#save').onclick=async()=>{q('#status').textContent='正在保存...';try{const response=await fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(collect())});const detail=response.ok?'':(await response.text()).trim();q('#status').textContent=response.ok?'已保存。新建或重连设备后生效。':'保存失败：'+(detail||'请检查配置。');q('#status').className=response.ok?'notice':'notice error'}catch(error){q('#status').textContent='保存请求失败，请确认服务仍在运行。';q('#status').className='notice error'}};
 fetch('/api/settings').then(r=>r.json()).then(x=>{data=x;all('[name]').forEach(e=>{if(x[e.name]!==undefined)e.value=x[e.name]});syncRuntimeMode();syncGeminiFlags('initial');show()}).catch(()=>{q('#status').textContent='读取设置失败，请确认服务仍在运行。';q('#status').className='notice error'});
