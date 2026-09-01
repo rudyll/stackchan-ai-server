@@ -15,6 +15,10 @@ import (
 	"github.com/gogf/gf/v2/os/gctx"
 )
 
+const settingsSessionCookie = "stackchan_settings_session"
+
+const settingsSessionMaxAge = 12 * 60 * 60
+
 // StartConfigUI serves the settings UI on the configured address. HA add-ons
 // rely on Ingress authentication; standalone runtime supplies a Bearer token.
 func StartConfigUI() {
@@ -83,18 +87,68 @@ func configUIAuth(next http.Handler, token string, required bool) http.Handler {
 		return next
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		const prefix = "Bearer "
-		authorization := r.Header.Get("Authorization")
-		if !strings.HasPrefix(authorization, prefix) {
-			w.Header().Set("WWW-Authenticate", `Bearer realm="StackChan settings"`)
-			http.Error(w, "authentication required", http.StatusUnauthorized)
+		if r.URL.Path == "/login" {
+			handleConfigUILogin(w, r, token)
 			return
 		}
-		provided := strings.TrimSpace(strings.TrimPrefix(authorization, prefix))
-		if token == "" || subtle.ConstantTimeCompare([]byte(provided), []byte(token)) != 1 {
-			http.Error(w, "invalid credentials", http.StatusUnauthorized)
+		if r.URL.Path == "/logout" && r.Method == http.MethodGet {
+			http.SetCookie(w, &http.Cookie{Name: settingsSessionCookie, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteStrictMode})
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
-		next.ServeHTTP(w, r)
+		if settingsRequestAuthenticated(r, token) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		if r.URL.Path == "/" && r.Method == http.MethodGet && r.Header.Get("Authorization") == "" {
+			serveConfigUILogin(w, "")
+			return
+		}
+		w.Header().Set("WWW-Authenticate", `Bearer realm="StackChan settings"`)
+		http.Error(w, "authentication required", http.StatusUnauthorized)
 	})
+}
+
+func settingsRequestAuthenticated(r *http.Request, token string) bool {
+	const prefix = "Bearer "
+	authorization := r.Header.Get("Authorization")
+	if strings.HasPrefix(authorization, prefix) && matchesSettingsToken(strings.TrimSpace(strings.TrimPrefix(authorization, prefix)), token) {
+		return true
+	}
+	cookie, err := r.Cookie(settingsSessionCookie)
+	return err == nil && matchesSettingsToken(cookie.Value, token)
+}
+
+func matchesSettingsToken(provided, token string) bool {
+	return token != "" && subtle.ConstantTimeCompare([]byte(provided), []byte(token)) == 1
+}
+
+func handleConfigUILogin(w http.ResponseWriter, r *http.Request, token string) {
+	if r.Method == http.MethodGet {
+		serveConfigUILogin(w, "")
+		return
+	}
+	if r.Method != http.MethodPost {
+		w.Header().Set("Allow", "GET, POST")
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 8*1024)
+	if err := r.ParseForm(); err != nil || !matchesSettingsToken(strings.TrimSpace(r.FormValue("token")), token) {
+		w.WriteHeader(http.StatusUnauthorized)
+		serveConfigUILogin(w, "Token 不正确，请重试。")
+		return
+	}
+	http.SetCookie(w, &http.Cookie{Name: settingsSessionCookie, Value: token, Path: "/", MaxAge: settingsSessionMaxAge, HttpOnly: true, SameSite: http.SameSiteStrictMode})
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func serveConfigUILogin(w http.ResponseWriter, message string) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if message == "" {
+		_, _ = w.Write([]byte(configUILoginHTML))
+		return
+	}
+	page := strings.Replace(configUILoginHTML, "<p id=\"error\"></p>", "<p id=\"error\">"+message+"</p>", 1)
+	_, _ = w.Write([]byte(page))
 }

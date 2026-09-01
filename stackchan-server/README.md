@@ -61,7 +61,7 @@ cp .env.standalone.example .env
 docker compose -f docker-compose.standalone.yml up --build -d
 ```
 
-By default, the server is published on host port `12800` (the container listens on `12800`). The settings UI is bound to `127.0.0.1:8099` and requires the Bearer token printed on first startup. It provides separate entries for OpenAI Realtime, Gemini Live, TokenHub, OpenRouter, and OpenAI-compatible providers, plus model discovery, provider-specific voice catalogs, and Gemini HA-tools/Search toggles. Standalone mode does not connect to Home Assistant or start the port-443 OTA interception.
+By default, the server is published on host port `12800` (the container listens on `12800`). The settings UI is bound to `127.0.0.1:8099`; open `http://127.0.0.1:8099/` in a browser and enter the Bearer token printed on first startup. It then uses a short-lived HttpOnly session cookie, while API requests remain protected. It provides separate entries for OpenAI Realtime, Gemini Live, TokenHub, OpenRouter, and OpenAI-compatible providers, plus model discovery, provider-specific voice catalogs, and Gemini HA-tools/Search toggles. Standalone mode does not connect to Home Assistant or start the port-443 OTA interception.
 
 If the HA add-on and standalone Docker share one host, keep the add-on on host port `12800` and set `STACKCHAN_WS_PORT=12801` (and optionally `STACKCHAN_SETTINGS_PORT=8100`) in `.env`. Configure the device's standalone OTA URL as `http://<server-LAN-IP>:12801/xiaozhi/ota/`. The container still listens internally on `12800`; the launcher advertises the selected public port in the returned WebSocket URL.
 

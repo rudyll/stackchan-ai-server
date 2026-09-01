@@ -30,7 +30,7 @@ func TestConfigUIRequiresBearerTokenWhenEnabled(t *testing.T) {
 		{name: "valid", header: "Bearer test-token", want: http.StatusNoContent},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req := httptest.NewRequest(http.MethodGet, "/api/settings", nil)
 			if test.header != "" {
 				req.Header.Set("Authorization", test.header)
 			}
@@ -40,6 +40,39 @@ func TestConfigUIRequiresBearerTokenWhenEnabled(t *testing.T) {
 				t.Fatalf("status = %d, want %d", resp.Code, test.want)
 			}
 		})
+	}
+
+	resp := httptest.NewRecorder()
+	handler.ServeHTTP(resp, httptest.NewRequest(http.MethodGet, "/", nil))
+	if resp.Code != http.StatusOK || !strings.Contains(resp.Body.String(), "Settings token") {
+		t.Fatalf("unauthenticated root status/body = %d/%q, want login page", resp.Code, resp.Body.String())
+	}
+}
+
+func TestConfigUILoginCookieAuthorizesBrowserRequests(t *testing.T) {
+	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+	handler := configUIAuth(next, "test-token", true)
+
+	login := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader("token=test-token"))
+	login.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	loginResponse := httptest.NewRecorder()
+	handler.ServeHTTP(loginResponse, login)
+	if loginResponse.Code != http.StatusSeeOther {
+		t.Fatalf("login status = %d, want %d", loginResponse.Code, http.StatusSeeOther)
+	}
+	cookies := loginResponse.Result().Cookies()
+	if len(cookies) != 1 || cookies[0].Name != settingsSessionCookie || cookies[0].Value != "test-token" || !cookies[0].HttpOnly {
+		t.Fatalf("login cookies = %#v, want HttpOnly settings session cookie", cookies)
+	}
+
+	request := httptest.NewRequest(http.MethodGet, "/api/settings", nil)
+	request.AddCookie(cookies[0])
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusNoContent {
+		t.Fatalf("cookie-authenticated status = %d, want %d", response.Code, http.StatusNoContent)
 	}
 }
 

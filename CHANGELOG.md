@@ -8,6 +8,7 @@
 - Added standalone GUI controls for Gemini HA tools and Google Search, with the runtime now honoring those saved flags for new sessions.
 - Fixed the standalone default so the Home Assistant-only Gemini tools setting starts disabled; added Gemini fields to the standalone environment example.
 - Aligned the add-on OpenAI voice schema with the current GUI/provider voice catalog.
+- Added a browser login page for the standalone settings UI; the token is exchanged for a short-lived HttpOnly session cookie.
 
 ## 2.8.0-beta.2 (Beta)
 
