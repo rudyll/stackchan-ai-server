@@ -109,6 +109,8 @@ func TestConfigUIIncludesProviderCatalogControls(t *testing.T) {
 		"检测 Provider、模型和声音",
 		"保存失败：",
 		"response.text()",
+		"/logout",
+		"logout.hidden=!standalone",
 	} {
 		if !strings.Contains(configUIHTML, text) {
 			t.Fatalf("config UI is missing %q", text)

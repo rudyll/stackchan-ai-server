@@ -18,6 +18,7 @@
 - Preserve standalone environment-configured Device-Id profiles when the settings UI is opened and an unrelated field is saved.
 - Add no-store and browser security headers to the settings UI and API responses.
 - Show actionable settings API validation errors in the standalone GUI instead of a generic save failure.
+- Add a standalone-only logout link to the settings GUI.
 
 ## 2.8.0-beta.2 (Beta)
 
