@@ -46,7 +46,7 @@ StackChan AI Server  (this add-on, running on HA)
 2. Click the three-dot menu (top right) → **Repositories**
 3. Add this URL:
    ```
-   https://github.com/rudyll/stackchan_ha_addons
+   https://github.com/rudyll/stackchan-ai-server
    ```
 4. Find **StackChan AI Server** in the store and click **Install**
 

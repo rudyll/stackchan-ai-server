@@ -83,7 +83,7 @@ StackChan AI Server（本插件，运行在 HA 的 12800 端口）
 2. 点击右上角三点菜单 → **仓库**
 3. 添加以下 URL：
    ```
-   https://github.com/rudyll/stackchan_ha_addons
+   https://github.com/rudyll/stackchan-ai-server
    ```
 4. 在商店中找到 **StackChan AI Server**，点击 **安装**
 5. 进入插件的 **配置** 选项卡，填写必要字段（见下文）
