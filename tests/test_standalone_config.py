@@ -26,6 +26,10 @@ class StandaloneConfigTest(unittest.TestCase):
             "STACKCHAN_WS_PORT",
             "STACKCHAN_SETTINGS_PORT",
             "STACKCHAN_SETTINGS_TOKEN",
+            "STACKCHAN_DEVICE_PROFILES",
+            "STACKCHAN_SYSTEM_PROMPT",
+            "STACKCHAN_AUDIO_PREBUFFER_MS",
+            "STACKCHAN_AUDIO_PREBUFFER_MAX_WAIT_MS",
         ):
             self.assertIn(key, content)
 
