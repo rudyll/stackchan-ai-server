@@ -104,6 +104,12 @@ cp .env.standalone.example .env
 docker compose -f docker-compose.standalone.yml up --build -d
 ```
 
+如果 `STACKCHAN_SETTINGS_TOKEN` 留空，打开 GUI 前先从首次启动日志中取出自动生成的 token：
+
+```bash
+docker compose -f docker-compose.standalone.yml logs --no-color --tail=50 stackchan
+```
+
 默认情况下，语音 WebSocket 服务发布在宿主机 `12800` 端口（容器内部仍监听 `12800`）；设置页默认只绑定 `127.0.0.1:8099`。请在浏览器打开 `http://127.0.0.1:8099/`，输入首次启动日志显示的 Bearer token 登录；浏览器随后使用短期 HttpOnly cookie，API 请求仍受保护。Token 会持久化到 `./data/settings-token`。GUI 提供 OpenAI Realtime、Gemini Live、TokenHub、OpenRouter 和 OpenAI-compatible 独立入口，并可检测 Provider、获取模型名称和填充对应的声音目录；standalone 模式会自动禁用 HA-only tools 和后台任务，Gemini Search 仍可用且与 HA tools 互斥。standalone 不连接 Home Assistant，也不启动 443 端口 OTA 劫持；设备 OTA 地址配置为 `http://<服务器局域网IP>:12800/xiaozhi/ota/`。
 
 如果同一台主机上同时运行 HA add-on 和 standalone Docker，建议让 add-on 继续使用 `12800`，在启动 Compose 前将 `STACKCHAN_WS_PORT=12801`（如有需要再将 `STACKCHAN_SETTINGS_PORT=8100`）。此时设备应配置为 `http://<服务器局域网IP>:12801/xiaozhi/ota/`。容器内部仍监听 `12800`，启动脚本会把选定的宿主机端口写入设备后续使用的 WebSocket 地址。
