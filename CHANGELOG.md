@@ -7,6 +7,7 @@
 - Added clearer discovery errors and kept catalog checks separate from saving settings, so a failed check cannot overwrite the active configuration.
 - Added standalone GUI controls for Gemini HA tools and Google Search, with the runtime now honoring those saved flags for new sessions.
 - Fixed the standalone default so the Home Assistant-only Gemini tools setting starts disabled; added Gemini fields to the standalone environment example.
+- Aligned the add-on OpenAI voice schema with the current GUI/provider voice catalog.
 
 ## 2.8.0-beta.2 (Beta)
 

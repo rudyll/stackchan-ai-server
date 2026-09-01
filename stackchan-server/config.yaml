@@ -69,7 +69,7 @@ schema:
   ai_provider: list(openai|gemini|tokenhub|openrouter|openai_compatible)
   openai_api_key: str?
   openai_realtime_model: str
-  openai_tts_voice: list(alloy|echo|fable|onyx|nova|shimmer|ash|coral|sage|verse|cedar|marin|cove)
+  openai_tts_voice: list(alloy|ash|ballad|coral|echo|sage|shimmer|verse|marin|cedar)
   gemini_api_key: str?
   gemini_model: str
   gemini_voice: list(Aoede|Charon|Fenrir|Kore|Puck|Leda|Orus|Zephyr|Achernar|Achird|Algenib|Algieba|Alnilam|Autonoe|Callirrhoe|Despina|Enceladus|Erinome|Gacrux|Iapetus|Laomedeia|Pulcherrima|Rasalgethi|Sadachbia|Sadaltager|Schedar|Sulafat|Umbriel|Vindemiatrix|Zubenelgenubi)
