@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/gogf/gf/v2/frame/g"
 )
@@ -46,7 +47,12 @@ func storedSetting(key string) (string, bool) {
 	return value, ok
 }
 
+var settingsWriteMu sync.Mutex
+
 func writeSettings(values map[string]string) error {
+	settingsWriteMu.Lock()
+	defer settingsWriteMu.Unlock()
+
 	merged := readSettings()
 	for key, value := range values {
 		merged[key] = value

@@ -8,6 +8,7 @@ package ai
 import (
 	"context"
 	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/gogf/gf/v2/frame/g"
@@ -123,5 +124,30 @@ func TestSettingsUIDoesNotExposeUnknownOrSupervisorFields(t *testing.T) {
 	}
 	if values["provider"] != "openai" {
 		t.Fatalf("provider = %q, want persisted UI setting", values["provider"])
+	}
+}
+
+func TestWriteSettingsPreservesConcurrentUpdates(t *testing.T) {
+	t.Setenv("STACKCHAN_DATA_DIR", t.TempDir())
+	const writers = 12
+	var wait sync.WaitGroup
+	wait.Add(writers)
+	for i := 0; i < writers; i++ {
+		i := i
+		go func() {
+			defer wait.Done()
+			if err := writeSettings(map[string]string{"concurrent_key_" + strconv.Itoa(i): strconv.Itoa(i)}); err != nil {
+				t.Errorf("writeSettings() error = %v", err)
+			}
+		}()
+	}
+	wait.Wait()
+
+	values := readSettings()
+	for i := 0; i < writers; i++ {
+		key := "concurrent_key_" + strconv.Itoa(i)
+		if values[key] != strconv.Itoa(i) {
+			t.Fatalf("%s = %q, want %q; values = %#v", key, values[key], strconv.Itoa(i), values)
+		}
 	}
 }
