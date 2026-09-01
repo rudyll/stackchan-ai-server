@@ -203,7 +203,7 @@ The device firmware needs to know your local server address instead of the Xiaoz
 >
 > ⚠️ **Important:** The official xiaozhi-esp32 OTA upgrade writes a full flash image and **overwrites the NVS partition**. After any firmware upgrade you will need to re-inject the NVS key (Steps 3–4 of Method A). This is still much faster than recompiling.
 >
-> 💡 **Shortcut:** Run `python3 flash_nvs.py` for an interactive guided injector that handles all four steps automatically (English / 中文).
+> 💡 **Shortcut:** Run `python3 flash_nvs.py` for an interactive guided injector that handles all four steps automatically (English / 中文). It asks for both the server LAN IP and the reachable TCP port, so enter `12801` when standalone shares a host with the HA add-on on `12800`.
 
 ### Method A — Write NVS key (recommended)
 

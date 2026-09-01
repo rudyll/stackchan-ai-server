@@ -211,7 +211,7 @@ docker compose -f docker-compose.standalone.yml up --build -d
 >
 > ⚠️ **注意：** 官方 xiaozhi-esp32 的 OTA 升级会写入完整 flash 镜像，**NVS 分区也会被覆盖**。每次固件升级后需重新执行方式 A 的第三、四步写入 NVS，这比重新编译固件要快得多。
 >
-> 💡 **一键写入：** 运行 `python3 flash_nvs.py`，交互式引导完成全部四个步骤（支持中英文）。
+> 💡 **一键写入：** 运行 `python3 flash_nvs.py`，交互式引导完成全部四个步骤（支持中英文）。工具会同时询问服务器局域网 IP 和对外 TCP 端口；如果 standalone 与 HA add-on 同机运行且 add-on 使用 `12800`，这里应填写 standalone 的 `12801`。
 
 ### 方式 A — 写入 NVS（推荐）
 

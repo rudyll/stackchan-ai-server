@@ -42,7 +42,9 @@ STRINGS = {
         "port_manual":   "Enter port path manually",
         "ip_prompt":     "Enter the StackChan server LAN IP (e.g. 192.168.1.100)",
         "ip_bad":        "That doesn't look like a valid IP. Try again.",
-        "confirm":       "Ready to write NVS to {port} with ota_url=http://{ip}:12800/xiaozhi/ota/\nProceed? [y/N]",
+        "server_port":   "Enter the server port [12800]",
+        "port_bad":      "That doesn't look like a valid TCP port. Try again.",
+        "confirm":       "Ready to write NVS to {port} with ota_url=http://{ip}:{server_port}/xiaozhi/ota/\nProceed? [y/N]",
         "querying":      "Querying NVS partition size...",
         "size_found":    "NVS partition size: {size}",
         "generating":    "Generating NVS binary...",
@@ -64,7 +66,9 @@ STRINGS = {
         "port_manual":   "手动输入串口路径",
         "ip_prompt":     "请输入 StackChan 服务器的局域网 IP（例如 192.168.1.100）",
         "ip_bad":        "IP 格式不正确，请重新输入。",
-        "confirm":       "即将向 {port} 写入 NVS，ota_url=http://{ip}:12800/xiaozhi/ota/\n确认继续？[y/N]",
+        "server_port":   "请输入服务器端口 [12800]",
+        "port_bad":      "端口格式不正确，请输入 1–65535 之间的 TCP 端口。",
+        "confirm":       "即将向 {port} 写入 NVS，ota_url=http://{ip}:{server_port}/xiaozhi/ota/\n确认继续？[y/N]",
         "querying":      "正在查询 NVS 分区大小...",
         "size_found":    "NVS 分区大小：{size}",
         "generating":    "正在生成 NVS 二进制文件...",
@@ -115,6 +119,12 @@ def validate_ip(ip):
     try:
         return all(0 <= int(p) <= 255 for p in parts)
     except ValueError:
+        return False
+
+def validate_port(port):
+    try:
+        return 1 <= int(port.strip()) <= 65535
+    except (AttributeError, ValueError):
         return False
 
 def run(cmd, lang):
@@ -198,9 +208,16 @@ def main():
             break
         print(t(lang, "ip_bad"))
 
+    while True:
+        server_port = input(f"{t(lang, 'server_port')}: ").strip() or "12800"
+        if validate_port(server_port):
+            server_port = str(int(server_port))
+            break
+        print(t(lang, "port_bad"))
+
     # Confirm
     print()
-    answer = input(t(lang, "confirm", port=port, ip=ip) + " ").strip().lower()
+    answer = input(t(lang, "confirm", port=port, ip=ip, server_port=server_port) + " ").strip().lower()
     if answer not in ("y", "yes", "是", "确认"):
         print(t(lang, "aborted"))
         sys.exit(0)
@@ -224,7 +241,7 @@ def main():
         print(t(lang, "size_found", size=hex(size)))
 
         # Step 2: write NVS CSV
-        ota_url = f"http://{ip}:12800/xiaozhi/ota/"
+        ota_url = f"http://{ip}:{server_port}/xiaozhi/ota/"
         with open(csv_path, "w", newline="") as f:
             w = csv.writer(f)
             w.writerow(["key", "type", "encoding", "value"])
