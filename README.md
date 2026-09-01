@@ -133,7 +133,7 @@ Pick **one** AI provider via `ai_provider` and fill in only its API key. The oth
 | `gemini_api_key` | ✅ | Your Google AI Studio API key from [aistudio.google.com](https://aistudio.google.com/app/apikey). |
 | `gemini_model` | | Gemini Live model name (free text). Default: `gemini-2.5-flash-native-audio-latest`. Other model IDs may be entered when supported by Gemini Live. |
 | `gemini_voice` | | TTS voice. Default: `Aoede`. 30 native audio voices available via dropdown (Aoede, Charon, Fenrir, Kore, Puck, Leda, Orus, Zephyr, and more). |
-| `gemini_enable_tools` | | Enable HA device control tools for Gemini. Default: on. |
+| `gemini_enable_tools` | | Enable HA device control tools for Gemini. Add-on default: on; standalone default: off. |
 | `gemini_enable_search` | | Enable Google Search grounding for Gemini. Default: off. **⚠️ Mutually exclusive with `gemini_enable_tools`** — Gemini does not allow grounding and function calling simultaneously. Enabling both causes 1011 connection errors. To use web search, set `gemini_enable_tools=false`. |
 | **Compatible pipeline** | | For `tokenhub`, `openrouter`, and `openai_compatible`: a turn-based STT → Chat Completions → TTS path, not OpenAI Realtime WebSocket. |
 | `stt_*` | | Optional independent STT Base URL, API Key, and model. |

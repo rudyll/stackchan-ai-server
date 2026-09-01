@@ -133,7 +133,7 @@ docker compose -f docker-compose.standalone.yml up --build -d
 | `gemini_api_key` | ✅ | Google AI Studio API Key，在 [aistudio.google.com](https://aistudio.google.com/app/apikey) 获取。 |
 | `gemini_model` | | Gemini Live 模型名（自由输入），默认 `gemini-2.5-flash-native-audio-latest`。Gemini Live 支持的其他模型 ID 也可直接填写。 |
 | `gemini_voice` | | TTS 语音，默认 `Aoede`。共 30 种原生音频语音可选（下拉菜单）。 |
-| `gemini_enable_tools` | | 启用 Gemini 的 HA 设备控制工具（默认开启）。 |
+| `gemini_enable_tools` | | 启用 Gemini 的 HA 设备控制工具。add-on 默认开启；standalone 默认关闭。 |
 | `gemini_enable_search` | | 启用 Gemini 的 Google Search 联网搜索（默认关闭）。**⚠️ 与 `gemini_enable_tools` 互斥** — Gemini 不支持同时使用 grounding（联网搜索）和 function calling（HA 工具调用），两者同时开启会导致 1011 连接错误。如需联网搜索，请将 `gemini_enable_tools` 设为关闭。 |
 | **OpenAI-compatible 管线**（当 `ai_provider=tokenhub`、`openrouter` 或 `openai_compatible`） | | 这是逐句的 STT → LLM → TTS 管线，不是 OpenAI Realtime WebSocket；延迟应以插件 `[LAT]` 日志实测为准。 |
 | `stt_*` | | 可选的独立 STT Base URL、API Key 和模型。 |

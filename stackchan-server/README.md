@@ -90,7 +90,7 @@ The HA add-on intercepts the OTA check on port 443 and redirects the device to t
 | `gemini_api_key` | Google AI API key (required when provider is `gemini`) |
 | `gemini_model` | Gemini Live model to use |
 | `gemini_voice` | Voice for Gemini audio output |
-| `gemini_enable_tools` | Enable HA device control tools for Gemini (default: on). |
+| `gemini_enable_tools` | Enable HA device control tools for Gemini. Add-on default: on; standalone default: off. |
 | `gemini_enable_search` | Enable Google Search grounding for Gemini (default: off). **⚠️ Mutually exclusive with `gemini_enable_tools`** — Gemini does not support grounding and function calling at the same time. Enabling both will cause connection errors (1011). To use web search, set `gemini_enable_tools=false`. |
 | `system_prompt` | System prompt sent to the AI. Controls language, personality, and control behaviour. |
 

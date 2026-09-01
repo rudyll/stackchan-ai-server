@@ -6,6 +6,7 @@
 - Added protected provider catalog discovery: model names are fetched from the configured Provider API, while native voice catalogs are populated for OpenAI and Gemini.
 - Added clearer discovery errors and kept catalog checks separate from saving settings, so a failed check cannot overwrite the active configuration.
 - Added standalone GUI controls for Gemini HA tools and Google Search, with the runtime now honoring those saved flags for new sessions.
+- Fixed the standalone default so the Home Assistant-only Gemini tools setting starts disabled; added Gemini fields to the standalone environment example.
 
 ## 2.8.0-beta.2 (Beta)
 
