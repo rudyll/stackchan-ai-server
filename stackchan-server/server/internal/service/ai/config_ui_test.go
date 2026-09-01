@@ -107,6 +107,8 @@ func TestConfigUIIncludesProviderCatalogControls(t *testing.T) {
 		"system_prompt",
 		"/api/provider-catalog",
 		"检测 Provider、模型和声音",
+		"保存失败：",
+		"response.text()",
 	} {
 		if !strings.Contains(configUIHTML, text) {
 			t.Fatalf("config UI is missing %q", text)
