@@ -19,6 +19,7 @@
 - Add no-store and browser security headers to the settings UI and API responses.
 - Show actionable settings API validation errors in the standalone GUI instead of a generic save failure.
 - Add a standalone-only logout link to the settings GUI.
+- Show the active runtime mode in the settings GUI, including whether Home Assistant is connected or omitted.
 
 ## 2.8.0-beta.2 (Beta)
 
