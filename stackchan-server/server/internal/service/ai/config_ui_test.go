@@ -135,6 +135,11 @@ func TestConfigUIIncludesProviderCatalogControls(t *testing.T) {
 		"logout.hidden=!standalone",
 		"运行模式：Standalone（不连接 Home Assistant）",
 		"运行模式：Home Assistant add-on（由 Ingress 保护设置页）",
+		"class=\"app-header\"",
+		"class=\"summary-grid\"",
+		"class=\"savebar\"",
+		"class=\"stage-card\"",
+		"@media(max-width:820px)",
 	} {
 		if !strings.Contains(configUIHTML, text) {
 			t.Fatalf("config UI is missing %q", text)

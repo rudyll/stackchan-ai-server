@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Refreshed the standalone settings GUI with a responsive layout, sidebar navigation, runtime and configuration summary cards, grouped pipeline stages, and a persistent save bar without changing the settings API.
 - Updated indirect `golang.org/x/net` and `golang.org/x/text` dependencies, plus the required `golang.org/x/sys` version and checksums, to address the reported dependency advisory.
 - The NVS injector now accepts a resolvable LAN hostname as well as an IPv4 address for standalone OTA URLs; automatic service discovery is not enabled because it would require firmware support.
 - Added the standalone settings GUI with separate OpenAI Realtime, Gemini Live, TokenHub, OpenRouter, and OpenAI-compatible provider entries.
