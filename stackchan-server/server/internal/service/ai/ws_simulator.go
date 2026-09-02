@@ -45,10 +45,12 @@ var upgrader = websocket.Upgrader{
 const frameQueueSize = 600 // ~36 seconds of audio headroom
 
 type wsSession struct {
-	conn     *websocket.Conn
-	deviceID string
-	rt       RealtimeSession
-	opusDec  *opus.Decoder // device input decoder (16kHz, reset per utterance)
+	conn      *websocket.Conn
+	deviceID  string
+	sessionID string
+	activity  *conversationActivity
+	rt        RealtimeSession
+	opusDec   *opus.Decoder // device input decoder (16kHz, reset per utterance)
 
 	mu               sync.Mutex         // protects opusEnc and isListening
 	opusEnc          *opusStreamEncoder // non-nil only while model is speaking
@@ -71,7 +73,8 @@ type wsSession struct {
 // HandleWS upgrades the connection and runs a Xiaozhi v3 protocol session
 // backed by OpenAI Realtime API.
 func HandleWS(w http.ResponseWriter, r *http.Request) {
-	ctx := gctx.New()
+	ctx, cancel := context.WithCancel(gctx.New())
+	defer cancel()
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -79,9 +82,8 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	provider := configuredProvider(ctx)
-
 	deviceID := r.Header.Get("Device-Id")
+	provider := override(deviceProfileFor(ctx, deviceID).Provider, configuredProvider(ctx))
 	var ha *haWSClient
 	haEnabled, haURL, haToken := homeAssistantConnection(ctx)
 	if haEnabled {
@@ -108,6 +110,8 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 	s := &wsSession{
 		conn:             conn,
 		deviceID:         deviceID,
+		sessionID:        uuid.New().String(),
+		activity:         newConversationActivity(time.Duration(conversationIdleSeconds(ctx))*time.Second, time.Now()),
 		opusDec:          opusDec,
 		frameQueue:       make(chan []byte, frameQueueSize),
 		prebufferFrames:  max(0, aiInt(ctx, "audio_prebuffer_ms", 300)/frameDurationMs),
@@ -126,16 +130,25 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 			s.conn.Close()
 		},
 		OnSTT: func(text string) {
+			if err := appendConversation(ctx, deviceID, s.sessionID, provider, "user", text); err != nil {
+				g.Log().Warning(ctx, "[HISTORY] could not save user transcript")
+			}
 			s.logTurnLatency(ctx, "stt")
 			_ = s.sendJSON(map[string]any{"type": "stt", "text": text})
 		},
 
 		OnText: func(text string) {
+			if err := appendConversation(ctx, deviceID, s.sessionID, provider, "assistant", text); err != nil {
+				g.Log().Warning(ctx, "[HISTORY] could not save assistant transcript")
+			}
 			s.logTurnLatency(ctx, "llm")
 			g.Log().Infof(ctx, "[WS] device=%s LLM: %q", deviceID, text)
 		},
 
 		OnAudio: func(pcm []int16) { // encode and enqueue; pacingLoop sends at 60ms
+			if !s.activity.responding(time.Now()) {
+				return
+			}
 			if atomic.CompareAndSwapInt32(&s.firstAudioLogged, 0, 1) {
 				s.logTurnLatency(ctx, "first_audio")
 			}
@@ -161,6 +174,9 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 		},
 
 		OnStart: func() {
+			if !s.activity.responding(time.Now()) {
+				return
+			}
 			if aware, ok := s.rt.(PlaybackStateAware); ok {
 				aware.SetPlaybackBusy(true)
 			}
@@ -195,6 +211,7 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 			enc := s.opusEnc
 			s.mu.Unlock()
 			if enc == nil {
+				s.activity.playbackDone(time.Now())
 				if aware, ok := s.rt.(PlaybackStateAware); ok {
 					aware.InterruptPlayback()
 				}
@@ -207,7 +224,11 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 				default:
 				}
 			}
-			s.frameQueue <- nil // sentinel: pacingLoop confirms physical playback completion
+			select {
+			case s.frameQueue <- nil: // pacingLoop confirms physical playback completion
+			case <-ctx.Done():
+				return
+			}
 			s.startPlayback(true)
 			s.mu.Lock()
 			s.opusEnc = nil
@@ -223,11 +244,20 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.rt = rt
+	defer func() {
+		s.mu.Lock()
+		if s.prebufferTimer != nil {
+			s.prebufferTimer.Stop()
+		}
+		s.mu.Unlock()
+	}()
 	g.Log().Infof(ctx, "[WS] device=%s realtime session ready provider=%s", deviceID, provider)
 
 	go s.pacingLoop(ctx)
 	go s.pingLoop(ctx)
+	go s.idleLoop(ctx)
 	s.run(ctx)
+	cancel()
 
 	g.Log().Infof(ctx, "[WS] device=%s session closed", deviceID)
 	rt.Close()
@@ -258,10 +288,12 @@ func (s *wsSession) pacingLoop(ctx context.Context) {
 				if frame == nil {
 					// All frames delivered — tell device TTS is done.
 					_ = s.sendJSON(map[string]any{"type": "tts", "state": "stop"})
+					s.activity.playbackDone(time.Now())
 					if aware, ok := s.rt.(PlaybackStateAware); ok {
 						aware.SetPlaybackBusy(false)
 					}
 				} else {
+					s.activity.responding(time.Now())
 					_ = s.sendAudio(frame)
 				}
 			default:
@@ -338,6 +370,9 @@ func (s *wsSession) run(ctx context.Context) {
 			if err != nil {
 				continue
 			}
+			if !s.activity.audio(time.Now(), pcm) {
+				return
+			}
 			_ = s.rt.AppendAudio(pcm)
 			continue
 		}
@@ -359,6 +394,7 @@ func (s *wsSession) run(ctx context.Context) {
 		case "listen":
 			s.handleListen(ctx, msg)
 		case "abort":
+			s.activity.playbackDone(time.Now())
 			_ = s.rt.CancelResponse()
 			s.mu.Lock()
 			s.opusEnc = nil
@@ -379,7 +415,8 @@ func (s *wsSession) run(ctx context.Context) {
 }
 
 func (s *wsSession) handleHello(ctx context.Context) {
-	sessionID := uuid.New().String()
+	sessionID := s.sessionID
+	s.activity.wake(time.Now())
 	err := s.sendJSON(map[string]any{
 		"type":       "hello",
 		"transport":  "websocket",
@@ -404,6 +441,7 @@ func (s *wsSession) handleListen(ctx context.Context, msg map[string]any) {
 	switch state {
 
 	case "detect":
+		s.activity.wake(time.Now())
 		// Wake word: cancel in-progress response and unblock device VAD.
 		_ = s.rt.CancelResponse()
 		s.mu.Lock()
@@ -421,6 +459,13 @@ func (s *wsSession) handleListen(ctx context.Context, msg map[string]any) {
 		_ = s.sendJSON(map[string]any{"type": "tts", "state": "stop"})
 
 	case "start":
+		if mode, _ := msg["mode"].(string); mode == "manual" {
+			s.activity.wake(time.Now())
+		}
+		if s.activity.expired(time.Now()) {
+			s.conn.Close()
+			return
+		}
 		// New utterance: reset the OPUS decoder for a clean stream.
 		dec, err := newOpusDecoder()
 		if err != nil {
@@ -435,8 +480,15 @@ func (s *wsSession) handleListen(ctx context.Context, msg map[string]any) {
 
 	case "stop":
 		s.mu.Lock()
+		wasListening := s.isListening
 		s.isListening = false
 		s.mu.Unlock()
+		if !wasListening {
+			return
+		}
+		if !s.activity.commit(time.Now()) {
+			return
+		}
 		s.mu.Lock()
 		s.listenStopped = time.Now()
 		s.mu.Unlock()

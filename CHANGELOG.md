@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added opt-in per-device local text history, bounded cross-session context for all provider paths, authenticated Markdown export/clear controls, and startup/hourly retention cleanup.
+- Added a configurable silent follow-up timeout (15 seconds by default in standalone) that closes the audio channel so standard firmware returns to local wake-word/button standby; silent packets and automatic listen messages do not extend it.
+- Combined Gemini transcription fragments per turn for history and stopped logging the full Gemini setup payload, which may now contain private past context.
 - Added an optional standalone Home Assistant bridge: configure the HA URL and Long-Lived Access Token to let voice sessions discover entities, query state, call services, and run background HA tasks without routing device traffic through HA.
 - Added the first macOS native standalone packaging path: an unsigned development DMG builder with bundled OPUS runtime, automatic LAN host/port selection, persistent per-user state, and local settings-page launch.
 - Refreshed the standalone settings GUI with a responsive layout, sidebar navigation, runtime and configuration summary cards, grouped pipeline stages, and a persistent save bar without changing the settings API.

@@ -46,6 +46,10 @@ ai:
   local_port: 12800
   # Connect to Home Assistant for smart-home tools and background tasks.
   ha_enabled: true
+  conversation_history_enabled: false
+  conversation_history_days: 90
+  conversation_context_messages: 20
+  conversation_idle_seconds: 0
   # Optional direct HA bridge for standalone runtimes; disabled by default.
   standalone_ha_enabled: false
   standalone_ha_url: ""

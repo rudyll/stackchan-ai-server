@@ -148,6 +148,11 @@ func dialProvider(
 	p := deviceProfileFor(ctx, deviceID)
 	provider := override(p.Provider, configuredProvider(ctx))
 	sysPrompt := override(p.SystemPrompt, globalSystemPrompt(ctx))
+	if memory, err := conversationContext(ctx, deviceID); err == nil {
+		sysPrompt += memory
+	} else {
+		g.Log().Warning(ctx, "[HISTORY] could not load conversation context; continuing without history")
+	}
 
 	switch provider {
 	case "openai_compatible", "tokenhub", "openrouter":

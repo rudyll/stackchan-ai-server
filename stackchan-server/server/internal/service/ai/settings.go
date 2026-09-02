@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gogf/gf/v2/frame/g"
 )
@@ -112,6 +113,7 @@ var settingsUIKeys = []string{
 	"background_tasks_enabled", "background_agent_base_url", "background_agent_api_key",
 	"background_agent_model", "background_agent_timeout_seconds", "background_agent_prompt", "system_prompt",
 	"standalone_ha_enabled", "standalone_ha_url", "standalone_ha_token",
+	"conversation_history_enabled", "conversation_history_days", "conversation_context_messages", "conversation_idle_seconds",
 }
 
 var settingsSecretKeys = map[string]struct{}{
@@ -146,5 +148,9 @@ func settingsForUI(ctx context.Context) map[string]string {
 		values["system_prompt"] = globalSystemPrompt(ctx)
 	}
 	values["standalone_ha_token_configured"] = strconv.FormatBool(strings.TrimSpace(aiString(ctx, "standalone_ha_token", "")) != "")
+	values["conversation_history_enabled"] = strconv.FormatBool(aiBool(ctx, "conversation_history_enabled", false))
+	values["conversation_history_days"] = strconv.Itoa(int(historyRetention(ctx) / (24 * time.Hour)))
+	values["conversation_context_messages"] = strconv.Itoa(min(100, max(0, aiInt(ctx, "conversation_context_messages", 20))))
+	values["conversation_idle_seconds"] = strconv.Itoa(conversationIdleSeconds(ctx))
 	return values
 }

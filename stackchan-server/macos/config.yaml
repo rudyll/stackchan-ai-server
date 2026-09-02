@@ -36,6 +36,10 @@ ai:
   local_host: "__LOCAL_HOST__"
   local_port: __WS_PORT__
   ha_enabled: false
+  conversation_history_enabled: false
+  conversation_history_days: 90
+  conversation_context_messages: 20
+  conversation_idle_seconds: 15
   standalone_ha_enabled: false
   standalone_ha_url: ""
   standalone_ha_token: ""

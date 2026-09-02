@@ -9,6 +9,7 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gogf/gf/v2/frame/g"
@@ -28,6 +29,7 @@ var readOnlySettings = map[string]struct{}{
 // rely on Ingress authentication; standalone runtime supplies a Bearer token.
 func StartConfigUI() {
 	ctx := gctx.New()
+	go conversationHistoryCleanupLoop(ctx)
 	listenAddress := g.Cfg().MustGet(ctx, "ai.settings_listen_address", ":8099").String()
 	authToken := g.Cfg().MustGet(ctx, "ai.settings_auth_token", "").String()
 	requireAuth := !aiBool(ctx, "ha_enabled", true)
@@ -45,6 +47,7 @@ func StartConfigUI() {
 
 func configUIHandler() http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("/api/conversation-history", conversationHistoryHandler)
 	mux.HandleFunc("/api/settings", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.Method {
@@ -109,6 +112,23 @@ func settingsUpdateError(values map[string]string) string {
 		}
 		if !isSettingsUIKey(key) {
 			return "unsupported setting"
+		}
+		if key == "conversation_history_enabled" && value != "true" && value != "false" {
+			return "conversation_history_enabled must be true or false"
+		}
+		switch key {
+		case "conversation_history_days", "conversation_context_messages", "conversation_idle_seconds":
+			lower, upper := 0, 300
+			if key == "conversation_history_days" {
+				lower, upper = 1, 3650
+			}
+			if key == "conversation_context_messages" {
+				upper = 100
+			}
+			n, err := strconv.Atoi(value)
+			if err != nil || n < lower || n > upper {
+				return "conversation setting is outside the supported range"
+			}
 		}
 		if key == "provider" && !isSupportedProvider(value) {
 			return "unsupported provider"

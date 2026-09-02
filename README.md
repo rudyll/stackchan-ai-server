@@ -167,6 +167,26 @@ Pick **one** AI provider via `ai_provider` and fill in only its API key. The oth
 
 The add-on logs `[LAT]` timings from device `listen:stop` to STT, LLM, TTS start, and first audio. Use these real measurements to compare providers.
 
+### Local history and wake-word standby (standalone)
+
+Open **Provider → 对话记忆与唤醒** in the settings UI to enable text history. Records
+are stored per device in local JSON files and can be exported as Markdown or
+cleared from the UI. The default retention is 90 days (up to 2000 messages per
+device); a new connection includes only the latest 20 messages, capped at 12000
+text characters. Set the context message count to 0 for archive-only use.
+Recording is off by default; enabling context reuse sends that recent text to
+your selected AI provider. This does not save raw audio or automatically recall
+every old conversation.
+
+Standalone now defaults to a 15-second silent follow-up window after response
+audio has been sent. After it expires, the server closes the audio channel and
+standard Xiaozhi firmware returns to its existing local wake-word/button standby.
+Silent packets do not keep the channel open. Set `conversation_idle_seconds=0`
+to retain unlimited conversation; the HA add-on keeps that legacy default.
+Background speech within the window can still trigger a reply. Custom wake words
+require firmware support; the server cannot change them by editing the prompt.
+See [storage, settings and firmware limitations](docs/conversation-memory-and-wake.md).
+
 ### Continuous conversation and background tasks (Beta)
 
 > **Beta:** This path has automated coverage but still needs broad testing with physical StackChan devices, live Home Assistant installations, and different OpenAI-compatible background models.

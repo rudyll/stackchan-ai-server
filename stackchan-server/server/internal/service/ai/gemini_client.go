@@ -53,6 +53,11 @@ type geminiSession struct {
 	// setupComplete arrives. Guard all outbound messages except setup itself.
 	setupDone chan struct{}
 	setupOnce sync.Once // ensures setupDone is closed exactly once
+
+	// Transcript fragments are owned by the read loop and emitted per turn.
+	inputTranscript  strings.Builder
+	outputTranscript strings.Builder
+	modelText        strings.Builder
 }
 
 // dialGeminiSession opens a Gemini Live websocket, sends the setup message,
@@ -102,6 +107,10 @@ func dialGeminiSession(
 			"parts": []map[string]any{{"text": sysPrompt}},
 		},
 	}
+	if aiBool(ctx, "conversation_history_enabled", false) {
+		setupBody["inputAudioTranscription"] = map[string]any{}
+		setupBody["outputAudioTranscription"] = map[string]any{}
+	}
 	if enableTools || enableSearch {
 		tools := []map[string]any{}
 		if enableTools {
@@ -124,11 +133,8 @@ func dialGeminiSession(
 
 	setup := map[string]any{"setup": setupBody}
 
-	// Dump the exact payload at INFO so it always appears in HA logs —
-	// invaluable for diagnosing 1007 "invalid argument" rejections.
-	if pretty, err := json.MarshalIndent(setup, "", "  "); err == nil {
-		g.Log().Infof(s.logCtx, "[GM] setup payload:\n%s", string(pretty))
-	}
+	// Instructions may include private history; do not dump the setup payload.
+	g.Log().Infof(s.logCtx, "[GM] setup model=%s tools=%t search=%t", model, enableTools, enableSearch)
 
 	if err := s.send(setup); err != nil {
 		conn.Close()
@@ -335,10 +341,8 @@ func (s *geminiSession) handleServerContent(sc map[string]any) {
 				}
 			}
 
-			if text, ok := part["text"].(string); ok && text != "" {
-				if s.cb.OnText != nil {
-					s.cb.OnText(text)
-				}
+			if text, ok := part["text"].(string); ok && text != "" && part["thought"] != true {
+				s.modelText.WriteString(text)
 			}
 		}
 	}
@@ -346,21 +350,40 @@ func (s *geminiSession) handleServerContent(sc map[string]any) {
 	// input_transcription: user STT (best-effort, may not be present in all models).
 	if it, ok := geminiField(sc, "input_transcription", "inputTranscription").(map[string]any); ok {
 		if text, _ := it["text"].(string); text != "" {
-			if s.cb.OnSTT != nil {
-				s.cb.OnSTT(text)
-			}
+			s.inputTranscript.WriteString(text)
 		}
 	}
-
-	// turn_complete: model finished speaking → fire OnStop.
-	if done, _ := geminiField(sc, "turn_complete", "turnComplete").(bool); done {
-		s.endSpeaking()
+	if ot, ok := geminiField(sc, "output_transcription", "outputTranscription").(map[string]any); ok {
+		if text, _ := ot["text"].(string); text != "" {
+			s.outputTranscript.WriteString(text)
+		}
 	}
 
 	// interrupted: barge-in. Treat as turn end so device gets tts:stop.
 	if intr, _ := sc["interrupted"].(bool); intr {
+		s.flushTranscripts(true)
+		s.endSpeaking()
+	} else if done, _ := geminiField(sc, "turn_complete", "turnComplete").(bool); done {
+		// turn_complete: model finished speaking → fire OnStop.
+		s.flushTranscripts(false)
 		s.endSpeaking()
 	}
+}
+
+func (s *geminiSession) flushTranscripts(interrupted bool) {
+	if text := strings.TrimSpace(s.inputTranscript.String()); text != "" && s.cb.OnSTT != nil {
+		s.cb.OnSTT(text)
+	}
+	text := strings.TrimSpace(s.outputTranscript.String())
+	if text == "" {
+		text = strings.TrimSpace(s.modelText.String())
+	}
+	if !interrupted && text != "" && s.cb.OnText != nil {
+		s.cb.OnText(text)
+	}
+	s.inputTranscript.Reset()
+	s.outputTranscript.Reset()
+	s.modelText.Reset()
 }
 
 func (s *geminiSession) handleToolCall(tc map[string]any) {

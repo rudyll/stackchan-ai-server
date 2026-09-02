@@ -77,6 +77,12 @@ The optional `STACKCHAN_STANDALONE_HA_ENABLED`, `STACKCHAN_STANDALONE_HA_URL`, a
 
 ## Device Setup
 
+Standalone also supports optional local text history (JSON with Markdown export)
+and a 15-second silent follow-up window before returning the device to firmware
+wake-word/button standby. Configure these in **Provider → 对话记忆与唤醒**. History
+recording defaults off; when enabled, only bounded recent context is sent to the
+AI provider. See [details and firmware limitations](../docs/conversation-memory-and-wake.md).
+
 Flash the official StackChan firmware from [github.com/m5stack/StackChan](https://github.com/m5stack/StackChan) — no firmware modifications needed.
 
 The HA add-on intercepts the OTA check on port 443 and redirects the device to the local server automatically. Standalone Docker uses the NVS OTA URL or compiled firmware method described in the root README. For the add-on, make sure:
