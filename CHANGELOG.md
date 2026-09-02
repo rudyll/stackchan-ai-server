@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a permanent device setup / NVS guide to the shared HA and standalone settings UI, with runtime host/port, copyable OTA URL, USB/ESP-IDF instructions, and whole-NVS overwrite warnings. Setup metadata is authenticated in standalone and read-only; invalid or loopback targets do not produce a copyable URL.
+- Kept settings API requests relative to the HA Ingress path and allowed same-origin embedding only in HA mode; standalone retains frame protection. Separated the HTTP listener address from the advertised device port so Docker custom host-port mappings work alongside native macOS ports.
 - Added opt-in per-device local text history, bounded cross-session context for all provider paths, authenticated Markdown export/clear controls, and startup/hourly retention cleanup.
 - Added a configurable silent follow-up timeout (15 seconds by default in standalone) that closes the audio channel so standard firmware returns to local wake-word/button standby; silent packets and automatic listen messages do not extend it.
 - Combined Gemini transcription fragments per turn for history and stopped logging the full Gemini setup payload, which may now contain private past context.

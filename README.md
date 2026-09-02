@@ -230,13 +230,17 @@ Wake-word detection and always-listening behaviour belong to the StackChan firmw
 
 ## Firmware Setup
 
-The device firmware needs to know your local server address instead of the Xiaozhi cloud. The server can be a Home Assistant add-on or a standalone Docker host. There are two ways to configure the device.
+The device firmware needs to know your local server address instead of the Xiaozhi cloud. The server can be a Home Assistant add-on, standalone Docker, or native macOS app. There are two ways to configure the device.
+
+**Guided setup:** Open **设备接入 / NVS 注入 (Device setup)** in the settings sidebar, or use the first-connection banner. HA **Open Web UI** and standalone share this page at the same server version; HA's built-in add-on **Configuration** tab is a separate form. The guide is always available and shows the configured server host, device port, copyable OTA URL, script link, and USB/ESP-IDF steps. It does not flash devices or change network settings. The endpoint is read-only and uses the server configuration, never the browser/Ingress address; a displayed URL is not a connectivity check.
+
+Run the injector on the computer connected to the device by USB, not inside HA or the server container. Enter the displayed host and port separately; do not use the settings port (`8099`) or HA's management port (`8123`). If HA uses `12800` on the same host, give standalone a different published port, such as `12801`. The current add-on advertises a fixed device port of `12800`; keep its host mapping on `12800`. For Docker, change `STACKCHAN_LOCAL_HOST` / `STACKCHAN_WS_PORT` in `.env` and recreate the container. On macOS, quit the app, edit those entries in `~/Library/Application Support/StackChan AI Server/runtime.env`, then reopen it. A device uses one target at a time; enabling the optional standalone HA bridge does not change that target.
 
 > **Which method should I use?**
 > Use **Method A (NVS)** for most cases — re-injection is just two commands and doesn't require recompiling.
 > Use **Method B (compile)** only if you want to make other firmware customisations at the same time.
 >
-> ⚠️ **Important:** The official xiaozhi-esp32 OTA upgrade writes a full flash image and **overwrites the NVS partition**. After any firmware upgrade you will need to re-inject the NVS key (Steps 3–4 of Method A). This is still much faster than recompiling.
+> ⚠️ **Important:** The current injector and manual method below **replace the entire NVS partition**, including existing Wi-Fi and other NVS settings. Back up NVS first if you need to preserve it, and be prepared to set up Wi-Fi again. If a later reflash or upgrade overwrites NVS, re-inject the server address; not every firmware upgrade necessarily replaces NVS.
 >
 > 💡 **Shortcut:** Run `python3 flash_nvs.py` for an interactive guided injector that handles all four steps automatically (English / 中文). It accepts the server's LAN IPv4 address or a resolvable local hostname such as `stackchan.local`, plus the reachable TCP port. Use a DHCP reservation when possible; if standalone shares a host with the HA add-on on `12800`, enter standalone's `12801` port.
 
@@ -244,7 +248,7 @@ The device needs an OTA URL as its bootstrap address, so NVS currently must cont
 
 ### Method A — Write NVS key (recommended)
 
-The firmware checks NVS (non-volatile storage) for an OTA URL override before using its hardcoded default. The setting remains in place until a full firmware OTA rewrites the NVS partition; after that, re-inject it with Steps 3–4.
+The firmware checks NVS (non-volatile storage) for an OTA URL override before using its hardcoded default. The setting remains until NVS is erased or overwritten; if that happens, run the injector again using the current server address and port.
 
 #### Prerequisites
 
@@ -355,7 +359,7 @@ If the device has no Wi-Fi credentials (factory reset or first flash):
 
 ### After a firmware OTA upgrade
 
-The official xiaozhi-esp32 OTA upgrade writes a full flash image, which **overwrites the NVS partition**. After any firmware upgrade you will need to re-inject the NVS key by redoing Steps 3–4 of Method A. This is still much faster than recompiling the firmware from source.
+Check whether the device still uses your local OTA URL. If the upgrade or reflash erased or overwrote NVS, run the injector again using the current server address and port. Re-injection replaces NVS, so back up needed settings and be prepared to configure Wi-Fi again.
 
 ---
 

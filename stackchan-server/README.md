@@ -77,6 +77,10 @@ The optional `STACKCHAN_STANDALONE_HA_ENABLED`, `STACKCHAN_STANDALONE_HA_URL`, a
 
 ## Device Setup
 
+Open **设备接入 / NVS 注入 (Device setup)** in the settings sidebar for a permanent guide with the current host, device port, copyable OTA URL, script link, and USB/ESP-IDF steps. HA **Open Web UI** and standalone use the same page at the same server version; HA's built-in add-on **Configuration** tab remains separate. The guide neither flashes devices nor changes network settings, and does not infer the device address from the browser URL. A shown address is not a reachability check.
+
+Run `flash_nvs.py` on the USB-connected computer. Enter host and port separately; use the device-facing port, not settings port `8099` or HA port `8123`. If HA occupies host port `12800`, standalone can use `12801`. Keep the add-on's host mapping on `12800`, its current fixed advertised port. Change Docker's `.env` (`STACKCHAN_LOCAL_HOST` / `STACKCHAN_WS_PORT`) and recreate the container; for macOS, quit the app, edit the same entries in `~/Library/Application Support/StackChan AI Server/runtime.env`, and reopen it. **The injector replaces the whole NVS partition**, including Wi-Fi and other settings. Back up needed NVS data before writing and be prepared to set up Wi-Fi again. See the [English](../README.md#firmware-setup) / [中文](../README.zh.md#固件配置) instructions. Re-inject after a reflash or upgrade only if the override was erased or overwritten.
+
 Standalone also supports optional local text history (JSON with Markdown export)
 and a 15-second silent follow-up window before returning the device to firmware
 wake-word/button standby. Configure these in **Provider → 对话记忆与唤醒**. History

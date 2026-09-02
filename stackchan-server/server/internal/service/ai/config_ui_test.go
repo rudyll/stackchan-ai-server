@@ -167,6 +167,17 @@ func TestConfigUIFieldsHaveSettingsPersistenceCoverage(t *testing.T) {
 	}
 }
 
+func TestConfigUIKeepsAPIRequestsRelativeForIngress(t *testing.T) {
+	if regexp.MustCompile(`(?:fetch\(|const url=)'/api/`).MatchString(configUIHTML) {
+		t.Fatal("root-relative API requests escape the Home Assistant Ingress prefix")
+	}
+	for _, path := range []string{"./api/settings", "./api/device-setup", "./api/provider-catalog", "./api/conversation-history"} {
+		if !strings.Contains(configUIHTML, path) {
+			t.Errorf("missing Ingress-relative API URL %q", path)
+		}
+	}
+}
+
 func TestProviderCatalogRouteDoesNotPersistUnsupportedCheck(t *testing.T) {
 	payload, err := json.Marshal(providerCatalogSettings{Provider: "unknown", Settings: map[string]string{}})
 	if err != nil {

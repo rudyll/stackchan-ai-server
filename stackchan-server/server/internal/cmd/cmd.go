@@ -99,10 +99,9 @@ var (
 			// Do not use SetServerRoot, globally only provide frontend entry via /web
 			//s.SetServerRoot("web/management")
 
-			// Keep the listener port aligned with the OTA address advertised to
-			// devices. Standalone launchers can choose a free port when another
-			// StackChan runtime is already using the default.
-			s.SetPort(g.Cfg().MustGet(ctx, "ai.local_port", 12800).Int())
+			// The listener and advertised device port differ with Docker port
+			// mapping. Native launchers set server.address to their selected port.
+			s.SetAddr(g.Cfg().MustGet(ctx, "server.address", ":12800").String())
 			s.Run()
 			return nil
 		},

@@ -47,6 +47,7 @@ func StartConfigUI() {
 
 func configUIHandler() http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("/api/device-setup", deviceSetupHandler)
 	mux.HandleFunc("/api/conversation-history", conversationHistoryHandler)
 	mux.HandleFunc("/api/settings", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -92,17 +93,21 @@ func configUIHandler() http.Handler {
 		_, _ = w.Write([]byte(configUIHTML))
 	})
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setConfigUISecurityHeaders(w)
+		setConfigUISecurityHeaders(w, aiBool(r.Context(), "ha_enabled", true))
 		mux.ServeHTTP(w, r)
 	})
 }
 
-func setConfigUISecurityHeaders(w http.ResponseWriter) {
+func setConfigUISecurityHeaders(w http.ResponseWriter, allowIngressFrame bool) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("X-Frame-Options", "DENY")
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'")
+	if allowIngressFrame {
+		w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+		w.Header().Set("Content-Security-Policy", strings.Replace(w.Header().Get("Content-Security-Policy"), "frame-ancestors 'none'", "frame-ancestors 'self'", 1))
+	}
 }
 
 func settingsUpdateError(values map[string]string) string {
@@ -166,7 +171,7 @@ func configUIAuth(next http.Handler, token string, required bool) http.Handler {
 		return next
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setConfigUISecurityHeaders(w)
+		setConfigUISecurityHeaders(w, false)
 		if r.URL.Path == "/login" {
 			handleConfigUILogin(w, r, token)
 			return

@@ -61,6 +61,9 @@ class StandaloneConfigTest(unittest.TestCase):
         self.assertIn('settings_listen_address: ":8099"', launcher)
         self.assertIn('ha_enabled: false', launcher)
         self.assertIn('ota_https_enabled: false', launcher)
+        command = (ROOT / "stackchan-server/server/internal/cmd/cmd.go").read_text()
+        self.assertIn('s.SetAddr(g.Cfg().MustGet(ctx, "server.address", ":12800").String())', command)
+        self.assertNotIn('s.SetPort(', command)
 
 
 if __name__ == "__main__":
