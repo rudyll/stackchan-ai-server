@@ -116,6 +116,10 @@ docker compose -f docker-compose.standalone.yml logs --no-color --tail=50 stackc
 
 每台设备同时只会使用一个 OTA/WebSocket 目标：配置 HA add-on 地址的设备连接 add-on，配置 standalone 地址的设备连接 standalone。如果既没有写入 NVS 覆盖值，也没有在编译固件时设置 `OTA_URL`，官方固件仍会使用原来的云端/HA 劫持路径，不会自动发现 standalone。
 
+### macOS 原生安装包（开发预览）
+
+standalone 正在打包为不依赖 Docker 的 macOS 原生 `.app`，再放入 `.dmg` 分发。当前开发构建脚本是 `stackchan-server/macos/build-dmg.sh`；先用 Homebrew 安装 `go`、`pkg-config` 和 `opus`，然后在仓库根目录运行脚本。它会按当前 Mac 架构构建，自动检测默认局域网 IPv4 地址，持久化 WebSocket/设置页端口，打开本地设置页，并在首次运行时显示设置 Token。开发版尚未签名，首次打开时如果被 Gatekeeper 拦截，可在**系统设置 → 隐私与安全性**中允许；Apple Developer 账号可用后再发布签名和 notarization 版本。
+
 可选的 `STACKCHAN_DEVICE_PROFILES`、`STACKCHAN_SYSTEM_PROMPT`、`STACKCHAN_AUDIO_PREBUFFER_MS` 和 `STACKCHAN_AUDIO_PREBUFFER_MAX_WAIT_MS` 是首次启动默认值。服务启动后建议直接通过 GUI 修改；保存后的值会持久化到挂载的数据目录。
 
 ---

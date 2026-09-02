@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added the first macOS native standalone packaging path: an unsigned development DMG builder with bundled OPUS runtime, automatic LAN host/port selection, persistent per-user state, and local settings-page launch.
 - Refreshed the standalone settings GUI with a responsive layout, sidebar navigation, runtime and configuration summary cards, grouped pipeline stages, and a persistent save bar without changing the settings API.
 - Updated indirect `golang.org/x/net` and `golang.org/x/text` dependencies, plus the required `golang.org/x/sys` version and checksums, to address the reported dependency advisory.
 - The NVS injector now accepts a resolvable LAN hostname as well as an IPv4 address for standalone OTA URLs; automatic service discovery is not enabled because it would require firmware support.

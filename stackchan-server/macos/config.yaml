@@ -1,0 +1,56 @@
+server:
+  address: ":__WS_PORT__"
+
+logger:
+  path: "./logs"
+  file: "{Y-m-d}.log"
+  level: "info"
+  stdout: true
+  rotateExpire: "7d"
+  rotateBackup: 10
+  rotateSize: "50M"
+
+database:
+  default:
+    link: ""
+
+jwt:
+  secret: ""
+
+admin:
+  users: []
+
+rsa:
+  server:
+    public:
+    private:
+  client:
+    public:
+    private:
+
+xiaozhi:
+  secret_key:
+  generate_license_token:
+
+ai:
+  local_host: "__LOCAL_HOST__"
+  local_port: __WS_PORT__
+  ha_enabled: false
+  ota_https_enabled: false
+  settings_listen_address: "127.0.0.1:__SETTINGS_PORT__"
+  settings_auth_token: "__SETTINGS_TOKEN__"
+  provider: "openai"
+  openai_realtime_model: "gpt-realtime"
+  openai_tts_voice: "alloy"
+  gemini_model: "gemini-2.5-flash-native-audio-latest"
+  gemini_voice: "Aoede"
+  gemini_enable_tools: false
+  gemini_enable_search: false
+  compatible_stt_model: "whisper-1"
+  compatible_tts_model: "tts-1"
+  compatible_tts_voice: "alloy"
+  audio_prebuffer_ms: 300
+  audio_prebuffer_max_wait_ms: 900
+  background_tasks_enabled: false
+  background_agent_base_url: "https://api.openai.com"
+  background_agent_timeout_seconds: 300

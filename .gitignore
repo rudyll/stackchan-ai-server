@@ -1,4 +1,5 @@
 /stackchan-server/.env
 /stackchan-server/data/
+/stackchan-server/dist/
 __pycache__/
 *.py[cod]
