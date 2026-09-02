@@ -169,7 +169,7 @@ func sanitizeGeminiSchema(v any) any {
 // Called by both the OpenAI and Gemini providers.
 func dispatchHATool(ha *haWSClient, name string, args map[string]any) (string, error) {
 	if ha == nil {
-		return "", fmt.Errorf("Home Assistant tools are unavailable in standalone mode")
+		return "", fmt.Errorf("Home Assistant tools are unavailable")
 	}
 
 	strVal := func(key string) string {

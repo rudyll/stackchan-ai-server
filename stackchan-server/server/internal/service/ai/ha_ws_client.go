@@ -6,12 +6,15 @@ SPDX-License-Identifier: MIT
 package ai
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"sync/atomic"
 
+	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gorilla/websocket"
 )
 
@@ -28,6 +31,36 @@ type haError struct {
 	Message string `json:"message"`
 }
 
+// homeAssistantConnection returns the active HA connection settings. The HA
+// add-on keeps its supervisor-provided connection, while standalone can opt
+// into the same entity tools with an explicit URL and long-lived token.
+func homeAssistantConnection(ctx context.Context) (bool, string, string) {
+	if aiBool(ctx, "ha_enabled", true) {
+		url := g.Cfg().MustGet(ctx, "ai.ha_ws_url", "ws://homeassistant:8123/api/websocket").String()
+		token := g.Cfg().MustGet(ctx, "ai.ha_mcp_token", "").String()
+		return strings.TrimSpace(url) != "" && strings.TrimSpace(token) != "", normalizeHAWebSocketURL(url), token
+	}
+	if !aiBool(ctx, "standalone_ha_enabled", false) {
+		return false, "", ""
+	}
+	url := aiString(ctx, "standalone_ha_url", "")
+	token := aiString(ctx, "standalone_ha_token", "")
+	return strings.TrimSpace(url) != "" && strings.TrimSpace(token) != "", normalizeHAWebSocketURL(url), token
+}
+
+func normalizeHAWebSocketURL(raw string) string {
+	url := strings.TrimRight(strings.TrimSpace(raw), "/")
+	if strings.HasPrefix(url, "http://") {
+		url = "ws://" + strings.TrimPrefix(url, "http://")
+	} else if strings.HasPrefix(url, "https://") {
+		url = "wss://" + strings.TrimPrefix(url, "https://")
+	}
+	if !strings.HasSuffix(url, "/api/websocket") {
+		url += "/api/websocket"
+	}
+	return url
+}
+
 func dialHAWebSocket(url, token string) (*haWSClient, error) {
 	conn, _, err := websocket.DefaultDialer.Dial(url, http.Header{})
 	if err != nil {
@@ -39,7 +72,9 @@ func dialHAWebSocket(url, token string) (*haWSClient, error) {
 		pending: make(map[int64]chan json.RawMessage),
 	}
 
-	var authReq struct{ Type string `json:"type"` }
+	var authReq struct {
+		Type string `json:"type"`
+	}
 	if err := conn.ReadJSON(&authReq); err != nil || authReq.Type != "auth_required" {
 		conn.Close()
 		return nil, fmt.Errorf("expected auth_required, got: %s", authReq.Type)
@@ -50,7 +85,9 @@ func dialHAWebSocket(url, token string) (*haWSClient, error) {
 		return nil, fmt.Errorf("send auth: %w", err)
 	}
 
-	var authResp struct{ Type string `json:"type"` }
+	var authResp struct {
+		Type string `json:"type"`
+	}
 	if err := conn.ReadJSON(&authResp); err != nil || authResp.Type != "auth_ok" {
 		conn.Close()
 		return nil, fmt.Errorf("HA auth failed (got: %s)", authResp.Type)
@@ -119,8 +156,8 @@ func (c *haWSClient) send(cmd map[string]any) (json.RawMessage, error) {
 	}
 
 	var resp struct {
-		Success bool      `json:"success"`
-		Error   *haError  `json:"error"`
+		Success bool            `json:"success"`
+		Error   *haError        `json:"error"`
 		Result  json.RawMessage `json:"result"`
 	}
 	_ = json.Unmarshal(raw, &resp)

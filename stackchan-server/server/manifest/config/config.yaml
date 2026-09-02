@@ -46,6 +46,10 @@ ai:
   local_port: 12800
   # Connect to Home Assistant for smart-home tools and background tasks.
   ha_enabled: true
+  # Optional direct HA bridge for standalone runtimes; disabled by default.
+  standalone_ha_enabled: false
+  standalone_ha_url: ""
+  standalone_ha_token: ""
   ota_https_enabled: true
   settings_listen_address: ":8099"
   settings_auth_token: ""

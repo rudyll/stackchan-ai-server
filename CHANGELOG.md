@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added an optional standalone Home Assistant bridge: configure the HA URL and Long-Lived Access Token to let voice sessions discover entities, query state, call services, and run background HA tasks without routing device traffic through HA.
 - Added the first macOS native standalone packaging path: an unsigned development DMG builder with bundled OPUS runtime, automatic LAN host/port selection, persistent per-user state, and local settings-page launch.
 - Refreshed the standalone settings GUI with a responsive layout, sidebar navigation, runtime and configuration summary cards, grouped pipeline stages, and a persistent save bar without changing the settings API.
 - Updated indirect `golang.org/x/net` and `golang.org/x/text` dependencies, plus the required `golang.org/x/sys` version and checksums, to address the reported dependency advisory.

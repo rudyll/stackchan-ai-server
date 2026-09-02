@@ -48,7 +48,7 @@ StackChan AI Server  (HA add-on or standalone Docker, port 12800)
          └─ Home Assistant WebSocket API (device control, optional)
 ```
 
-The device's audio and WebSocket traffic goes directly to StackChan AI Server; Home Assistant is not a transport relay. When HA is enabled, the server makes a separate local HA WebSocket API connection only for smart-home control. Standalone mode has no HA hop.
+The device's audio and WebSocket traffic goes directly to StackChan AI Server; Home Assistant is not a transport relay. When HA is enabled, the server makes a separate authenticated HA WebSocket API connection only for smart-home control. Standalone can optionally use the same direct HA bridge; without that opt-in, it has no HA connection.
 
 **Audio pipeline (streaming, ~0.5–1.5s latency):**
 
@@ -110,7 +110,7 @@ If `STACKCHAN_SETTINGS_TOKEN` is empty, retrieve the generated token from the fi
 docker compose -f docker-compose.standalone.yml logs --no-color --tail=50 stackchan
 ```
 
-By default, the WebSocket server is published on host port `12800` (the container listens on `12800`). The settings UI is published on `127.0.0.1:8099` by default; if you set `STACKCHAN_SETTINGS_PORT`, open that host port instead (the container still listens on `8099`). Enter the Bearer token printed on first startup. The browser receives a short-lived HttpOnly session cookie, while API requests remain protected. The token is persisted under `./data/settings-token`. The GUI provides separate OpenAI Realtime, Gemini Live, TokenHub, OpenRouter, and OpenAI-compatible provider entries, plus a provider check that can fetch model names and populate the matching voice catalog. In standalone mode, the GUI automatically disables HA-only tools and background tasks; Gemini Search remains available and is mutually exclusive with HA tools. Standalone mode does not connect to Home Assistant or expose the port-443 OTA interception. Configure the device OTA URL as `http://<server-LAN-IP>:12800/xiaozhi/ota/`.
+By default, the WebSocket server is published on host port `12800` (the container listens on `12800`). The settings UI is published on `127.0.0.1:8099` by default; if you set `STACKCHAN_SETTINGS_PORT`, open that host port instead (the container still listens on `8099`). Enter the Bearer token printed on first startup. The browser receives a short-lived HttpOnly session cookie, while API requests remain protected. The token is persisted under `./data/settings-token`. The GUI provides separate OpenAI Realtime, Gemini Live, TokenHub, OpenRouter, and OpenAI-compatible provider entries, plus a provider check that can fetch model names and populate the matching voice catalog. Standalone defaults to no Home Assistant connection. If you want entity control, enable **Standalone → Home Assistant bridge** in the GUI, enter the HA URL and a Long-Lived Access Token, then enable the provider's HA tools; the server connects directly to HA's Core WebSocket API for entity discovery, state queries, and allowed service calls. The bridge does not relay device audio or WebSocket traffic. Standalone mode does not expose the port-443 OTA interception. Configure the device OTA URL as `http://<server-LAN-IP>:12800/xiaozhi/ota/`.
 
 If the HA add-on and standalone Docker run on the same host, keep the add-on on `12800` and set `STACKCHAN_WS_PORT=12801` (and optionally `STACKCHAN_SETTINGS_PORT=8100`) before starting Compose. Then configure the device with `http://<server-LAN-IP>:12801/xiaozhi/ota/`. The container still listens internally on `12800`; the launcher returns the selected public port in the WebSocket URL.
 
@@ -120,7 +120,7 @@ Each device has one active OTA/WebSocket target. Devices configured with the HA 
 
 The standalone server is being packaged as a native macOS `.app` inside a `.dmg`, so users can run it without Docker. The current development builder is `stackchan-server/macos/build-dmg.sh`; install `go`, `pkg-config`, and `opus` with Homebrew, then run the script from the repository root. It targets the host architecture, detects the default LAN IPv4 address, persists the selected WebSocket/settings ports, opens the local settings UI, and shows the first-run settings token. The development image is unsigned; Gatekeeper may require allowing it in **System Settings → Privacy & Security**. A signed/notarized release will follow once the Apple Developer account is available.
 
-The optional `STACKCHAN_DEVICE_PROFILES`, `STACKCHAN_SYSTEM_PROMPT`, `STACKCHAN_AUDIO_PREBUFFER_MS`, and `STACKCHAN_AUDIO_PREBUFFER_MAX_WAIT_MS` variables provide first-start defaults. After startup, the GUI is the recommended way to edit them; saved values are persisted under the mounted data directory.
+The optional `STACKCHAN_STANDALONE_HA_ENABLED`, `STACKCHAN_STANDALONE_HA_URL`, and `STACKCHAN_STANDALONE_HA_TOKEN` variables can preconfigure the direct HA bridge. The optional `STACKCHAN_DEVICE_PROFILES`, `STACKCHAN_SYSTEM_PROMPT`, `STACKCHAN_AUDIO_PREBUFFER_MS`, and `STACKCHAN_AUDIO_PREBUFFER_MAX_WAIT_MS` variables provide first-start defaults. After startup, the GUI is the recommended way to edit them; saved values are persisted under the mounted data directory. The HA token is not returned by the settings API; leaving its password field blank keeps the saved token.
 
 ---
 
@@ -135,6 +135,9 @@ Pick **one** AI provider via `ai_provider` and fill in only its API key. The oth
 | `local_host` | ✅ | LAN IP of the host running StackChan AI Server (e.g. `192.168.1.100`). For the add-on this is normally the HA host; for standalone it is the Docker host. |
 | `ha_enabled` | | Keep Home Assistant tools and background tasks enabled. The add-on defaults to `true`; standalone runtime will default to `false`. |
 | `ha_mcp_token` | When HA is enabled | HA Long-Lived Access Token. Create one in **Profile → Security → Long-Lived Access Tokens**. Leave it empty in standalone mode. |
+| `standalone_ha_enabled` | | Opt in to a direct Home Assistant connection from standalone. Default: `false`. |
+| `standalone_ha_url` | When standalone HA is enabled | Home Assistant URL, such as `http://homeassistant.local:8123`; the server adds `/api/websocket` automatically. |
+| `standalone_ha_token` | When standalone HA is enabled | HA Long-Lived Access Token. It is stored in the standalone data directory and never returned by the settings API. |
 | `ai_provider` | ✅ | `openai` (default), `gemini`, `tokenhub`, `openrouter`, or `openai_compatible`. |
 | `system_prompt` | | Custom personality/instructions for the assistant. |
 | **OpenAI** (when `ai_provider=openai`) | | |
@@ -168,7 +171,7 @@ The add-on logs `[LAT]` timings from device `listen:stop` to STT, LLM, TTS start
 
 > **Beta:** This path has automated coverage but still needs broad testing with physical StackChan devices, live Home Assistant installations, and different OpenAI-compatible background models.
 
-When enabled, OpenAI Realtime receives tools to create, inspect, and cancel background work. Short HA operations still execute directly. Longer analysis and multi-step operations enter a FIFO queue scoped to the device `Device-Id`, while the realtime voice session acknowledges the work and remains available. State is persisted in `/data/background-tasks.json`.
+When enabled, OpenAI Realtime receives tools to create, inspect, and cancel background work. Short HA operations still execute directly. Longer analysis and multi-step operations enter a FIFO queue scoped to the device `Device-Id`, while the realtime voice session acknowledges the work and remains available. State is persisted in `/data/background-tasks.json`. In standalone, enable the optional HA bridge before enabling background tasks.
 
 Completion waits until the user, model, and physical audio queue are idle. A result is claimed by one voice connection before announcement; disconnecting or interrupting releases the claim for a later reconnect, and a successfully announced result is not repeated. In-flight work that cannot be recovered after an add-on restart becomes an explicit failed result.
 

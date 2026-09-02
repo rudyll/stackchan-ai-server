@@ -111,18 +111,29 @@ var settingsUIKeys = []string{
 	"audio_prebuffer_ms", "audio_prebuffer_max_wait_ms",
 	"background_tasks_enabled", "background_agent_base_url", "background_agent_api_key",
 	"background_agent_model", "background_agent_timeout_seconds", "background_agent_prompt", "system_prompt",
+	"standalone_ha_enabled", "standalone_ha_url", "standalone_ha_token",
+}
+
+var settingsSecretKeys = map[string]struct{}{
+	"standalone_ha_token": {},
 }
 
 func settingsForUI(ctx context.Context) map[string]string {
 	stored := readSettings()
 	values := make(map[string]string, len(settingsUIKeys)+1)
 	for _, key := range settingsUIKeys {
+		if _, secret := settingsSecretKeys[key]; secret {
+			continue
+		}
 		if value, ok := stored[key]; ok {
 			values[key] = value
 		}
 	}
 	values["ui_ha_enabled"] = strconv.FormatBool(aiBool(ctx, "ha_enabled", true))
 	for _, key := range settingsUIKeys {
+		if _, secret := settingsSecretKeys[key]; secret {
+			continue
+		}
 		if _, ok := values[key]; !ok {
 			if key == "device_profiles" {
 				values[key] = configuredDeviceProfiles(ctx)
@@ -134,5 +145,6 @@ func settingsForUI(ctx context.Context) map[string]string {
 	if values["system_prompt"] == "" {
 		values["system_prompt"] = globalSystemPrompt(ctx)
 	}
+	values["standalone_ha_token_configured"] = strconv.FormatBool(strings.TrimSpace(aiString(ctx, "standalone_ha_token", "")) != "")
 	return values
 }

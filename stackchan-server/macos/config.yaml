@@ -36,6 +36,9 @@ ai:
   local_host: "__LOCAL_HOST__"
   local_port: __WS_PORT__
   ha_enabled: false
+  standalone_ha_enabled: false
+  standalone_ha_url: ""
+  standalone_ha_token: ""
   ota_https_enabled: false
   settings_listen_address: "127.0.0.1:__SETTINGS_PORT__"
   settings_auth_token: "__SETTINGS_TOKEN__"

@@ -473,7 +473,7 @@ func loadBackgroundAgentConfig(ctx context.Context) backgroundAgentConfig {
 		model = override(aiString(ctx, "llm_model", ""), aiString(ctx, "compatible_model", ""))
 	}
 	timeoutSeconds := aiInt(ctx, "background_agent_timeout_seconds", 300)
-	haEnabled := aiBool(ctx, "ha_enabled", true)
+	haEnabled, haURL, haToken := homeAssistantConnection(ctx)
 	return backgroundAgentConfig{
 		Enabled: haEnabled && aiBool(ctx, "background_tasks_enabled", false) && apiKey != "" && model != "",
 		BaseURL: baseURL,
@@ -481,8 +481,8 @@ func loadBackgroundAgentConfig(ctx context.Context) backgroundAgentConfig {
 		Model:   model,
 		Prompt:  aiString(ctx, "background_agent_prompt", "你是 StackChan 的后台任务 Agent。使用可用的 Home Assistant 工具完成目标，最终只返回准确、简洁、适合中文语音播报的结果。不要声称执行未完成的操作。"),
 		Timeout: time.Duration(max(10, timeoutSeconds)) * time.Second,
-		HAURL:   g.Cfg().MustGet(ctx, "ai.ha_ws_url", "ws://homeassistant:8123/api/websocket").String(),
-		HAToken: g.Cfg().MustGet(ctx, "ai.ha_mcp_token", "").String(),
+		HAURL:   haURL,
+		HAToken: haToken,
 	}
 }
 

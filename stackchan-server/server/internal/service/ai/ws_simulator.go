@@ -72,7 +72,6 @@ type wsSession struct {
 // backed by OpenAI Realtime API.
 func HandleWS(w http.ResponseWriter, r *http.Request) {
 	ctx := gctx.New()
-	cfg := g.Cfg()
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -84,9 +83,8 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 
 	deviceID := r.Header.Get("Device-Id")
 	var ha *haWSClient
-	if aiBool(ctx, "ha_enabled", true) {
-		haURL := cfg.MustGet(ctx, "ai.ha_ws_url", "ws://homeassistant:8123/api/websocket").String()
-		haToken := cfg.MustGet(ctx, "ai.ha_mcp_token", "").String()
+	haEnabled, haURL, haToken := homeAssistantConnection(ctx)
+	if haEnabled {
 		g.Log().Infof(ctx, "[WS] device=%s connecting HA at %s", deviceID, haURL)
 		ha, err = dialHAWebSocket(haURL, haToken)
 		if err != nil {

@@ -159,6 +159,27 @@ func TestSettingsUIExposesRuntimeModeAsReadOnlyMetadata(t *testing.T) {
 	}
 }
 
+func TestStandaloneHASettingsHideTokenButExposeConfiguredState(t *testing.T) {
+	t.Setenv("STACKCHAN_DATA_DIR", t.TempDir())
+	if err := writeSettings(map[string]string{
+		"standalone_ha_enabled": "true",
+		"standalone_ha_url":     "http://homeassistant.local:8123",
+		"standalone_ha_token":   "test-ha-token",
+	}); err != nil {
+		t.Fatalf("writeSettings() error = %v", err)
+	}
+	values := settingsForUI(context.Background())
+	if values["standalone_ha_enabled"] != "true" || values["standalone_ha_url"] != "http://homeassistant.local:8123" {
+		t.Fatalf("standalone HA settings = %#v", values)
+	}
+	if _, ok := values["standalone_ha_token"]; ok {
+		t.Fatal("settingsForUI() exposed standalone HA token")
+	}
+	if values["standalone_ha_token_configured"] != "true" {
+		t.Fatalf("standalone_ha_token_configured = %q, want true", values["standalone_ha_token_configured"])
+	}
+}
+
 func TestStoredRuntimeModeCannotOverrideStandaloneConfiguration(t *testing.T) {
 	t.Setenv("STACKCHAN_DATA_DIR", t.TempDir())
 	if err := writeSettings(map[string]string{"ha_enabled": "true", "ui_ha_enabled": "true"}); err != nil {
@@ -190,7 +211,7 @@ func TestSettingsUIDoesNotExposeUnknownOrSupervisorFields(t *testing.T) {
 		t.Fatalf("writeSettings() error = %v", err)
 	}
 	values := settingsForUI(context.Background())
-	for _, key := range []string{"ha_mcp_token", "settings_auth_token", "unknown_secret"} {
+	for _, key := range []string{"ha_mcp_token", "standalone_ha_token", "settings_auth_token", "unknown_secret"} {
 		if _, ok := values[key]; ok {
 			t.Fatalf("settingsForUI() exposed %q", key)
 		}

@@ -35,12 +35,12 @@ StackChan AI Server  (HA add-on or standalone Docker, port 12800)
     └──▶  Home Assistant WebSocket API  (device control, local)
 ```
 
-The device's audio and WebSocket traffic goes directly to StackChan AI Server; Home Assistant is not a transport relay. When HA is enabled, the server makes a separate local HA WebSocket API connection only for smart-home control. Standalone mode has no HA hop.
+The device's audio and WebSocket traffic goes directly to StackChan AI Server; Home Assistant is not a transport relay. When HA is enabled, the server makes a separate authenticated HA WebSocket API connection only for smart-home control. Standalone can optionally use the same direct HA bridge; without that opt-in, it has no HA connection.
 
 1. The device connects to this server instead of the Xiaozhi cloud
 2. Voice is streamed end-to-end to OpenAI or Gemini — no separate STT/TTS steps
 3. When HA is enabled and the AI wants to control a device, it calls built-in HA tools: list areas, search entities, list scenes/scripts/automations, call services, get state
-4. All HA calls are executed locally via the HA WebSocket API; standalone mode omits them
+4. All HA calls are executed locally via the HA WebSocket API; standalone uses them only when its optional HA bridge is enabled
 
 ## Installation
 
@@ -67,13 +67,13 @@ If `STACKCHAN_SETTINGS_TOKEN` is empty, retrieve the generated token from the fi
 docker compose -f docker-compose.standalone.yml logs --no-color --tail=50 stackchan
 ```
 
-By default, the server is published on host port `12800` (the container listens on `12800`). The settings UI is published on host `127.0.0.1:8099` by default; if `STACKCHAN_SETTINGS_PORT` is set, open that host port instead (the container still listens on `8099`) and enter the Bearer token printed on first startup. It then uses a short-lived HttpOnly session cookie, while API requests remain protected. It provides separate entries for OpenAI Realtime, Gemini Live, TokenHub, OpenRouter, and OpenAI-compatible providers, plus model discovery, provider-specific voice catalogs, and Gemini HA-tools/Search toggles. In standalone mode, HA-only tools and background tasks are disabled automatically, while Gemini Search remains available. Standalone mode does not connect to Home Assistant or start the port-443 OTA interception.
+By default, the server is published on host port `12800` (the container listens on `12800`). The settings UI is published on host `127.0.0.1:8099` by default; if `STACKCHAN_SETTINGS_PORT` is set, open that host port instead (the container still listens on `8099`) and enter the Bearer token printed on first startup. It then uses a short-lived HttpOnly session cookie, while API requests remain protected. It provides separate entries for OpenAI Realtime, Gemini Live, TokenHub, OpenRouter, and OpenAI-compatible providers, plus model discovery, provider-specific voice catalogs, and Gemini HA-tools/Search toggles. Standalone defaults to no Home Assistant connection. To control entities, enable the optional bridge in the GUI and enter the HA URL plus a Long-Lived Access Token; the server then connects directly to HA's Core WebSocket API. Standalone mode does not start the port-443 OTA interception.
 
 If the HA add-on and standalone Docker share one host, keep the add-on on host port `12800` and set `STACKCHAN_WS_PORT=12801` (and optionally `STACKCHAN_SETTINGS_PORT=8100`) in `.env`. Configure the device's standalone OTA URL as `http://<server-LAN-IP>:12801/xiaozhi/ota/`. The container still listens internally on `12800`; the launcher advertises the selected public port in the returned WebSocket URL.
 
 Each device has one active OTA/WebSocket target. Devices configured with the HA add-on URL connect to the add-on; devices configured with the standalone URL connect to standalone. Without an NVS override or a compiled `OTA_URL`, stock firmware will not discover standalone automatically.
 
-The optional `STACKCHAN_DEVICE_PROFILES`, `STACKCHAN_SYSTEM_PROMPT`, `STACKCHAN_AUDIO_PREBUFFER_MS`, and `STACKCHAN_AUDIO_PREBUFFER_MAX_WAIT_MS` variables are first-start defaults. Prefer the GUI for later edits; saved values persist in the mounted data directory.
+The optional `STACKCHAN_STANDALONE_HA_ENABLED`, `STACKCHAN_STANDALONE_HA_URL`, and `STACKCHAN_STANDALONE_HA_TOKEN` variables can preconfigure the direct HA bridge. The optional `STACKCHAN_DEVICE_PROFILES`, `STACKCHAN_SYSTEM_PROMPT`, `STACKCHAN_AUDIO_PREBUFFER_MS`, and `STACKCHAN_AUDIO_PREBUFFER_MAX_WAIT_MS` variables are first-start defaults. Prefer the GUI for later edits; saved values persist in the mounted data directory.
 
 ## Device Setup
 
@@ -91,6 +91,9 @@ The HA add-on intercepts the OTA check on port 443 and redirects the device to t
 | `local_host` | LAN IP of the host running StackChan AI Server (e.g. `192.168.1.100`). For the add-on this is normally the HA host; for standalone it is the Docker host. |
 | `ha_enabled` | Enable Home Assistant tools and background tasks. The HA add-on defaults to `true`; standalone runtime uses `false`. |
 | `ha_mcp_token` | HA Long-Lived Access Token for device control when HA is enabled. Leave empty in standalone mode. |
+| `standalone_ha_enabled` | Opt in to a direct Home Assistant connection from standalone. Default: `false`. |
+| `standalone_ha_url` | Home Assistant URL for the standalone bridge; `/api/websocket` is added when omitted. |
+| `standalone_ha_token` | HA Long-Lived Access Token for the standalone bridge; never returned by the settings API. |
 | `ai_provider` | `openai`, `gemini`, `tokenhub`, `openrouter`, or `openai_compatible` |
 | `openai_api_key` | OpenAI API key (required when provider is `openai`) |
 | `openai_realtime_model` | OpenAI Realtime model to use |

@@ -69,6 +69,9 @@ GEMINI_MODEL="${STACKCHAN_GEMINI_MODEL:-gemini-2.5-flash-native-audio-latest}"
 GEMINI_VOICE="${STACKCHAN_GEMINI_VOICE:-Aoede}"
 GEMINI_ENABLE_TOOLS=$(bool_value "${STACKCHAN_GEMINI_ENABLE_TOOLS:-}" false)
 GEMINI_ENABLE_SEARCH=$(bool_value "${STACKCHAN_GEMINI_ENABLE_SEARCH:-}" false)
+STANDALONE_HA_ENABLED=$(bool_value "${STACKCHAN_STANDALONE_HA_ENABLED:-}" false)
+STANDALONE_HA_URL="${STACKCHAN_STANDALONE_HA_URL:-}"
+STANDALONE_HA_TOKEN="${STACKCHAN_STANDALONE_HA_TOKEN:-}"
 COMPATIBLE_BASE_URL="${STACKCHAN_COMPATIBLE_BASE_URL:-}"
 COMPATIBLE_API_KEY="${STACKCHAN_COMPATIBLE_API_KEY:-}"
 COMPATIBLE_MODEL="${STACKCHAN_COMPATIBLE_MODEL:-}"
@@ -136,6 +139,9 @@ ai:
   local_host: $(yaml_string "$LOCAL_HOST")
   local_port: ${WS_PORT}
   ha_enabled: false
+  standalone_ha_enabled: ${STANDALONE_HA_ENABLED}
+  standalone_ha_url: $(yaml_string "$STANDALONE_HA_URL")
+  standalone_ha_token: $(yaml_string "$STANDALONE_HA_TOKEN")
   ota_https_enabled: false
   settings_listen_address: ":8099"
   settings_auth_token: $(yaml_string "$SETTINGS_AUTH_TOKEN")

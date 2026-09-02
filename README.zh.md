@@ -48,7 +48,7 @@ StackChan AI Server（HA add-on 或 standalone Docker，使用 12800 端口）
          └─ Home Assistant WebSocket API（可选的设备控制）
 ```
 
-设备的音频和 WebSocket 流量是直接发给 StackChan AI Server 的，Home Assistant 不承担中转。启用 HA 时，Server 只会为了智能家居控制另外连接本地 HA WebSocket API；standalone 不经过 HA。
+设备的音频和 WebSocket 流量是直接发给 StackChan AI Server 的，Home Assistant 不承担中转。启用 HA 时，Server 只会为了智能家居控制另外建立带认证的 HA WebSocket API 连接；standalone 也可以选择建立这条直连，但默认不连接 HA。
 
 **音频流水线（流式，延迟约 0.5–1.5 秒）：**
 
@@ -110,7 +110,7 @@ docker compose -f docker-compose.standalone.yml up --build -d
 docker compose -f docker-compose.standalone.yml logs --no-color --tail=50 stackchan
 ```
 
-默认情况下，语音 WebSocket 服务发布在宿主机 `12800` 端口（容器内部仍监听 `12800`）；设置页默认绑定宿主机 `127.0.0.1:8099`。如果设置了 `STACKCHAN_SETTINGS_PORT`，请改为打开对应的宿主机端口（容器内部仍监听 `8099`），然后输入首次启动日志显示的 Bearer token 登录；浏览器随后使用短期 HttpOnly cookie，API 请求仍受保护。Token 会持久化到 `./data/settings-token`。GUI 提供 OpenAI Realtime、Gemini Live、TokenHub、OpenRouter 和 OpenAI-compatible 独立入口，并可检测 Provider、获取模型名称和填充对应的声音目录；standalone 模式会自动禁用 HA-only tools 和后台任务，Gemini Search 仍可用且与 HA tools 互斥。standalone 不连接 Home Assistant，也不启动 443 端口 OTA 劫持；设备 OTA 地址配置为 `http://<服务器局域网IP>:12800/xiaozhi/ota/`。
+默认情况下，语音 WebSocket 服务发布在宿主机 `12800` 端口（容器内部仍监听 `12800`）；设置页默认绑定宿主机 `127.0.0.1:8099`。如果设置了 `STACKCHAN_SETTINGS_PORT`，请改为打开对应的宿主机端口（容器内部仍监听 `8099`），然后输入首次启动日志显示的 Bearer token 登录；浏览器随后使用短期 HttpOnly cookie，API 请求仍受保护。Token 会持久化到 `./data/settings-token`。GUI 提供 OpenAI Realtime、Gemini Live、TokenHub、OpenRouter 和 OpenAI-compatible 独立入口，并可检测 Provider、获取模型名称和填充对应的声音目录；standalone 默认不连接 Home Assistant。如需控制实体，在 GUI 的 **Standalone → Home Assistant bridge** 中启用，填写 HA 地址和长期访问令牌，再开启对应 Provider 的 HA tools；Server 会直接连接 HA Core WebSocket API，用于发现实体、查询状态和调用允许的服务，设备音频及 WebSocket 不会经过 HA 中转。standalone 不启动 443 端口 OTA 劫持；设备 OTA 地址配置为 `http://<服务器局域网IP>:12800/xiaozhi/ota/`。
 
 如果同一台主机上同时运行 HA add-on 和 standalone Docker，建议让 add-on 继续使用 `12800`，在启动 Compose 前将 `STACKCHAN_WS_PORT=12801`（如有需要再将 `STACKCHAN_SETTINGS_PORT=8100`）。此时设备应配置为 `http://<服务器局域网IP>:12801/xiaozhi/ota/`。容器内部仍监听 `12800`，启动脚本会把选定的宿主机端口写入设备后续使用的 WebSocket 地址。
 
@@ -120,7 +120,7 @@ docker compose -f docker-compose.standalone.yml logs --no-color --tail=50 stackc
 
 standalone 正在打包为不依赖 Docker 的 macOS 原生 `.app`，再放入 `.dmg` 分发。当前开发构建脚本是 `stackchan-server/macos/build-dmg.sh`；先用 Homebrew 安装 `go`、`pkg-config` 和 `opus`，然后在仓库根目录运行脚本。它会按当前 Mac 架构构建，自动检测默认局域网 IPv4 地址，持久化 WebSocket/设置页端口，打开本地设置页，并在首次运行时显示设置 Token。开发版尚未签名，首次打开时如果被 Gatekeeper 拦截，可在**系统设置 → 隐私与安全性**中允许；Apple Developer 账号可用后再发布签名和 notarization 版本。
 
-可选的 `STACKCHAN_DEVICE_PROFILES`、`STACKCHAN_SYSTEM_PROMPT`、`STACKCHAN_AUDIO_PREBUFFER_MS` 和 `STACKCHAN_AUDIO_PREBUFFER_MAX_WAIT_MS` 是首次启动默认值。服务启动后建议直接通过 GUI 修改；保存后的值会持久化到挂载的数据目录。
+可选的 `STACKCHAN_STANDALONE_HA_ENABLED`、`STACKCHAN_STANDALONE_HA_URL` 和 `STACKCHAN_STANDALONE_HA_TOKEN` 可以在首次启动时预配置 standalone 到 HA 的直连。`STACKCHAN_DEVICE_PROFILES`、`STACKCHAN_SYSTEM_PROMPT`、`STACKCHAN_AUDIO_PREBUFFER_MS` 和 `STACKCHAN_AUDIO_PREBUFFER_MAX_WAIT_MS` 是其他首次启动默认值。服务启动后建议直接通过 GUI 修改；保存后的值会持久化到挂载的数据目录。HA Token 不会由设置 API 返回；密码框留空会保留已保存的 Token。
 
 ---
 
@@ -135,6 +135,9 @@ standalone 正在打包为不依赖 Docker 的 macOS 原生 `.app`，再放入 `
 | `local_host` | ✅ | 运行 StackChan AI Server 的主机局域网 IP（如 `192.168.1.100`）。add-on 通常填写 HA 主机；standalone 填写 Docker 宿主机。 |
 | `ha_enabled` | | 是否启用 Home Assistant 工具和后台任务。HA add-on 默认为 `true`；standalone runtime 将默认为 `false`。 |
 | `ha_mcp_token` | 启用 HA 时必填 | HA 长期访问令牌。在 **个人资料 → 安全 → 长期访问令牌** 中创建；standalone 模式留空。 |
+| `standalone_ha_enabled` | | 是否让 standalone 直连 Home Assistant，默认 `false`。 |
+| `standalone_ha_url` | 启用 standalone HA 时 | Home Assistant 地址，例如 `http://homeassistant.local:8123`；Server 会自动补上 `/api/websocket`。 |
+| `standalone_ha_token` | 启用 standalone HA 时 | HA 长期访问令牌。它保存在 standalone 数据目录中，设置 API 不会返回该值。 |
 | `ai_provider` | ✅ | `openai`（默认）、`gemini`、`tokenhub`、`openrouter` 或 `openai_compatible`。选择由谁处理语音 + LLM + TTS。 |
 | `system_prompt` | | 助手的自定义角色设定或指令。 |
 | **OpenAI**（当 `ai_provider=openai`） | | |
@@ -168,7 +171,7 @@ standalone 正在打包为不依赖 Docker 的 macOS 原生 `.app`，再放入 `
 
 > **Beta 提醒：** 此功能已通过自动化测试，但仍需要大家使用实体 StackChan、真实 Home Assistant 环境和不同的 OpenAI-compatible 后台模型进行验证。
 
-启用后台任务后，OpenAI Realtime 会获得创建、查询和取消后台任务的工具。开灯、查询温度等短 HA 操作仍直接执行；分析历史数据或多步骤操作可进入后台 FIFO 队列，前台会立即确认并继续对话。任务状态保存在 `/data/background-tasks.json`，按设备 `Device-Id` 隔离。
+启用后台任务后，OpenAI Realtime 会获得创建、查询和取消后台任务的工具。开灯、查询温度等短 HA 操作仍直接执行；分析历史数据或多步骤操作可进入后台 FIFO 队列，前台会立即确认并继续对话。任务状态保存在 `/data/background-tasks.json`，按设备 `Device-Id` 隔离。standalone 使用时必须先启用 HA bridge，再启用后台任务。
 
 任务完成后，结果会等待用户没有说话、模型没有回复且设备音频队列已经播放完毕时播报。结果在播报前会被单一会话领取；断线或打断会释放领取状态，重连后可再次投递，成功播报后不会重复。服务重启时仍在运行且不能恢复的任务会转为失败并明确通知。
 
