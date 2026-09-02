@@ -32,6 +32,13 @@
 - Show the active runtime mode in the settings GUI, including whether Home Assistant is connected or omitted.
 - Document the standalone first-start defaults for Device-Id profiles, system prompt, and audio buffering.
 
+## macOS 0.1.0 (Preview)
+
+- Added a ready-made universal DMG containing Apple Silicon and Intel executables targeting macOS 12+, with statically included OPUS, bundled license notices and a SHA-256 checksum. End users do not need Docker or a build toolchain.
+- Added a 3D StackChan app icon, reused in the shared HA/standalone settings header, login page and browser icon; image assets are embedded and require no external image host.
+- Included the current standalone provider settings, optional HA entity bridge, local conversation history, wake-standby timeout and permanent NVS setup guide.
+- Added bilingual install/upgrade instructions. The preview is ad-hoc signed, not Developer ID signed or Apple notarized, and has no menu-bar controls. Stop the old process before upgrading. No add-on release/version change is included in this standalone-only release.
+
 ## 2.8.0-beta.2 (Beta)
 
 - Updated the OpenAI Realtime session configuration to the current GA `audio.input` and `audio.output` schema.

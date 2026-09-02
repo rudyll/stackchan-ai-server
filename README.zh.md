@@ -116,9 +116,11 @@ docker compose -f docker-compose.standalone.yml logs --no-color --tail=50 stackc
 
 每台设备同时只会使用一个 OTA/WebSocket 目标：配置 HA add-on 地址的设备连接 add-on，配置 standalone 地址的设备连接 standalone。如果既没有写入 NVS 覆盖值，也没有在编译固件时设置 `OTA_URL`，官方固件仍会使用原来的云端/HA 劫持路径，不会自动发现 standalone。
 
-### macOS 原生安装包（开发预览）
+### macOS — 下载现成 DMG（预览版）
 
-standalone 正在打包为不依赖 Docker 的 macOS 原生 `.app`，再放入 `.dmg` 分发。当前开发构建脚本是 `stackchan-server/macos/build-dmg.sh`；先用 Homebrew 安装 `go`、`pkg-config` 和 `opus`，然后在仓库根目录运行脚本。它会按当前 Mac 架构构建，自动检测默认局域网 IPv4 地址，持久化 WebSocket/设置页端口，打开本地设置页，并在首次运行时显示设置 Token。开发版尚未签名，首次打开时如果被 Gatekeeper 拦截，可在**系统设置 → 隐私与安全性**中允许；Apple Developer 账号可用后再发布签名和 notarization 版本。
+从 [GitHub Releases](https://github.com/rudyll/stackchan-ai-server/releases/tag/macos-v0.1.0) 下载 [macOS 0.1.0 通用 DMG](https://github.com/rudyll/stackchan-ai-server/releases/download/macos-v0.1.0/StackChan-AI-Server-0.1.0-macos-universal.dmg)，将 **StackChan AI Server.app** 拖进**应用程序**后打开。**用户不需要自行构建，也不用安装 Docker、Go、Homebrew 或 OPUS。** 安装包同时包含 Apple Silicon 和 Intel 两种架构，构建目标为 macOS 12+，音频库已静态打包；Release 同时提供 SHA-256 校验文件。
+
+应用会选择空闲端口、打开本地设置页，并在首次运行时显示登录 Token。新的 3D StackChan 图标也用于 HA / standalone 共用网页界面。这是**仅做临时签名、尚无 Developer ID 签名和 Apple 公证的预览版**；确认下载来源后，若提示无法验证开发者，可按 [Apple 官方说明](https://support.apple.com/en-us/102445)在**系统设置 → 隐私与安全性 → 仍要打开**中允许。不要绕过恶意软件警告，也不要全局关闭 Gatekeeper。macOS 防火墙询问时，如需局域网设备连接，请允许传入连接。预览版尚无菜单栏控制，升级前请在“活动监视器”中退出对应的 `stackchan-server` 进程。详见[安装说明与可选开发者构建方法](stackchan-server/macos/README.md)。
 
 可选的 `STACKCHAN_STANDALONE_HA_ENABLED`、`STACKCHAN_STANDALONE_HA_URL` 和 `STACKCHAN_STANDALONE_HA_TOKEN` 可以在首次启动时预配置 standalone 到 HA 的直连。`STACKCHAN_DEVICE_PROFILES`、`STACKCHAN_SYSTEM_PROMPT`、`STACKCHAN_AUDIO_PREBUFFER_MS` 和 `STACKCHAN_AUDIO_PREBUFFER_MAX_WAIT_MS` 是其他首次启动默认值。服务启动后建议直接通过 GUI 修改；保存后的值会持久化到挂载的数据目录。HA Token 不会由设置 API 返回；密码框留空会保留已保存的 Token。
 

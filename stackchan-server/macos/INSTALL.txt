@@ -1,0 +1,23 @@
+StackChan AI Server — macOS standalone preview 0.1.0
+
+中文
+1. 将 StackChan AI Server.app 拖入 Applications（应用程序），再从应用程序打开。
+2. 无需安装 Docker、Go、Homebrew 或音频库。此安装包包含 Apple Silicon 和 Intel 两种架构，构建目标为 macOS 12 或更新版本。
+3. 这是尚未通过 Developer ID 签名和 Apple 公证的预览版。首次打开如果提示无法验证开发者，请先确认下载来自项目 GitHub Release，之后在“系统设置 → 隐私与安全性”选择“仍要打开”。不要关闭整个系统的 Gatekeeper，也不要绕过“会损坏电脑”等恶意软件警告。
+4. 首次启动会打开浏览器设置页，并显示登录所需的 Settings Token。Token 保存在 ~/Library/Application Support/StackChan AI Server/settings-token。之后可用它重新登录，不要分享此文件。
+5. 在网页中设置 AI 服务，然后打开“设备接入 / NVS 注入”查看设备要连接的服务器地址和端口。固件不会自动发现服务器；注入脚本会重写 NVS，可能需要重新配网。
+6. 默认设备端口 12800、网页端口 8099；已被占用时会选择其他空闲端口。macOS 防火墙询问时，如需局域网设备连接，请允许本应用的传入连接。网页只监听本机。
+7. 预览版在后台运行，尚无菜单栏控制。需要停止时，在“活动监视器”中查找 stackchan-server 并退出本应用对应的进程。升级前先停止旧实例；不要同时运行多个副本。删除应用不会删除上述目录中的设置和历史。
+
+English
+1. Drag StackChan AI Server.app into Applications, then launch it from Applications.
+2. No Docker, Go, Homebrew or audio-library installation is needed. The app contains Apple Silicon and Intel binaries, targeting macOS 12 or later.
+3. This preview is ad-hoc signed, not Developer ID signed or Apple notarized. If the first launch is blocked as an unidentified developer, verify that the download came from the project's GitHub Release, then use System Settings > Privacy & Security > Open Anyway. Do not disable Gatekeeper globally or bypass malware warnings.
+4. First launch opens the settings page and shows its Settings Token. The token is saved in ~/Library/Application Support/StackChan AI Server/settings-token. Keep it private.
+5. Configure your AI provider, then open Device setup / NVS injection in the sidebar. Firmware does not discover the server automatically. The injection script replaces NVS, including existing Wi-Fi settings.
+6. Default device/settings ports are 12800/8099; occupied ports are skipped. Allow incoming connections for this app if prompted by the macOS firewall and LAN devices need access. The settings page only listens locally.
+7. This preview runs in the background without a menu-bar control. To stop it, quit this app's stackchan-server processes in Activity Monitor. Stop the old instance before upgrading; do not run multiple copies. Removing the app does not delete its settings/history directory.
+
+Downloads: https://github.com/rudyll/stackchan-ai-server/releases/tag/macos-v0.1.0
+Apple security guidance: https://support.apple.com/en-us/102445
+Licenses are included in the app's Contents/Resources/Licenses directory.

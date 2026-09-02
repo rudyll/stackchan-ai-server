@@ -75,6 +75,10 @@ Each device has one active OTA/WebSocket target. Devices configured with the HA 
 
 The optional `STACKCHAN_STANDALONE_HA_ENABLED`, `STACKCHAN_STANDALONE_HA_URL`, and `STACKCHAN_STANDALONE_HA_TOKEN` variables can preconfigure the direct HA bridge. The optional `STACKCHAN_DEVICE_PROFILES`, `STACKCHAN_SYSTEM_PROMPT`, `STACKCHAN_AUDIO_PREBUFFER_MS`, and `STACKCHAN_AUDIO_PREBUFFER_MAX_WAIT_MS` variables are first-start defaults. Prefer the GUI for later edits; saved values persist in the mounted data directory.
 
+### macOS standalone DMG (preview)
+
+Download the [ready-made universal DMG](https://github.com/rudyll/stackchan-ai-server/releases/download/macos-v0.1.0/StackChan-AI-Server-0.1.0-macos-universal.dmg) from the [macOS 0.1.0 Release](https://github.com/rudyll/stackchan-ai-server/releases/tag/macos-v0.1.0). Drag the app into Applications; no user build, Docker, Homebrew or audio-library installation is needed. Apple Silicon and Intel executables target macOS 12+. The new 3D StackChan icon appears in both the app and shared settings UI. This preview is ad-hoc signed, not Developer ID signed or notarized. See [installation, security and upgrade instructions](macos/README.md).
+
 ## Device Setup
 
 Open **设备接入 / NVS 注入 (Device setup)** in the settings sidebar for a permanent guide with the current host, device port, copyable OTA URL, script link, and USB/ESP-IDF steps. HA **Open Web UI** and standalone use the same page at the same server version; HA's built-in add-on **Configuration** tab remains separate. The guide neither flashes devices nor changes network settings, and does not infer the device address from the browser URL. A shown address is not a reachability check.

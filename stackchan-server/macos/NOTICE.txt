@@ -1,0 +1,9 @@
+StackChan AI Server includes server code derived from the M5Stack StackChan
+project. Source files identify the following copyright holder:
+
+SPDX-FileCopyrightText: 2026 M5Stack Technology CO LTD
+SPDX-License-Identifier: MIT
+
+Project changes: Copyright (c) 2026 rudyll. See StackChan.txt for the MIT license.
+See the other files in this directory for Go and dependency license notices.
+This community server package is not an official M5Stack application.
