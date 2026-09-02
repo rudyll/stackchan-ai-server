@@ -219,7 +219,9 @@ docker compose -f docker-compose.standalone.yml logs --no-color --tail=50 stackc
 >
 > ⚠️ **注意：** 官方 xiaozhi-esp32 的 OTA 升级会写入完整 flash 镜像，**NVS 分区也会被覆盖**。每次固件升级后需重新执行方式 A 的第三、四步写入 NVS，这比重新编译固件要快得多。
 >
-> 💡 **一键写入：** 运行 `python3 flash_nvs.py`，交互式引导完成全部四个步骤（支持中英文）。工具会同时询问服务器局域网 IP 和对外 TCP 端口；如果 standalone 与 HA add-on 同机运行且 add-on 使用 `12800`，这里应填写 standalone 的 `12801`。
+> 💡 **一键写入：** 运行 `python3 flash_nvs.py`，交互式引导完成全部四个步骤（支持中英文）。工具支持填写服务器局域网 IPv4 地址或设备可解析的局域网主机名（例如 `stackchan.local`），以及对外 TCP 端口。条件允许时建议给服务器做 DHCP 保留；如果 standalone 与 HA add-on 同机运行且 add-on 使用 `12800`，这里应填写 standalone 的 `12801`。
+
+设备启动时需要先访问一个 OTA 地址，因此目前 NVS 仍必须写入 standalone 主机地址和端口。官方固件路径不会自动发现局域网中的 Docker 服务；若使用 mDNS 或 UDP 自动发现，需要修改固件，并额外处理 VLAN、防火墙以及局域网中同时存在多个服务的问题。因此我们保留显式写入 NVS 作为可靠路径。
 
 ### 方式 A — 写入 NVS（推荐）
 
@@ -261,10 +263,10 @@ python3 $IDF_PATH/components/partition_table/parttool.py \
 cat > nvs.csv << 'EOF'
 key,type,encoding,value
 wifi,namespace,,
-ota_url,data,string,http://<你的服务器局域网IP>:<对外 WebSocket 端口>/xiaozhi/ota/
+ota_url,data,string,http://<你的服务器主机地址>:<对外 WebSocket 端口>/xiaozhi/ota/
 EOF
 ```
-将 `<你的服务器局域网IP>` 替换为运行 StackChan AI Server 的主机局域网 IP，并将 `<对外 WebSocket 端口>` 替换为设备可访问的端口（默认 `12800`；standalone 使用自定义宿主机端口时填写 `STACKCHAN_WS_PORT`）。使用 add-on 时主机通常是 Home Assistant 主机；使用 standalone 时是 Docker 宿主机。
+将 `<你的服务器主机地址>` 替换为运行 StackChan AI Server 的主机局域网 IPv4 地址或设备可解析的主机名（如 `192.168.1.100` 或 `stackchan.local`），并将 `<对外 WebSocket 端口>` 替换为设备可访问的端口（默认 `12800`；standalone 使用自定义宿主机端口时填写 `STACKCHAN_WS_PORT`）。使用 add-on 时主机通常是 Home Assistant 主机；使用 standalone 时是 Docker 宿主机。NVS 工具会校验 IPv4 地址和主机名格式，但不会执行服务自动发现。
 
 **第三步 — 生成 NVS 二进制文件**（将 `0x4000` 替换为第一步查到的实际大小）：
 ```bash

@@ -211,7 +211,9 @@ The device firmware needs to know your local server address instead of the Xiaoz
 >
 > ⚠️ **Important:** The official xiaozhi-esp32 OTA upgrade writes a full flash image and **overwrites the NVS partition**. After any firmware upgrade you will need to re-inject the NVS key (Steps 3–4 of Method A). This is still much faster than recompiling.
 >
-> 💡 **Shortcut:** Run `python3 flash_nvs.py` for an interactive guided injector that handles all four steps automatically (English / 中文). It asks for both the server LAN IP and the reachable TCP port, so enter `12801` when standalone shares a host with the HA add-on on `12800`.
+> 💡 **Shortcut:** Run `python3 flash_nvs.py` for an interactive guided injector that handles all four steps automatically (English / 中文). It accepts the server's LAN IPv4 address or a resolvable local hostname such as `stackchan.local`, plus the reachable TCP port. Use a DHCP reservation when possible; if standalone shares a host with the HA add-on on `12800`, enter standalone's `12801` port.
+
+The device needs an OTA URL as its bootstrap address, so NVS currently must contain the standalone host address and port. The stock firmware path does not automatically discover a local Docker service; mDNS or UDP discovery would require a firmware change and would also need to handle VLANs, firewalls, and multiple servers. We therefore keep explicit NVS configuration as the reliable path.
 
 ### Method A — Write NVS key (recommended)
 
@@ -253,10 +255,10 @@ Note the `size` value (commonly `0x4000` or `0x6000`). Replace `/dev/tty.usbseri
 cat > nvs.csv << 'EOF'
 key,type,encoding,value
 wifi,namespace,,
-ota_url,data,string,http://<YOUR_SERVER_LAN_IP>:<PUBLIC_WS_PORT>/xiaozhi/ota/
+ota_url,data,string,http://<YOUR_SERVER_HOST>:<PUBLIC_WS_PORT>/xiaozhi/ota/
 EOF
 ```
-Replace `<YOUR_SERVER_LAN_IP>` with the LAN IP of the host running StackChan AI Server and `<PUBLIC_WS_PORT>` with the service's reachable port (`12800` by default; use `STACKCHAN_WS_PORT` for a custom standalone host port). For the add-on the host is normally the Home Assistant host; for standalone it is the Docker host.
+Replace `<YOUR_SERVER_HOST>` with the LAN IPv4 address or a hostname resolvable by the device (for example `192.168.1.100` or `stackchan.local`), and `<PUBLIC_WS_PORT>` with the service's reachable port (`12800` by default; use `STACKCHAN_WS_PORT` for a custom standalone host port). For the add-on the host is normally the Home Assistant host; for standalone it is the Docker host. The NVS injector validates both IPv4 addresses and hostname syntax, but it does not perform service discovery.
 
 **Step 3 — Generate the NVS binary** (replace `0x4000` with the actual size from Step 1):
 ```bash
