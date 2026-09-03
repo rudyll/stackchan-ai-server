@@ -1,5 +1,7 @@
 # StackChan AI Server
 
+<p align="center"><img src="stackchan-server/logo.png" alt="StackChan with a hand-drawn crown and angel wings" width="200" height="200"></p>
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 English | [中文](README.zh.md)
@@ -118,7 +120,7 @@ Each device has one active OTA/WebSocket target. Devices configured with the HA 
 
 ### macOS — download the ready-made DMG (preview)
 
-Download the [macOS 0.1.0 universal DMG](https://github.com/rudyll/stackchan-ai-server/releases/download/macos-v0.1.0/StackChan-AI-Server-0.1.0-macos-universal.dmg) from [GitHub Releases](https://github.com/rudyll/stackchan-ai-server/releases/tag/macos-v0.1.0), drag **StackChan AI Server.app** into **Applications**, then launch it. **Users do not need to build anything or install Docker, Go, Homebrew or OPUS.** The app contains Apple Silicon and Intel executables targeting macOS 12+, with the audio codec statically included. The Release also provides a SHA-256 checksum file.
+Download the [macOS 0.1.1 universal DMG](https://github.com/rudyll/stackchan-ai-server/releases/download/macos-v0.1.1/StackChan-AI-Server-0.1.1-macos-universal.dmg) from [GitHub Releases](https://github.com/rudyll/stackchan-ai-server/releases/tag/macos-v0.1.1), drag **StackChan AI Server.app** into **Applications**, then launch it. **Users do not need to build anything or install Docker, Go, Homebrew or OPUS.** The app contains Apple Silicon and Intel executables targeting macOS 12+, with the audio codec statically included. The Release also provides a SHA-256 checksum file.
 
 The app chooses free ports, opens the local settings page and shows the first-run login token. Its 3D StackChan icon is also used in the shared HA/standalone GUI. This is an **ad-hoc signed preview, not Developer ID signed or Apple notarized**; after verifying the download source, use **System Settings → Privacy & Security → Open Anyway** if blocked as an unidentified developer ([Apple guidance](https://support.apple.com/en-us/102445)). Do not bypass malware warnings or disable Gatekeeper globally. Allow incoming connections if the macOS firewall asks and LAN devices need access. This preview has no menu-bar control: stop its `stackchan-server` processes in Activity Monitor before upgrading. See [installation details and optional developer build instructions](stackchan-server/macos/README.md).
 

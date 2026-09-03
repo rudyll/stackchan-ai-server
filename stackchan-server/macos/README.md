@@ -1,10 +1,12 @@
 # macOS standalone — ready-made download
 
-[Download universal DMG](https://github.com/rudyll/stackchan-ai-server/releases/download/macos-v0.1.0/StackChan-AI-Server-0.1.0-macos-universal.dmg) · [Release and checksum](https://github.com/rudyll/stackchan-ai-server/releases/tag/macos-v0.1.0)
+<p align="center"><img src="../logo.png" alt="StackChan with a hand-drawn crown and angel wings" width="160" height="160"></p>
+
+[Download universal DMG](https://github.com/rudyll/stackchan-ai-server/releases/download/macos-v0.1.1/StackChan-AI-Server-0.1.1-macos-universal.dmg) · [Release and checksum](https://github.com/rudyll/stackchan-ai-server/releases/tag/macos-v0.1.1)
 
 **No build required. No Docker, Homebrew, Go or audio-library installation for users.**
 The app contains Apple Silicon and Intel executables, targeting macOS 12+.
-This is the first standalone macOS preview, versioned separately from HA releases.
+The macOS preview is versioned separately from HA releases.
 
 ## Install / 安装
 
@@ -27,7 +29,7 @@ The DMG includes these instructions, an Applications shortcut, and license notic
 inside the app. To check the download, put its matching .sha256 file alongside it:
 
 ```bash
-shasum -a 256 -c StackChan-AI-Server-0.1.0-macos-universal.dmg.sha256
+shasum -a 256 -c StackChan-AI-Server-0.1.1-macos-universal.dmg.sha256
 ```
 
 ## Data, ports and upgrades / 数据与升级
@@ -62,7 +64,7 @@ bash stackchan-server/macos/build-dmg.sh
 ```
 
 The builder uses `macos/VERSION`, builds both architectures by default, and outputs
-`stackchan-server/dist/macos-0.1.0-universal/`. Set `STACKCHAN_MACOS_ARCH=arm64`
+`stackchan-server/dist/macos-0.1.1-universal/`. Set `STACKCHAN_MACOS_ARCH=arm64`
 or `amd64` for a single-architecture build. Set `OUTPUT_DIR` to a new directory
 for another build; existing releases are never overwritten.
 
@@ -84,6 +86,6 @@ See [design record](../../docs/brand-icon.md).
    mounted image and isolated startup. Record limitations in the release notes.
 2. Commit and push final main; rebuild from that exact clean tracked revision.
 3. Tag it `macos-v<VERSION>` and publish a GitHub pre-release with the DMG and
-   matching checksum. Use [the 0.1.0 release notes](../../docs/releases/macos-v0.1.0.md).
+   matching checksum. Use [the 0.1.1 release notes](../../docs/releases/macos-v0.1.1.md).
 4. Verify tag target, release state, download URLs, asset digest and downloaded
    checksum. This does not bump the HA add-on version or replace its release.

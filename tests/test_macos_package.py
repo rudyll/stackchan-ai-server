@@ -35,6 +35,19 @@ class MacOSPackageTest(unittest.TestCase):
         self.assertNotIn('cp "$OPUS_LIB"', builder)
         self.assertIn('cp "$SCRIPT_DIR/NOTICE.txt"', builder)
 
+    def test_readme_images_and_shared_asset_source(self):
+        for readme in (ROOT / "README.md", ROOT / "README.zh.md"):
+            self.assertIn('src="stackchan-server/logo.png"', readme.read_text())
+        self.assertIn("/main/stackchan-server/logo.png", (ROOT / "stackchan-server/README.md").read_text())
+        self.assertIn('src="../logo.png"', (MACOS / "README.md").read_text())
+        sync = (ROOT / "scripts/sync-brand-assets.sh").read_text()
+        self.assertIn('SOURCE="$ASSETS/stackchan-icon.png"', sync)
+        self.assertIn('sips -z 256 256 "$SOURCE"', sync)
+        self.assertIn('sips -z 128 128 "$SOURCE"', sync)
+        self.assertIn('cp "$ASSETS/stackchan-mark.png"', sync)
+        builder = (MACOS / "build-dmg.sh").read_text()
+        self.assertIn('ICON="$SERVER_DIR/server/internal/service/ai/assets/stackchan-icon.png"', builder)
+
 
 if __name__ == "__main__":
     unittest.main()

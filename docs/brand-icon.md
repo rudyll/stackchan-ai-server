@@ -1,17 +1,68 @@
-# StackChan app icon
+# StackChan crown-and-wings artwork
 
-The macOS application, shared settings header, login page and browser icon use
-one original 3D/chibi interpretation of the square-screen StackChan desk robot.
-The official product photo was inspected for the screen/head/base silhouette;
-no official wordmark or product photograph is redistributed as our icon.
+The selected identity is the hardware-faithful, box-shaped StackChan with its
+original dot eyes and straight mouth, a simple gold hand-drawn crown and
+cream/blue hand-drawn angel wings. Later elaborate-crown and smiling/sparkling-eye
+candidates are not used. The robot retains its polished 3D materials and low
+notched base; the accessories are intentionally 2D doodles.
 
-Source: `stackchan-server/server/internal/service/ai/assets/stackchan-icon.png`.
-Web derivative: `stackchan-server/server/internal/service/ai/assets/stackchan-mark.png`
-(256×256, embedded in the Go executable). The macOS builder derives all `.icns`
-sizes from the source PNG. Resizing/format conversion preserves transparency.
+## Shared files
 
-Generation: built-in image generation; no CLI/API fallback. Final prompt:
+| Use | File | Size |
+| --- | --- | --- |
+| Master / macOS ICNS input | `stackchan-server/server/internal/service/ai/assets/stackchan-icon.png` | 1254×1254 |
+| Embedded GUI header, login, favicon | `stackchan-server/server/internal/service/ai/assets/stackchan-mark.png` | 256×256 |
+| HA store icon | `stackchan-server/icon.png` | 128×128 |
+| HA store logo and README artwork | `stackchan-server/logo.png` | 256×256 |
 
-> Use case: stylized-concept. Asset type: production macOS application icon and matching web GUI brand mascot, square 1024 by 1024. Primary request: an original charming 3D chibi interpretation of the StackChan desktop robot, with gentle anime-like personality. Subject: one compact ivory rounded-square screen head, glossy near-black display with two simple warm white oval eyes and a small happy smile, subtle rosy screen cheeks, a short visible mechanical pan-tilt neck sitting on a low dark rounded pedestal, no arms or legs. This must look like a small square-screen desk robot, not a humanoid or astronaut. Slight three-quarter pose but face clearly visible, head tilted inquisitively. Style: polished tactile 3D toy rendering, soft ceramic-like white casing, crisp uncomplicated silhouette, minimal hardware details, warm friendly expression. Palette: ivory and graphite robot with subtle periwinkle and teal light accents matching an existing dark navy/periwinkle settings GUI. Composition: a single centered icon, mascot large and instantly readable at small sizes, contained inside a dark navy softly rounded-square macOS-style tile; leave a modest even transparent outer margin around the tile. Background outside the tile genuinely transparent with alpha, not checkerboard. Soft studio lighting and restrained shadows. Constraints: one icon only, no lettering, no logos, no watermark, no extra characters, no accessories, no scenery, no UI mockup or icon grid. Preserve strong contrast of face and casing at 32px.
+All PNGs have transparent outer corners; the navy tile and dark screen remain
+visible rather than being cut out. The macOS builder produces the full ICNS size set from the master.
+The GUI keeps its existing 64px header and 88px login images and relative URLs,
+including under HA Ingress; no external image host or new public API is needed.
 
-Product reference: https://docs.m5stack.com/en/StackChan
+The [HA presentation guide](https://developers.home-assistant.io/docs/apps/presentation/)
+requires PNG files named `icon.png` and `logo.png`, a square icon, and recommends
+a 128px icon. It permits other logo aspect ratios, so the same square artwork is
+used instead of a separate wordmark. These files control the store presentation,
+not HA's navigation sidebar icon. No new HA add-on version is published with the
+macOS-only artwork release; already installed server binaries keep their bundled
+GUI image until updated/rebuilt.
+
+After replacing the master on macOS, regenerate committed derivatives:
+
+```bash
+bash scripts/sync-brand-assets.sh
+```
+
+The AI-package asset tests check PNG sizes, real corner transparency (at most
+1/255 alpha), a near-opaque interior (at least 250/255 alpha) and identical
+GUI/HA logo bytes. These small tolerances accommodate extraction/resampling.
+README/package tests guard image paths
+and the shared source. Keep local concept files out of Git.
+
+## Design provenance and prompts
+
+Created and refined with the built-in imagegen tool, without CLI/API fallback.
+The [official product reference](https://docs.m5stack.com/en/StackChan) informed
+the physical silhouette. No official photograph or wordmark is redistributed
+as the icon.
+
+### Selected crown-and-wings edit
+
+Use case: precise-object-edit.
+Asset type: updated StackChan macOS app icon concept, square.
+Input image 1: EDIT TARGET, the user's chosen B design. Preserve this exact robot, its hardware geometry, face, proportions, front three-quarter camera angle, ivory cuboid shell, black screen, two tiny white dot eyes, straight short white mouth, subtle ports, low dark gray NOTCHED two-foot base, 3D Pixar-like material finish and warm/cool lighting. Preserve the navy rounded-square icon tile. Do not redesign the machine.
+
+Primary request: add a HAND-DRAWN CROWN and a pair of HAND-DRAWN ANGEL WINGS to this 3D robot. Mixed media: robot remains polished 3D, accessories are obviously charming 2D doodles.
+Crown: one small three-point crown floating just above the top of the machine, playfully tilted a little. Warm golden-yellow hand-drawn marker strokes with slight natural irregularity and a subtle pale-gold flat fill, simple and readable, no jewels, no metallic 3D rendering. Crown width about 25% of robot head width, comfortably inside icon tile.
+Wings: a matched pair of small white/ivory illustrated angel wings behind the upper-middle sides of the robot, extending outward and slightly upward, left and right. Bold gently wobbly cream hand-drawn outer strokes, 3 or 4 simple rounded feather lobes each, sparse pale-blue pencil-like interior feather lines and minimal flat fill. These should look drawn onto the image, NOT realistic feathers or 3D attachments. Wings emerge from BEHIND body edges and never cover the screen or side ports. They should be clearly visible on dark navy. No arms.
+Composition: preserve original viewing direction, materials, face and enclosure. Uniformly scale robot down only as necessary to give crown and both wings breathing space. Keep all wing tips, crown and entire notched base inside the icon tile, balanced margins. Robot remains dominant.
+Background cleanup: remove the baked-in gray-white checkerboard outside the rounded tile; outside the tile should be genuine transparent alpha, not a painted transparency grid. Inside the tile keep the same dark navy with soft blue glow.
+Constraints: ONLY add the crown and wings plus necessary fit/background cleanup. Do not add halo, text, logos, sparkles, hearts, blush, big eyes, ears, humanoid limbs or a round pedestal. Do not turn the robot into a drawing. No cropping. No checkerboard pattern anywhere.
+
+### Production transparency cleanup
+
+Use case: background-extraction.
+Input image 1: EDIT TARGET, approved final StackChan crown-and-angel-wings icon.
+This is a PRODUCTION EXPORT cleanup, NOT a redesign. Preserve EVERY visible pixel of the navy rounded-square tile and everything inside it: robot exact original dot eyes/straight mouth, ivory cuboid shell, charcoal split-foot base, golden simple hand-drawn crown, cream/blue hand-drawn angel wings, lighting, composition and size.
+ONLY remove the black outside-corner background surrounding the rounded-square icon tile. Make that exterior genuinely TRANSPARENT with an alpha channel. Do not draw a checkerboard or solid white/black backdrop; deliver an actual transparent PNG cutout of the entire rounded-square tile. Preserve antialiased rounded edges. Do NOT remove the navy background INSIDE the tile, dark screen or base. No cropping, relighting, retouching, repainting or adding features. Square canvas, original layout. The approved crown and wings and neutral face must remain unchanged.

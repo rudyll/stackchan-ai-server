@@ -5,6 +5,7 @@ import (
 	"image/png"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
@@ -44,5 +45,46 @@ func TestConfigUIEmbeddedIconIsPublicButSettingsRemainProtected(t *testing.T) {
 		if !strings.Contains(page, `src="./assets/stackchan-icon.png"`) || !strings.Contains(page, `rel="icon"`) {
 			t.Fatal("both settings and login must use Ingress-relative brand icons")
 		}
+	}
+}
+
+func TestBrandImagesHaveTransparentCornersAndConsistentSizes(t *testing.T) {
+	for _, asset := range []struct {
+		path string
+		size int
+	}{
+		{"assets/stackchan-icon.png", 0}, // High-resolution macOS master.
+		{"assets/stackchan-mark.png", 256},
+		{"../../../../logo.png", 256},
+		{"../../../../icon.png", 128},
+	} {
+		t.Run(asset.path, func(t *testing.T) {
+			data, err := os.ReadFile(asset.path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			img, err := png.Decode(bytes.NewReader(data))
+			if err != nil {
+				t.Fatal(err)
+			}
+			bounds := img.Bounds()
+			if bounds.Dx() != bounds.Dy() || (asset.size > 0 && bounds.Dx() != asset.size) || (asset.size == 0 && bounds.Dx() < 1024) {
+				t.Fatalf("unexpected image dimensions: %v", bounds)
+			}
+			for _, x := range []int{0, bounds.Dx() - 1} {
+				for _, y := range []int{0, bounds.Dy() - 1} {
+					// Allow one 8-bit alpha step from extraction/resampling, not an opaque backdrop.
+					if _, _, _, alpha := img.At(x, y).RGBA(); alpha > 257 {
+						t.Fatalf("corner (%d, %d) must be visually transparent, got alpha %d", x, y, alpha)
+					}
+				}
+			}
+			if _, _, _, alpha := img.At(bounds.Dx()/2, bounds.Dy()/2).RGBA(); alpha < 250*257 {
+				t.Fatal("the dark screen inside the icon must remain at least 98% opaque")
+			}
+			if asset.path == "../../../../logo.png" && !bytes.Equal(data, configUIIcon) {
+				t.Fatal("HA logo and embedded GUI mark must use the same artwork; run scripts/sync-brand-assets.sh")
+			}
+		})
 	}
 }

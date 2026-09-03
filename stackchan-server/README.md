@@ -1,5 +1,7 @@
 # StackChan AI Server
 
+<p align="center"><img src="https://raw.githubusercontent.com/rudyll/stackchan-ai-server/main/stackchan-server/logo.png" alt="StackChan with a hand-drawn crown and angel wings" width="160" height="160"></p>
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Home Assistant add-on and standalone Docker runtime for [StackChan](https://github.com/m5stack/StackChan) — an AI robot built on M5Stack CoreS3.
@@ -77,7 +79,7 @@ The optional `STACKCHAN_STANDALONE_HA_ENABLED`, `STACKCHAN_STANDALONE_HA_URL`, a
 
 ### macOS standalone DMG (preview)
 
-Download the [ready-made universal DMG](https://github.com/rudyll/stackchan-ai-server/releases/download/macos-v0.1.0/StackChan-AI-Server-0.1.0-macos-universal.dmg) from the [macOS 0.1.0 Release](https://github.com/rudyll/stackchan-ai-server/releases/tag/macos-v0.1.0). Drag the app into Applications; no user build, Docker, Homebrew or audio-library installation is needed. Apple Silicon and Intel executables target macOS 12+. The new 3D StackChan icon appears in both the app and shared settings UI. This preview is ad-hoc signed, not Developer ID signed or notarized. See [installation, security and upgrade instructions](macos/README.md).
+Download the [ready-made universal DMG](https://github.com/rudyll/stackchan-ai-server/releases/download/macos-v0.1.1/StackChan-AI-Server-0.1.1-macos-universal.dmg) from the [macOS 0.1.1 Release](https://github.com/rudyll/stackchan-ai-server/releases/tag/macos-v0.1.1). Drag the app into Applications; no user build, Docker, Homebrew or audio-library installation is needed. Apple Silicon and Intel executables target macOS 12+. The new 3D StackChan icon appears in both the app and shared settings UI. This preview is ad-hoc signed, not Developer ID signed or notarized. See [installation, security and upgrade instructions](macos/README.md).
 
 ## Device Setup
 

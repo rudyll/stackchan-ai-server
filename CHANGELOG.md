@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added crown-and-wings artwork for the Home Assistant store icon/logo and bilingual README headers; the shared settings header, login and favicon use the same artwork. Store images are repository metadata; the HA add-on version is unchanged.
 - Added a permanent device setup / NVS guide to the shared HA and standalone settings UI, with runtime host/port, copyable OTA URL, USB/ESP-IDF instructions, and whole-NVS overwrite warnings. Setup metadata is authenticated in standalone and read-only; invalid or loopback targets do not produce a copyable URL.
 - Kept settings API requests relative to the HA Ingress path and allowed same-origin embedding only in HA mode; standalone retains frame protection. Separated the HTTP listener address from the advertised device port so Docker custom host-port mappings work alongside native macOS ports.
 - Added opt-in per-device local text history, bounded cross-session context for all provider paths, authenticated Markdown export/clear controls, and startup/hourly retention cleanup.
@@ -31,6 +32,13 @@
 - Add a standalone-only logout link to the settings GUI.
 - Show the active runtime mode in the settings GUI, including whether Home Assistant is connected or omitted.
 - Document the standalone first-start defaults for Device-Id profiles, system prompt, and audio buffering.
+
+## macOS 0.1.1 (Preview)
+
+- Replaced the generic robot icon with a hardware-faithful StackChan wearing a simple hand-drawn crown and angel wings, retaining the original dot eyes and straight mouth.
+- Applied the same transparent artwork to the DMG application's complete ICNS size set and the embedded settings header, login page and browser icon.
+- Added matching images to the English/Chinese READMEs and Home Assistant store resources, plus asset consistency/transparency regression checks.
+- This is a visual-only macOS update: provider behavior, stored settings and device setup are unchanged. The preview remains ad-hoc signed, not Apple notarized, with no menu-bar controls or auto-update. Stop the old process before replacing the app. No new HA add-on release is included.
 
 ## macOS 0.1.0 (Preview)
 

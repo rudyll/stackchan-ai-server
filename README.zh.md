@@ -1,5 +1,7 @@
 # StackChan AI Server
 
+<p align="center"><img src="stackchan-server/logo.png" alt="戴手绘皇冠、带天使翅膀的 StackChan" width="200" height="200"></p>
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 [English](README.md) | 中文
@@ -118,7 +120,7 @@ docker compose -f docker-compose.standalone.yml logs --no-color --tail=50 stackc
 
 ### macOS — 下载现成 DMG（预览版）
 
-从 [GitHub Releases](https://github.com/rudyll/stackchan-ai-server/releases/tag/macos-v0.1.0) 下载 [macOS 0.1.0 通用 DMG](https://github.com/rudyll/stackchan-ai-server/releases/download/macos-v0.1.0/StackChan-AI-Server-0.1.0-macos-universal.dmg)，将 **StackChan AI Server.app** 拖进**应用程序**后打开。**用户不需要自行构建，也不用安装 Docker、Go、Homebrew 或 OPUS。** 安装包同时包含 Apple Silicon 和 Intel 两种架构，构建目标为 macOS 12+，音频库已静态打包；Release 同时提供 SHA-256 校验文件。
+从 [GitHub Releases](https://github.com/rudyll/stackchan-ai-server/releases/tag/macos-v0.1.1) 下载 [macOS 0.1.1 通用 DMG](https://github.com/rudyll/stackchan-ai-server/releases/download/macos-v0.1.1/StackChan-AI-Server-0.1.1-macos-universal.dmg)，将 **StackChan AI Server.app** 拖进**应用程序**后打开。**用户不需要自行构建，也不用安装 Docker、Go、Homebrew 或 OPUS。** 安装包同时包含 Apple Silicon 和 Intel 两种架构，构建目标为 macOS 12+，音频库已静态打包；Release 同时提供 SHA-256 校验文件。
 
 应用会选择空闲端口、打开本地设置页，并在首次运行时显示登录 Token。新的 3D StackChan 图标也用于 HA / standalone 共用网页界面。这是**仅做临时签名、尚无 Developer ID 签名和 Apple 公证的预览版**；确认下载来源后，若提示无法验证开发者，可按 [Apple 官方说明](https://support.apple.com/en-us/102445)在**系统设置 → 隐私与安全性 → 仍要打开**中允许。不要绕过恶意软件警告，也不要全局关闭 Gatekeeper。macOS 防火墙询问时，如需局域网设备连接，请允许传入连接。预览版尚无菜单栏控制，升级前请在“活动监视器”中退出对应的 `stackchan-server` 进程。详见[安装说明与可选开发者构建方法](stackchan-server/macos/README.md)。
 
