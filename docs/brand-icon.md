@@ -24,9 +24,9 @@ The [HA presentation guide](https://developers.home-assistant.io/docs/apps/prese
 requires PNG files named `icon.png` and `logo.png`, a square icon, and recommends
 a 128px icon. It permits other logo aspect ratios, so the same square artwork is
 used instead of a separate wordmark. These files control the store presentation,
-not HA's navigation sidebar icon. No new HA add-on version is published with the
-macOS-only artwork release; already installed server binaries keep their bundled
-GUI image until updated/rebuilt.
+not HA's navigation sidebar icon. HA add-on 2.8.0-beta.3 includes the new embedded
+GUI artwork. Older installations keep their bundled GUI image until the add-on
+is updated/rebuilt; refreshing repository metadata alone is not sufficient.
 
 After replacing the master on macOS, regenerate committed derivatives:
 

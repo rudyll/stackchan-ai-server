@@ -96,6 +96,19 @@ def check_persistence(base, token):
     print("PASS settings survive restart", flush=True)
 
 
+def published_port(container, port):
+    return int(run("docker", "port", container, f"{port}/tcp").rsplit(":", 1)[1])
+
+
+def restart_ha_and_check(container, token):
+    previous_ui = published_port(container, 8099)
+    run("docker", "restart", container)
+    # Docker can reassign ephemeral published ports after restart.
+    restarted_ui = published_port(container, 8099)
+    print(f"HA settings port before/after restart: {previous_ui}/{restarted_ui}", flush=True)
+    check_persistence(f"http://127.0.0.1:{restarted_ui}", token)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--image", required=True)
@@ -128,11 +141,10 @@ def main():
                             "-v", "/data", "-p", "127.0.0.1::8099", "-p", "127.0.0.1::12800", args.image)
             run("docker", "cp", str(options), container + ":/data/options.json")
             run("docker", "start", container)
-            ha_ui = int(run("docker", "port", container, "8099/tcp").rsplit(":", 1)[1])
-            ha_ws = int(run("docker", "port", container, "12800/tcp").rsplit(":", 1)[1])
+            ha_ui = published_port(container, 8099)
+            ha_ws = published_port(container, 12800)
             base, token = check_runtime(ha_ui, ha_ws, 12800, ha=True)
-            run("docker", "restart", container)
-            check_persistence(base, token)
+            restart_ha_and_check(container, token)
             compose_started = True
             run(*compose, "up", "-d", "--no-build", "--pull", "never", env=env)
             base, token = check_runtime(ui_port, ws_port, ws_port, ha=False)

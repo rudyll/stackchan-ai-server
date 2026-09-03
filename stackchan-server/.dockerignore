@@ -10,3 +10,5 @@
 **/logs
 **/logs/**
 **/*.log
+server/manifest
+server/manifest/**

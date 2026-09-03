@@ -23,6 +23,17 @@ class ContainerBuildTest(unittest.TestCase):
         self.assertIn("*", rules)
         self.assertIn("**/.env*", rules)
         self.assertIn("**/logs/**", rules)
+        self.assertIn("server/manifest/**", rules)
+
+    def test_addon_release_notes_match_version_and_root_changelog(self):
+        version = re.search(r'^version: "([^"]+)"',
+                            (ROOT / "stackchan-server/config.yaml").read_text(), re.M).group(1)
+        root_notes = (ROOT / "CHANGELOG.md").read_text().split("\n## ", 2)[1].strip()
+        addon_notes = (ROOT / "stackchan-server/CHANGELOG.md").read_text().split("\n## ", 1)[1].strip()
+        self.assertTrue(root_notes.startswith(version + " (Beta)"))
+        self.assertEqual(addon_notes, root_notes)
+        for readme in ("README.md", "README.zh.md", "stackchan-server/README.md"):
+            self.assertIn("/releases/tag/v" + version, (ROOT / readme).read_text())
 
 
 if __name__ == "__main__":

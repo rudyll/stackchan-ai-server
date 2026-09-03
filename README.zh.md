@@ -96,6 +96,8 @@ StackChan AI Server（HA add-on 或 standalone Docker，使用 12800 端口）
 5. 进入插件的 **配置** 选项卡，填写必要字段（见下文）
 6. 启动插件
 
+**HA 更新：** [2.8.0-beta.3](https://github.com/rudyll/stackchan-ai-server/releases/tag/v2.8.0-beta.3) 将共享图形化设置页、常驻 NVS 指引和皇冠翅膀图标正式带入插件。请先备份，刷新插件商店，再更新并重启；保留原有配置和数据。**打开 Web UI** 是共享图形化页面，HA 自带的**配置**选项卡是另一份表单。只更新仓库图片不会更新已安装的服务程序。
+
 ### Standalone Docker（Beta）
 
 Home Assistant 不是必需项。使用 Docker Compose 时，复制 `stackchan-server/.env.standalone.example` 为 `.env`，将 `STACKCHAN_LOCAL_HOST` 设置为 Docker 宿主机的局域网 IP，填写 AI API Key，然后运行：
@@ -105,6 +107,8 @@ cd stackchan-server
 cp .env.standalone.example .env
 docker compose -f docker-compose.standalone.yml up --build -d
 ```
+
+**Docker 更新：** 先取得最新源码，保留 `.env` 和挂载的数据目录，再运行上面的命令。当前通过源码在本地构建，没有可直接拉取的预构建镜像。[容器自动检查](https://github.com/rudyll/stackchan-ai-server/actions/workflows/containers.yml) 会构建声明支持的四种 HA 架构并运行两条启动路径，但不能代替真实设备和 HA 环境测试。
 
 如果 `STACKCHAN_SETTINGS_TOKEN` 留空，打开 GUI 前先从首次启动日志中取出自动生成的 token：
 

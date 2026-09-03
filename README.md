@@ -96,6 +96,8 @@ The same server is also available as a standalone Docker runtime. See the standa
 5. Go to the add-on **Configuration** tab and fill in the required fields (see below)
 6. Start the add-on
 
+**HA update:** Version [2.8.0-beta.3](https://github.com/rudyll/stackchan-ai-server/releases/tag/v2.8.0-beta.3) brings the shared settings GUI, permanent NVS guide and crown-and-wings artwork into the add-on. Back up first, refresh the add-on store, then update and restart; keep the existing options and data. **Open Web UI** is the shared graphical page, while HA's **Configuration** tab is a separate form. Updating repository images alone does not update an installed server.
+
 ### Standalone Docker (beta)
 
 Home Assistant is optional. To run the server with Docker Compose, copy `stackchan-server/.env.standalone.example` to `.env`, set `STACKCHAN_LOCAL_HOST` to the Docker host's LAN IP, add an AI API key, then run:
@@ -105,6 +107,8 @@ cd stackchan-server
 cp .env.standalone.example .env
 docker compose -f docker-compose.standalone.yml up --build -d
 ```
+
+**Docker updates:** Fetch the latest source first, preserve `.env` and the mounted data directory, then rerun the command above. This distribution builds locally from source; there is no prebuilt registry image to pull. The [container checks](https://github.com/rudyll/stackchan-ai-server/actions/workflows/containers.yml) build all four declared HA architectures and exercise both launchers; they do not replace real-device/HA testing.
 
 If `STACKCHAN_SETTINGS_TOKEN` is empty, retrieve the generated token from the first-start log before opening the GUI:
 

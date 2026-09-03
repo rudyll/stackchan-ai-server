@@ -54,6 +54,11 @@ The device's audio and WebSocket traffic goes directly to StackChan AI Server; H
    ```
 4. Find **StackChan AI Server** in the store and click **Install**
 
+For existing installations, back up first, refresh the store, and update to
+[2.8.0-beta.3](https://github.com/rudyll/stackchan-ai-server/releases/tag/v2.8.0-beta.3).
+Restart and open **Web UI** for the shared settings, permanent NVS guide and new
+artwork. Keep your options and data. See the [add-on changelog](CHANGELOG.md).
+
 ### Standalone Docker (beta)
 
 Copy `.env.standalone.example` to `.env`, set `STACKCHAN_LOCAL_HOST` to the Docker host's LAN IP, add an AI API key, and run:
@@ -62,6 +67,10 @@ Copy `.env.standalone.example` to `.env`, set `STACKCHAN_LOCAL_HOST` to the Dock
 cp .env.standalone.example .env
 docker compose -f docker-compose.standalone.yml up --build -d
 ```
+
+To update Docker, fetch the latest source, preserve `.env` and the mounted data
+directory, then rerun the command above. This is a source-built distribution;
+there is no prebuilt registry image to pull.
 
 If `STACKCHAN_SETTINGS_TOKEN` is empty, retrieve the generated token from the first-start log before opening the GUI:
 
