@@ -1,0 +1,54 @@
+name: Container verification
+
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  containers:
+    name: HA and standalone (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+          - arch: armv7
+            platform: linux/arm/v7
+            runner: ubuntu-24.04-arm
+          - arch: armhf
+            platform: linux/arm/v6
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Launcher and packaging regression tests
+        run: python3 -m unittest discover -s tests -v
+      - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
+        if: matrix.arch == 'armv7' || matrix.arch == 'armhf'
+        with:
+          platforms: arm
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Build actual release Dockerfile
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: ./stackchan-server
+          platforms: ${{ matrix.platform }}
+          load: true
+          push: false
+          tags: stackchan:ci
+          build-args: BUILD_FROM=alpine:3.23
+          cache-from: type=gha,scope=${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
+      - name: Start HA launcher and standalone Compose; check settings, artwork and OTA
+        run: python3 scripts/smoke-containers.py --image stackchan:ci --platform '${{ matrix.platform }}'

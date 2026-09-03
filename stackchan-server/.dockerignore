@@ -1,0 +1,12 @@
+# Only the build inputs; never send local credentials, data, DMGs or logs.
+*
+!Dockerfile
+!run.sh
+!standalone.sh
+!server/
+!server/**
+**/.DS_Store
+**/.env*
+**/logs
+**/logs/**
+**/*.log

@@ -1,6 +1,6 @@
 name: "StackChan AI Server"
 description: "StackChan AI server: realtime or OpenAI-compatible voice pipeline + Home Assistant device control"
-version: "2.8.0-beta.2"
+version: "2.8.0-beta.3"
 slug: "stackchan_ai_server"
 init: false
 ingress: true

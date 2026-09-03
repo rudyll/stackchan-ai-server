@@ -1,0 +1,29 @@
+import re
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+class ContainerBuildTest(unittest.TestCase):
+    def test_cgo_builder_and_runtime_use_same_alpine(self):
+        dockerfile = (ROOT / "stackchan-server/Dockerfile").read_text()
+        version = re.search(r"ARG BUILD_FROM=alpine:([\d.]+)", dockerfile).group(1)
+        self.assertIn("-alpine" + version + " AS builder", dockerfile)
+        self.assertIn("FROM ${BUILD_FROM}", dockerfile)
+        bases = re.findall(r'"alpine:([\d.]+)"', (ROOT / "stackchan-server/build.yaml").read_text())
+        self.assertEqual(bases, [version] * 4)
+        self.assertNotIn("go mod tidy", dockerfile)
+        self.assertIn("-mod=readonly", dockerfile)
+
+    def test_build_context_is_allowlisted(self):
+        rules = (ROOT / "stackchan-server/.dockerignore").read_text().splitlines()
+        self.assertEqual([r for r in rules if r.startswith("!")],
+                         ["!Dockerfile", "!run.sh", "!standalone.sh", "!server/", "!server/**"])
+        self.assertIn("*", rules)
+        self.assertIn("**/.env*", rules)
+        self.assertIn("**/logs/**", rules)
+
+
+if __name__ == "__main__":
+    unittest.main()

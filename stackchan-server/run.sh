@@ -5,6 +5,7 @@
 OPTIONS=/data/options.json
 
 get() { jq -r --arg k "$1" --arg d "$2" '.[$k] // $d' "$OPTIONS"; }
+get_bool() { jq -r --arg k "$1" --argjson d "$2" '.[$k] as $v | if ($v | type) == "boolean" then $v else $d end' "$OPTIONS"; }
 
 LOCAL_HOST=$(get local_host "127.0.0.1")
 HA_ENABLED=$(get ha_enabled "true")
@@ -19,7 +20,8 @@ OPENAI_VOICE=$(get openai_tts_voice "alloy")
 GEMINI_KEY=$(get gemini_api_key "")
 GEMINI_MODEL=$(get gemini_model "gemini-2.5-flash-native-audio-latest")
 GEMINI_VOICE=$(get gemini_voice "Aoede")
-GEMINI_ENABLE_TOOLS=$(get gemini_enable_tools "true")
+GEMINI_ENABLE_TOOLS=$(get_bool gemini_enable_tools "true")
+GEMINI_ENABLE_SEARCH=$(get_bool gemini_enable_search "false")
 COMPATIBLE_BASE_URL=$(get compatible_base_url "")
 COMPATIBLE_API_KEY=$(get compatible_api_key "")
 COMPATIBLE_MODEL=$(get compatible_model "")
@@ -102,6 +104,7 @@ ai:
   gemini_model: "${GEMINI_MODEL}"
   gemini_voice: "${GEMINI_VOICE}"
   gemini_enable_tools: ${GEMINI_ENABLE_TOOLS}
+  gemini_enable_search: ${GEMINI_ENABLE_SEARCH}
   compatible_base_url: "${COMPATIBLE_BASE_URL}"
   compatible_api_key: "${COMPATIBLE_API_KEY}"
   compatible_model: "${COMPATIBLE_MODEL}"
