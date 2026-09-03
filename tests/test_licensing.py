@@ -1,9 +1,11 @@
 import hashlib
 from pathlib import Path
+import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 AGPL_SHA256 = "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0"
+PAYPAL_URL = "https://paypal.me/unitekno"
 
 
 class LicensingTest(unittest.TestCase):
@@ -31,12 +33,27 @@ class LicensingTest(unittest.TestCase):
             self.assertNotIn("License-MIT-yellow.svg", text)
         self.assertIn("You retain copyright", (ROOT / "CONTRIBUTING.md").read_text())
 
-    def test_sponsorship_does_not_publish_guessed_payment_details(self):
+    def test_sponsorship_uses_only_the_confirmed_payment_destination(self):
         text = (ROOT / "SPONSORING.md").read_text()
         self.assertIn("entirely voluntary", text)
-        self.assertIn("No verified payment destination", text)
-        self.assertNotIn("paypal.me/", text)
-        self.assertFalse((ROOT / ".github/FUNDING.yml").exists())
+        self.assertNotIn("No verified payment destination", text)
+        self.assertIn("No cryptocurrency receiving address", text)
+        funding = (ROOT / ".github/FUNDING.yml").read_text()
+        self.assertEqual(funding.strip(), 'custom: ["' + PAYPAL_URL + '"]')
+        for path in ("SPONSORING.md", "README.md", "README.zh.md", "stackchan-server/README.md"):
+            with self.subTest(path=path):
+                content = (ROOT / path).read_text()
+                destinations = set(re.findall(r'https://paypal\.me/[^\s)"<]+', content))
+                self.assertEqual(destinations, {PAYPAL_URL})
+                self.assertNotIn("rudy219", content)
+                self.assertNotIn("paypal-qr", content)
+
+    def test_sponsorship_is_visible_at_the_top_of_readmes(self):
+        for path in ("README.md", "README.zh.md", "stackchan-server/README.md"):
+            with self.subTest(path=path):
+                header = (ROOT / path).read_text().split("\n## ", 1)[0]
+                self.assertIn("Sponsor-PayPal", header)
+                self.assertIn("](" + PAYPAL_URL + ")", header)
 
     def test_packages_preserve_project_and_dependency_licenses(self):
         docker = (ROOT / "stackchan-server/Dockerfile").read_text()

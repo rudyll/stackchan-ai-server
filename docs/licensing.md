@@ -66,11 +66,15 @@ Primary references: [GNU compatibility](https://www.gnu.org/licenses/license-com
 ## Funding workflow
 
 [SPONSORING](../SPONSORING.md) is the bilingual public policy. The maintainer
-confirmed `https://paypal.me/unitekno` on 2026-09-03 (updated from the earlier
-`rudy219` destination; no QR code is published for this account). The link is
+confirmed `https://paypal.me/unitekno` on 2026-09-03; no QR code is published
+for this account. The link is
 configured as a custom URL in `.github/FUNDING.yml` and displayed near the top
 of both READMEs and the add-on README. This uses an external PayPal
 destination, not GitHub Sponsors payment enrollment.
+
+The repository's **Settings → General → Features → Sponsorships** option must
+also be enabled. Adding `.github/FUNDING.yml` alone does not turn on a disabled
+Sponsor button. Verify both the enabled setting and the public button/link.
 
 Only add payment destinations supplied and approved by the maintainer. Verify
 the destination and rendered Sponsor button after any update. Never
