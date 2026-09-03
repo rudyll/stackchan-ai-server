@@ -16,7 +16,7 @@ FROM ${BUILD_FROM}
 
 RUN apk add --no-cache opus opusfile jq bash ca-certificates
 COPY LICENSE NOTICE.md /usr/share/licenses/stackchan/
-COPY licenses/ /usr/share/licenses/stackchan/retained/
+COPY licenses/ /usr/share/licenses/stackchan/licenses/
 COPY --from=builder /build/licenses/ /usr/share/licenses/stackchan/dependencies/
 
 WORKDIR /app
