@@ -38,8 +38,9 @@ class LicensingTest(unittest.TestCase):
         self.assertIn("entirely voluntary", text)
         self.assertNotIn("No verified payment destination", text)
         self.assertIn("No cryptocurrency receiving address", text)
-        funding = (ROOT / ".github/FUNDING.yml").read_text()
-        self.assertEqual(funding.strip(), 'custom: ["' + PAYPAL_URL + '"]')
+        funding = (ROOT / ".github/FUNDING.yml").read_text().splitlines()
+        entries = [line.strip() for line in funding if line.strip() and not line.lstrip().startswith("#")]
+        self.assertEqual(entries, ['custom: ["' + PAYPAL_URL + '"]'])
         for path in ("SPONSORING.md", "README.md", "README.zh.md", "stackchan-server/README.md"):
             with self.subTest(path=path):
                 content = (ROOT / path).read_text()
