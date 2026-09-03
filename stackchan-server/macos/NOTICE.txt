@@ -4,6 +4,10 @@ project. Source files identify the following copyright holder:
 SPDX-FileCopyrightText: 2026 M5Stack Technology CO LTD
 SPDX-License-Identifier: MIT
 
-Project changes: Copyright (c) 2026 rudyll. See StackChan.txt for the MIT license.
+Current combined project: AGPL-3.0-only. Project changes: Copyright (c) 2026 rudyll.
+See StackChan.txt for the full AGPL license and Project-NOTICE.md for scope.
+M5Stack's original MIT portions retain their MIT permissions; see MIT-M5Stack.txt.
+Earlier project releases retain MIT; see MIT-legacy-project.txt.
 See the other files in this directory for Go and dependency license notices.
 This community server package is not an official M5Stack application.
+Sponsorship is voluntary and does not grant a commercial-license exception.

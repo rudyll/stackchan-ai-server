@@ -19,7 +19,8 @@ class ContainerBuildTest(unittest.TestCase):
     def test_build_context_is_allowlisted(self):
         rules = (ROOT / "stackchan-server/.dockerignore").read_text().splitlines()
         self.assertEqual([r for r in rules if r.startswith("!")],
-                         ["!Dockerfile", "!run.sh", "!standalone.sh", "!server/", "!server/**"])
+                         ["!Dockerfile", "!run.sh", "!standalone.sh", "!collect-licenses.sh",
+                          "!LICENSE", "!NOTICE.md", "!licenses/", "!licenses/**", "!server/", "!server/**"])
         self.assertIn("*", rules)
         self.assertIn("**/.env*", rules)
         self.assertIn("**/logs/**", rules)
@@ -28,8 +29,11 @@ class ContainerBuildTest(unittest.TestCase):
     def test_addon_release_notes_match_version_and_root_changelog(self):
         version = re.search(r'^version: "([^"]+)"',
                             (ROOT / "stackchan-server/config.yaml").read_text(), re.M).group(1)
-        root_notes = (ROOT / "CHANGELOG.md").read_text().split("\n## ", 2)[1].strip()
-        addon_notes = (ROOT / "stackchan-server/CHANGELOG.md").read_text().split("\n## ", 1)[1].strip()
+        def release_notes(path):
+            sections = (ROOT / path).read_text().split("\n## ")[1:]
+            return next(section.strip() for section in sections if section.startswith(version + " (Beta)"))
+        root_notes = release_notes("CHANGELOG.md")
+        addon_notes = release_notes("stackchan-server/CHANGELOG.md")
         self.assertTrue(root_notes.startswith(version + " (Beta)"))
         self.assertEqual(addon_notes, root_notes)
         for readme in ("README.md", "README.zh.md", "stackchan-server/README.md"):

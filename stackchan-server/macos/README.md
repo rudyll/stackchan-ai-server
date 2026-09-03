@@ -8,6 +8,14 @@
 The app contains Apple Silicon and Intel executables, targeting macOS 12+.
 The macOS preview is versioned separately from HA releases.
 
+The existing `macos-v0.1.1` download retains its original **MIT** license. Current
+source builds use **AGPL-3.0-only** for the combined project, preserving upstream
+rights; see [NOTICE](../NOTICE.md). This license transition does not rebuild or
+overwrite that DMG. Before distributing a future AGPL build, provide its exact
+corresponding source and follow the [source-release checklist](../../docs/licensing.md).
+现有 0.1.1 安装包仍采用原 MIT 许可；当前源码采用 AGPL-3.0-only，不追溯修改旧版。
+[支持项目 / Voluntary sponsorship](../../SPONSORING.md) is optional.
+
 ## Install / 安装
 
 1. Open the DMG and drag **StackChan AI Server.app** into **Applications**.

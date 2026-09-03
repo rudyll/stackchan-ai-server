@@ -3,6 +3,11 @@
 !Dockerfile
 !run.sh
 !standalone.sh
+!collect-licenses.sh
+!LICENSE
+!NOTICE.md
+!licenses/
+!licenses/**
 !server/
 !server/**
 **/.DS_Store
