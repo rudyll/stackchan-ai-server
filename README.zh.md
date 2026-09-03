@@ -7,6 +7,12 @@
 
 [English](README.md) | 中文
 
+## 支持项目
+
+[赞助完全自愿](SPONSORING.md)，用于持续维护、设备和 AI 服务测试、打包等工作。
+不赞助不影响许可证授予的权利。可[通过 PayPal 赞助](https://paypal.me/unitekno)，
+或查看[赞助说明](SPONSORING.md#paypal)。
+
 ## 项目介绍
 
 **StackChan AI Server** 让你的 [StackChan](https://github.com/m5stack/StackChan) 桌面机器人变成可配置的实时或 OpenAI-compatible 语音助手，并可选集成 Home Assistant——无需小智账号，无需维护意图脚本。
@@ -392,9 +398,3 @@ python3 $IDF_PATH/components/partition_table/parttool.py \
 已经发布的 MIT 版本，包括 HA `v2.8.0-beta.3` 和可下载的 `macos-v0.1.1` DMG，
 保留原有许可。这次调整适用于当前源码和未来适用版本，不会覆盖旧版发布文件。
 分发和网络服务的源码提供要求见[许可说明](docs/licensing.md)。
-
-## 支持项目
-
-[赞助完全自愿](SPONSORING.md)，用于持续维护、设备和 AI 服务测试、打包等工作。
-不赞助不影响许可证授予的权利。可[通过 PayPal 赞助](https://paypal.me/unitekno)，
-或查看[赞助说明](SPONSORING.md#paypal)。

@@ -7,6 +7,13 @@
 
 English | [中文](README.zh.md)
 
+## Support the project
+
+[Sponsorship is entirely voluntary](SPONSORING.md). It helps fund maintenance,
+device/provider testing and packaging. Not donating does not restrict your
+licensed rights. [Sponsor via PayPal](https://paypal.me/unitekno), or see the
+[sponsorship details](SPONSORING.md#paypal).
+
 ## About
 
 **StackChan AI Server** turns your [StackChan](https://github.com/m5stack/StackChan) desktop robot into a configurable realtime or OpenAI-compatible voice assistant, with optional Home Assistant control — no Xiaozhi cloud account, no intent scripts to maintain.
@@ -392,10 +399,3 @@ Previously published MIT versions, including HA `v2.8.0-beta.3` and the download
 `macos-v0.1.1` DMG, keep their original license. This change applies to the current
 source and future applicable versions; it does not replace old release artifacts.
 See [licensing and source-distribution guidance](docs/licensing.md).
-
-## Support the project
-
-[Sponsorship is entirely voluntary](SPONSORING.md). It helps fund maintenance,
-device/provider testing and packaging. Not donating does not restrict your
-licensed rights. [Sponsor via PayPal](https://paypal.me/unitekno), or see the
-[sponsorship details](SPONSORING.md#paypal).
