@@ -43,10 +43,14 @@ class LicensingTest(unittest.TestCase):
         macos = (ROOT / "stackchan-server/macos/build-dmg.sh").read_text()
         self.assertIn("COPY LICENSE NOTICE.md", docker)
         self.assertIn("COPY licenses/", docker)
+        self.assertIn("/usr/share/licenses/stackchan/licenses/", docker)
         self.assertIn("sh /collect-licenses.sh", docker)
         self.assertIn("/usr/share/licenses/stackchan/dependencies/", docker)
         self.assertIn('"$SERVER_DIR/NOTICE.md"', macos)
         self.assertIn('"$SERVER_DIR/licenses/"*.txt', macos)
+        self.assertIn('"$APP_DIR/Contents/Resources/Licenses/licenses/"', macos)
+        self.assertIn('"$APP_DIR/Contents/Resources/Licenses/LICENSE"', macos)
+        self.assertIn('"$APP_DIR/Contents/Resources/Licenses/NOTICE.md"', macos)
 
 
 if __name__ == "__main__":

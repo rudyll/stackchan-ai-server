@@ -144,8 +144,8 @@ def main():
             license_dir = "/usr/share/licenses/stackchan/"
             for packaged, source in (("LICENSE", "stackchan-server/LICENSE"),
                                      ("NOTICE.md", "stackchan-server/NOTICE.md"),
-                                     ("retained/MIT-M5Stack.txt", "stackchan-server/licenses/MIT-M5Stack.txt"),
-                                     ("retained/MIT-legacy-project.txt", "stackchan-server/licenses/MIT-legacy-project.txt")):
+                                     ("licenses/MIT-M5Stack.txt", "stackchan-server/licenses/MIT-M5Stack.txt"),
+                                     ("licenses/MIT-legacy-project.txt", "stackchan-server/licenses/MIT-legacy-project.txt")):
                 assert run("docker", "exec", container, "cat", license_dir + packaged) == (ROOT / source).read_text().strip()
             mysql_notice = run("docker", "exec", container, "cat", license_dir + "dependencies/github.com_go-sql-driver_mysql-LICENSE")
             assert "Mozilla Public License Version 2.0" in mysql_notice
