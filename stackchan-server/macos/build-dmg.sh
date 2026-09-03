@@ -29,6 +29,8 @@ sed "s/__VERSION__/$VERSION/g" "$SCRIPT_DIR/Info.plist" > "$APP_DIR/Contents/Inf
 cp "$SCRIPT_DIR/config.yaml" "$APP_DIR/Contents/Resources/config.yaml"
 cp "$SCRIPT_DIR/app-launcher.sh" "$APP_DIR/Contents/MacOS/stackchan-server"
 cp "$SERVER_DIR/LICENSE" "$APP_DIR/Contents/Resources/Licenses/StackChan.txt"
+cp "$SERVER_DIR/NOTICE.md" "$APP_DIR/Contents/Resources/Licenses/Project-NOTICE.md"
+cp "$SERVER_DIR/licenses/"*.txt "$APP_DIR/Contents/Resources/Licenses/"
 cp "$SCRIPT_DIR/NOTICE.txt" "$APP_DIR/Contents/Resources/Licenses/NOTICE.txt"
 cp "$SCRIPT_DIR/INSTALL.txt" "$APP_DIR/Contents/Resources/INSTALL.txt"
 printf 'Version: %s\nSource revision: %s\nArchitectures: %s\nMinimum macOS target: 12.0\n' \

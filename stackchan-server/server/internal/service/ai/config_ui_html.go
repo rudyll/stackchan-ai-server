@@ -1,9 +1,21 @@
 /*
 SPDX-FileCopyrightText: 2026 M5Stack Technology CO LTD
-SPDX-License-Identifier: MIT
+SPDX-FileCopyrightText: 2026 rudyll
+SPDX-License-Identifier: MIT AND AGPL-3.0-only
+
+Original portions retain MIT. Project modifications after the MIT release
+commit deddd647c8ef2e3a6fd7a0ab39bdce91680a12ba are AGPL-3.0-only.
+See the project NOTICE.md and retained MIT license text.
 */
 
 package ai
+
+const projectLegalFooter = `<footer style="margin-top:20px;font-size:12px;line-height:1.8;color:#9bbcff" aria-label="版权与支持 / License and support">
+<a style="color:inherit" href="https://github.com/rudyll/stackchan-ai-server" target="_blank" rel="noopener noreferrer">源码 / Source</a> ·
+<a style="color:inherit" href="https://github.com/rudyll/stackchan-ai-server/blob/main/stackchan-server/NOTICE.md" target="_blank" rel="noopener noreferrer">AGPL-3.0-only / 版权声明</a> ·
+<a style="color:inherit" href="https://github.com/rudyll/stackchan-ai-server/blob/main/SPONSORING.md" target="_blank" rel="noopener noreferrer">自愿赞助 / Support</a>
+<div>项目修改 © 2026 rudyll；上游版权见声明。赞助完全自愿 / Sponsorship is optional.</div>
+</footer>`
 
 const configUIHTML = `<!doctype html>
 <html lang="zh-CN">
@@ -69,7 +81,7 @@ const configUIHTML = `<!doctype html>
 
 <datalist id="model-options"></datalist><datalist id="voice-options"></datalist>
 <div class="savebar"><div class="save-state"><span class="save-state-dot" id="save-state-dot" aria-hidden="true"></span><p id="status" class="notice">修改设置后点击保存。</p></div><div class="toolbar"><button class="primary" id="save">保存设置</button><a class="logout" id="logout" href="/logout" hidden>退出登录</a></div></div>
-</div></div></main>
+</div></div>` + projectLegalFooter + `</main>
 <script>
 const q=s=>document.querySelector(s),all=s=>[...document.querySelectorAll(s)];let data={};
 const hints={openai:'使用 OpenAI Realtime API；模型目录会从 /v1/models 获取。',gemini:'使用 Gemini Live API；模型目录会从 Gemini models.list 获取。',tokenhub:'使用 TokenHub LLM；请同时配置兼容的 STT/TTS。',openrouter:'使用 OpenRouter LLM；请同时配置兼容的 STT/TTS。',openai_compatible:'使用你自己的 OpenAI-compatible LLM/STT/TTS 服务。'};
@@ -120,4 +132,4 @@ const configUILoginHTML = `<!doctype html>
 <html lang="zh-CN"><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>StackChan 登录</title><link rel="icon" type="image/png" href="./assets/stackchan-icon.png">
 <style>body{margin:0;background:#10131a;color:#e8edf5;font:15px system-ui,-apple-system,sans-serif}main{max-width:420px;margin:12vh auto;padding:24px;background:#18202d;border-radius:12px}h1{font-size:22px}label{display:block;margin:14px 0 6px;font-weight:650}input{box-sizing:border-box;width:100%;padding:10px;border:1px solid #3c4960;border-radius:7px;background:#101722;color:#fff}button{margin-top:18px;border:0;border-radius:8px;padding:10px 14px;background:#3d7eff;color:#fff;cursor:pointer}.hint{color:#a7b2c6;font-size:13px}.error{color:#ff9b9b;min-height:20px}.setup-banner{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 22px;padding:16px 20px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}.setup-banner p{margin:4px 0 0}.setup-steps{display:grid;gap:14px;padding:0;list-style:none;counter-reset:setup}.setup-steps li{counter-increment:setup;position:relative;padding:18px 20px 18px 58px;border:1px solid var(--line);border-radius:14px}.setup-steps li:before{content:counter(setup);position:absolute;left:18px;top:18px;font-weight:700;color:var(--accent)}.setup-steps p{margin:6px 0 0}.setup-links{display:flex;gap:16px;flex-wrap:wrap}.setup-links a,#device-setup a{color:#9bbcff}#device-setup code{overflow-wrap:anywhere}#device-setup input[readonly]{font-family:ui-monospace,monospace}#setup-warning{padding:14px 16px;border:1px solid #88652d;border-radius:12px;line-height:1.7}#setup-copy-status{min-height:20px}@media(max-width:820px){.tabs{grid-template-columns:repeat(3,minmax(0,1fr))}.setup-banner{align-items:flex-start;flex-direction:column}}@media(max-width:540px){.tabs{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style></head>
-<body><main><img src="./assets/stackchan-icon.png" alt="StackChan" width="88" height="88"><h1>StackChan AI Server</h1><p class="hint">请输入 standalone 设置页的 Bearer token。登录后会使用安全 cookie 访问设置接口。</p><p id="error"></p><form method="post" action="/login"><label for="token">Settings token</label><input id="token" name="token" type="password" autocomplete="current-password" required><button type="submit">登录</button></form></main></body></html>`
+<body><main><img src="./assets/stackchan-icon.png" alt="StackChan" width="88" height="88"><h1>StackChan AI Server</h1><p class="hint">请输入 standalone 设置页的 Bearer token。登录后会使用安全 cookie 访问设置接口。</p><p id="error"></p><form method="post" action="/login"><label for="token">Settings token</label><input id="token" name="token" type="password" autocomplete="current-password" required><button type="submit">登录</button></form>` + projectLegalFooter + `</main></body></html>`

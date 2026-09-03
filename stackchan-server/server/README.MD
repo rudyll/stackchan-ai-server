@@ -261,7 +261,9 @@ For major changes, please open an issue first to discuss what you would like to 
 
 [SPDX-FileCopyrightText: 2026 M5Stack Technology CO LTD](LICENSE)
 
-[SPDX-License-Identifier: MIT](LICENSE)
+[Current combined project: AGPL-3.0-only](../LICENSE).
+Original M5Stack MIT permissions and prior release permissions are preserved;
+see [copyright and license scope](../NOTICE.md).
 
 ---
 

@@ -2,7 +2,7 @@
 
 <p align="center"><img src="stackchan-server/logo.png" alt="戴手绘皇冠、带天使翅膀的 StackChan" width="200" height="200"></p>
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-blue.svg)](LICENSE)
 
 [English](README.md) | 中文
 
@@ -384,4 +384,16 @@ python3 $IDF_PATH/components/partition_table/parttool.py \
 
 ## 许可证
 
-MIT — 详见 [LICENSE](LICENSE)
+当前组合项目采用 **AGPL-3.0-only**，详见 [LICENSE](LICENSE)、
+[版权及保留的第三方权利](stackchan-server/NOTICE.md)和[贡献规则](CONTRIBUTING.md)。
+遵守许可证即可商业使用；没有强制捐赠、利润分成或向本仓库提交 PR 的要求。
+
+已经发布的 MIT 版本，包括 HA `v2.8.0-beta.3` 和可下载的 `macos-v0.1.1` DMG，
+保留原有许可。这次调整适用于当前源码和未来适用版本，不会覆盖旧版发布文件。
+分发和网络服务的源码提供要求见[许可说明](docs/licensing.md)。
+
+## 支持项目
+
+[赞助完全自愿](SPONSORING.md)，用于持续维护、设备和 AI 服务测试、打包等工作。
+不赞助不影响许可证授予的权利。目前尚未公布已核实的收款渠道；PayPal 及可选
+加密货币收款信息只会在维护者确认后发布。

@@ -2,7 +2,7 @@
 
 <p align="center"><img src="stackchan-server/logo.png" alt="StackChan with a hand-drawn crown and angel wings" width="200" height="200"></p>
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-blue.svg)](LICENSE)
 
 English | [中文](README.zh.md)
 
@@ -382,4 +382,19 @@ Check whether the device still uses your local OTA URL. If the upgrade or reflas
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
+The current combined project is **AGPL-3.0-only** — see [LICENSE](LICENSE),
+[copyright and retained third-party rights](stackchan-server/NOTICE.md), and
+[contribution rules](CONTRIBUTING.md). Commercial use is allowed when the license
+is followed; there is no mandatory donation, profit share, or upstream PR.
+
+Previously published MIT versions, including HA `v2.8.0-beta.3` and the downloadable
+`macos-v0.1.1` DMG, keep their original license. This change applies to the current
+source and future applicable versions; it does not replace old release artifacts.
+See [licensing and source-distribution guidance](docs/licensing.md).
+
+## Support the project
+
+[Sponsorship is entirely voluntary](SPONSORING.md). It helps fund maintenance,
+device/provider testing and packaging. Not donating does not restrict your
+licensed rights. No verified payment destination is published yet; PayPal and
+optional cryptocurrency details will appear only after maintainer confirmation.

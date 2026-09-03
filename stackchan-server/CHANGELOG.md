@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Adopted AGPL-3.0-only for the current combined project, retaining original third-party notices and all previously granted MIT permissions. Existing HA beta.3 and macOS 0.1.1 release artifacts are unchanged.
+- Added bilingual voluntary-sponsorship and contribution policies. Sponsorship is not a condition of commercial use, a royalty, a copyright transfer, a support contract or a commercial-license exception. Payment destinations remain unpublished until confirmed.
+- Added source/license/support links to the shared settings and login pages, project/retained license files to packaging, Go dependency notices to container builds, and a corresponding-source release checklist.
+
 ## 2.8.0-beta.3 (Beta)
 
 - Released the accumulated shared-server and standalone improvements below for the HA add-on. Added crown-and-wings artwork to the bundled settings header/favicon, HA store icon/logo and bilingual README headers.

@@ -2,7 +2,13 @@
 
 <p align="center"><img src="https://raw.githubusercontent.com/rudyll/stackchan-ai-server/main/stackchan-server/logo.png" alt="StackChan with a hand-drawn crown and angel wings" width="160" height="160"></p>
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-blue.svg)](LICENSE)
+
+Current combined source: **AGPL-3.0-only**, with original third-party permissions
+retained in [NOTICE](NOTICE.md). Previously published MIT releases, including
+`v2.8.0-beta.3` and `macos-v0.1.1`, keep their original license.
+[Sponsorship is voluntary / 赞助完全自愿](../SPONSORING.md); no confirmed payment
+destination is published yet. [Contribution rules](../CONTRIBUTING.md).
 
 Home Assistant add-on and standalone Docker runtime for [StackChan](https://github.com/m5stack/StackChan) — an AI robot built on M5Stack CoreS3.
 

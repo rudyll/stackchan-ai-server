@@ -141,6 +141,15 @@ def main():
                             "-v", "/data", "-p", "127.0.0.1::8099", "-p", "127.0.0.1::12800", args.image)
             run("docker", "cp", str(options), container + ":/data/options.json")
             run("docker", "start", container)
+            license_dir = "/usr/share/licenses/stackchan/"
+            for packaged, source in (("LICENSE", "stackchan-server/LICENSE"),
+                                     ("NOTICE.md", "stackchan-server/NOTICE.md"),
+                                     ("retained/MIT-M5Stack.txt", "stackchan-server/licenses/MIT-M5Stack.txt"),
+                                     ("retained/MIT-legacy-project.txt", "stackchan-server/licenses/MIT-legacy-project.txt")):
+                assert run("docker", "exec", container, "cat", license_dir + packaged) == (ROOT / source).read_text().strip()
+            mysql_notice = run("docker", "exec", container, "cat", license_dir + "dependencies/github.com_go-sql-driver_mysql-LICENSE")
+            assert "Mozilla Public License Version 2.0" in mysql_notice
+            print("PASS packaged AGPL, retained MIT and dependency notices", flush=True)
             ha_ui = published_port(container, 8099)
             ha_ws = published_port(container, 12800)
             base, token = check_runtime(ha_ui, ha_ws, 12800, ha=True)
