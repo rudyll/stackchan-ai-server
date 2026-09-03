@@ -3,6 +3,7 @@
 <p align="center"><img src="stackchan-server/logo.png" alt="戴手绘皇冠、带天使翅膀的 StackChan" width="200" height="200"></p>
 
 [![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-blue.svg)](LICENSE)
+[![通过 PayPal 赞助](https://img.shields.io/badge/Sponsor-PayPal-0070BA?logo=paypal&logoColor=white)](https://paypal.me/unitekno)
 
 [English](README.md) | 中文
 
@@ -395,5 +396,5 @@ python3 $IDF_PATH/components/partition_table/parttool.py \
 ## 支持项目
 
 [赞助完全自愿](SPONSORING.md)，用于持续维护、设备和 AI 服务测试、打包等工作。
-不赞助不影响许可证授予的权利。目前尚未公布已核实的收款渠道；PayPal 及可选
-加密货币收款信息只会在维护者确认后发布。
+不赞助不影响许可证授予的权利。可[通过 PayPal 赞助](https://paypal.me/unitekno)，
+或查看[赞助说明](SPONSORING.md#paypal)。

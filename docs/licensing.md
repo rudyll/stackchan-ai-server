@@ -65,12 +65,17 @@ Primary references: [GNU compatibility](https://www.gnu.org/licenses/license-com
 
 ## Funding workflow
 
-[SPONSORING](../SPONSORING.md) is the bilingual public policy. Only add payment
-destinations supplied and approved by the maintainer. Once an actual public
-PayPal URL is confirmed, add it as a custom URL to `.github/FUNDING.yml` and the
-sponsorship page, then verify the destination and rendered Sponsor button.
-Until then, do not publish placeholders, guessed PayPal usernames, or crypto
-addresses. Cryptocurrency requires explicit currency/network/address approval.
+[SPONSORING](../SPONSORING.md) is the bilingual public policy. The maintainer
+confirmed `https://paypal.me/unitekno` on 2026-09-03 (updated from the earlier
+`rudy219` destination; no QR code is published for this account). The link is
+configured as a custom URL in `.github/FUNDING.yml` and displayed near the top
+of both READMEs and the add-on README. This uses an external PayPal
+destination, not GitHub Sponsors payment enrollment.
+
+Only add payment destinations supplied and approved by the maintainer. Verify
+the destination and rendered Sponsor button after any update. Never
+publish placeholders or guessed PayPal usernames. Cryptocurrency requires
+explicit currency/network/address approval; no crypto address is published.
 
 This project-specific license decision does not mandate AGPL for every future
 project; voluntary sponsorship is the shared default, licenses remain scoped.

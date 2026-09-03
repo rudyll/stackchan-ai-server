@@ -11,11 +11,21 @@ and packaging/signing work. Contributions of bug reports, documentation,
 translations and testing are equally welcome. Sponsors are acknowledged publicly
 only with their consent. Do not assume charitable tax deductibility.
 
-## Payment destinations
+## PayPal
 
-**No verified payment destination is published yet.** A maintainer-confirmed
-public PayPal link can be added here and to GitHub's Sponsor button later. Do not
-send money to payment details copied from unrelated issues, comments or forks.
+[![Sponsor via PayPal / 通过 PayPal 赞助](https://img.shields.io/badge/Sponsor-PayPal-0070BA?logo=paypal&logoColor=white)](https://paypal.me/unitekno)
+
+Maintainer-confirmed public destination: [paypal.me/unitekno](https://paypal.me/unitekno).
+Check the recipient on PayPal before confirming a payment. The GitHub Sponsor
+button uses this same PayPal link; this is not enrollment in GitHub's own
+payment program.
+
+维护者确认的公开收款页：[paypal.me/unitekno](https://paypal.me/unitekno)。
+付款前请在 PayPal 核对收款人。GitHub 的 Sponsor 按钮也指向此 PayPal 链接，
+并非 GitHub 平台内收款。
+
+Do not send money to payment details copied from unrelated issues, comments or
+forks. No cryptocurrency receiving address has been published.
 
 Cryptocurrency is optional, subject to local rules and explicit confirmation of
 the currency, network, public receiving address and memo/tag if required. Public
@@ -32,8 +42,8 @@ project, and the project never asks you to connect a wallet to unlock features.
 赞助用于持续维护、设备测试、AI 服务兼容性测试以及打包和签名。问题反馈、文档、
 翻译和测试同样有帮助。仅在赞助者同意后公开鸣谢，不承诺慈善抵税资格。
 
-**目前尚未公布已核实的收款渠道。** 确认维护者提供的公开 PayPal 链接后，会更新
-本页和 GitHub 赞助按钮。请勿向无关 issue、评论或分支中的收款地址付款。
+已确认的收款方式为上方 [PayPal 链接](#paypal)。请勿向无关 issue、评论或
+分支中的收款地址付款。目前未公布加密货币收款地址。
 
 加密货币收款为可选项，需要符合所在地规则并明确币种、网络、公开地址及必要的
 备注。链上交易可能暴露资金关联。不要提供私钥、助记词或账户密码；本项目不会

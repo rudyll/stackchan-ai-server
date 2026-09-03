@@ -3,6 +3,7 @@
 <p align="center"><img src="stackchan-server/logo.png" alt="StackChan with a hand-drawn crown and angel wings" width="200" height="200"></p>
 
 [![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-blue.svg)](LICENSE)
+[![Sponsor via PayPal](https://img.shields.io/badge/Sponsor-PayPal-0070BA?logo=paypal&logoColor=white)](https://paypal.me/unitekno)
 
 English | [中文](README.zh.md)
 
@@ -396,5 +397,5 @@ See [licensing and source-distribution guidance](docs/licensing.md).
 
 [Sponsorship is entirely voluntary](SPONSORING.md). It helps fund maintenance,
 device/provider testing and packaging. Not donating does not restrict your
-licensed rights. No verified payment destination is published yet; PayPal and
-optional cryptocurrency details will appear only after maintainer confirmation.
+licensed rights. [Sponsor via PayPal](https://paypal.me/unitekno), or see the
+[sponsorship details](SPONSORING.md#paypal).
