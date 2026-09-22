@@ -1,5 +1,12 @@
 # Changelog
 
+## macOS 0.1.2 (Preview)
+
+- Brought the 2.8.0-beta.4 server fixes to the macOS download: server-side end-of-turn detection for the turn-based pipeline, compatible base URLs accepted with or without the trailing `/v1`, a configurable `openai_base_url`, and incoming-audio reporting in the log.
+- First AGPL-3.0-only build of this app. The release carries the corresponding-source archive built from the same tag with its checksum. The published `macos-v0.1.1` and `macos-v0.1.0` downloads keep their original MIT license and were not rebuilt.
+- Still an ad-hoc signed universal preview for macOS 12+, without Developer ID signing, notarization, menu-bar controls or auto-update. Stop the running app before replacing it; settings and history in Application Support are kept.
+- The turn detection is covered by unit tests only; no physical device running factory firmware in `auto` mode was available. See [the release notes](../docs/releases/macos-v0.1.2.md).
+
 ## 2.8.0-beta.4 (Beta)
 
 - Fixed the turn-based pipeline never starting a turn with firmware that listens in `auto` mode: the server now detects the end of speech itself, so `openai_compatible`, `tokenhub` and `openrouter` work on stock devices that never send `listen:stop`. A device's own `listen:stop` still ends the turn when it arrives first. New `compatible_server_vad` (default on) and `compatible_vad_silence_ms` (default 800 ms) options.

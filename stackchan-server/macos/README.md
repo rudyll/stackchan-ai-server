@@ -2,17 +2,18 @@
 
 <p align="center"><img src="../logo.png" alt="StackChan with a hand-drawn crown and angel wings" width="160" height="160"></p>
 
-[Download universal DMG](https://github.com/rudyll/stackchan-ai-server/releases/download/macos-v0.1.1/StackChan-AI-Server-0.1.1-macos-universal.dmg) · [Release and checksum](https://github.com/rudyll/stackchan-ai-server/releases/tag/macos-v0.1.1)
+[Download universal DMG](https://github.com/rudyll/stackchan-ai-server/releases/download/macos-v0.1.2/StackChan-AI-Server-0.1.2-macos-universal.dmg) · [Release and checksum](https://github.com/rudyll/stackchan-ai-server/releases/tag/macos-v0.1.2)
 
 **No build required. No Docker, Homebrew, Go or audio-library installation for users.**
 The app contains Apple Silicon and Intel executables, targeting macOS 12+.
 The macOS preview is versioned separately from HA releases.
 
-The existing `macos-v0.1.1` download retains its original **MIT** license. Current
-source builds use **AGPL-3.0-only** for the combined project, preserving upstream
-rights; see [NOTICE](../NOTICE.md). This license transition does not rebuild or
-overwrite that DMG. Before distributing a future AGPL build, provide its exact
-corresponding source and follow the [source-release checklist](../../docs/licensing.md).
+`macos-v0.1.2` is the first **AGPL-3.0-only** build of this app; its release
+carries the matching corresponding-source archive built from the same tag, and the
+settings page links to the source. The earlier `macos-v0.1.1` and `macos-v0.1.0`
+downloads keep their original **MIT** license and were not rebuilt or overwritten;
+see [NOTICE](../NOTICE.md). Before publishing any further AGPL build, follow the
+[source-release checklist](../../docs/licensing.md).
 现有 0.1.1 安装包仍采用原 MIT 许可；当前源码采用 AGPL-3.0-only，不追溯修改旧版。
 [支持项目 / Voluntary sponsorship](../../SPONSORING.md) is optional.
 
@@ -37,7 +38,7 @@ The DMG includes these instructions, an Applications shortcut, and license notic
 inside the app. To check the download, put its matching .sha256 file alongside it:
 
 ```bash
-shasum -a 256 -c StackChan-AI-Server-0.1.1-macos-universal.dmg.sha256
+shasum -a 256 -c StackChan-AI-Server-0.1.2-macos-universal.dmg.sha256
 ```
 
 ## Data, ports and upgrades / 数据与升级
@@ -94,6 +95,7 @@ See [design record](../../docs/brand-icon.md).
    mounted image and isolated startup. Record limitations in the release notes.
 2. Commit and push final main; rebuild from that exact clean tracked revision.
 3. Tag it `macos-v<VERSION>` and publish a GitHub pre-release with the DMG and
-   matching checksum. Use [the 0.1.1 release notes](../../docs/releases/macos-v0.1.1.md).
+   matching checksum, plus the corresponding-source archive and its checksum for an
+   AGPL build. Use [the 0.1.2 release notes](../../docs/releases/macos-v0.1.2.md).
 4. Verify tag target, release state, download URLs, asset digest and downloaded
    checksum. This does not bump the HA add-on version or replace its release.
