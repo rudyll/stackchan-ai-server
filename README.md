@@ -104,7 +104,7 @@ The same server is also available as a standalone Docker runtime. See the standa
 5. Go to the add-on **Configuration** tab and fill in the required fields (see below)
 6. Start the add-on
 
-**HA update:** Version [2.8.0-beta.3](https://github.com/rudyll/stackchan-ai-server/releases/tag/v2.8.0-beta.3) brings the shared settings GUI, permanent NVS guide and crown-and-wings artwork into the add-on. Back up first, refresh the add-on store, then update and restart; keep the existing options and data. **Open Web UI** is the shared graphical page, while HA's **Configuration** tab is a separate form. Updating repository images alone does not update an installed server.
+**HA update:** Version [2.8.0-beta.4](https://github.com/rudyll/stackchan-ai-server/releases/tag/v2.8.0-beta.4) makes the turn-based pipeline work on stock firmware that never sends `listen:stop`, so any OpenAI-compatible text LLM can be used, and fixes compatible base URLs written as `.../v1`. Back up first, refresh the add-on store, then update and restart; keep the existing options and data. **Open Web UI** is the shared graphical page, while HA's **Configuration** tab is a separate form. Updating repository images alone does not update an installed server.
 
 ### Standalone Docker (beta)
 

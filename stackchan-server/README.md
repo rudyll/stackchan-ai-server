@@ -63,9 +63,10 @@ The device's audio and WebSocket traffic goes directly to StackChan AI Server; H
 4. Find **StackChan AI Server** in the store and click **Install**
 
 For existing installations, back up first, refresh the store, and update to
-[2.8.0-beta.3](https://github.com/rudyll/stackchan-ai-server/releases/tag/v2.8.0-beta.3).
-Restart and open **Web UI** for the shared settings, permanent NVS guide and new
-artwork. Keep your options and data. See the [add-on changelog](CHANGELOG.md).
+[2.8.0-beta.4](https://github.com/rudyll/stackchan-ai-server/releases/tag/v2.8.0-beta.4).
+Restart and open **Web UI** for the shared settings and permanent NVS guide. Keep
+your options and data; the new turn-detection options work at their defaults. See
+the [add-on changelog](CHANGELOG.md).
 
 ### Standalone Docker (beta)
 

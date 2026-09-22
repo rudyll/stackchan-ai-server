@@ -103,7 +103,7 @@ StackChan AI Server（HA add-on 或 standalone Docker，使用 12800 端口）
 5. 进入插件的 **配置** 选项卡，填写必要字段（见下文）
 6. 启动插件
 
-**HA 更新：** [2.8.0-beta.3](https://github.com/rudyll/stackchan-ai-server/releases/tag/v2.8.0-beta.3) 将共享图形化设置页、常驻 NVS 指引和皇冠翅膀图标正式带入插件。请先备份，刷新插件商店，再更新并重启；保留原有配置和数据。**打开 Web UI** 是共享图形化页面，HA 自带的**配置**选项卡是另一份表单。只更新仓库图片不会更新已安装的服务程序。
+**HA 更新：** [2.8.0-beta.4](https://github.com/rudyll/stackchan-ai-server/releases/tag/v2.8.0-beta.4) 让回合制管线在不发送 `listen:stop` 的出厂固件上也能工作，任何 OpenAI 兼容的文本模型都可以使用；同时修复了 Base URL 写成 `.../v1` 时的请求路径问题。请先备份，刷新插件商店，再更新并重启；保留原有配置和数据。**打开 Web UI** 是共享图形化页面，HA 自带的**配置**选项卡是另一份表单。只更新仓库图片不会更新已安装的服务程序。
 
 ### Standalone Docker（Beta）
 

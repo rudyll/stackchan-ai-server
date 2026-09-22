@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.8.0-beta.4 (Beta)
 
 - Fixed the turn-based pipeline never starting a turn with firmware that listens in `auto` mode: the server now detects the end of speech itself, so `openai_compatible`, `tokenhub` and `openrouter` work on stock devices that never send `listen:stop`. A device's own `listen:stop` still ends the turn when it arrives first. New `compatible_server_vad` (default on) and `compatible_vad_silence_ms` (default 800 ms) options.
 - Fixed compatible base URLs ending in `/v1` producing `/v1/v1/...` request paths, which made every STT, LLM and TTS call fail against an endpoint copied from the settings hint, including the built-in OpenRouter default. Both spellings are now accepted, and model discovery uses the same rule.
@@ -10,6 +10,14 @@
 - Added bilingual voluntary-sponsorship and contribution policies. Sponsorship is not a condition of commercial use, a royalty, a copyright transfer, a support contract or a commercial-license exception.
 - Added the maintainer-confirmed PayPal link (paypal.me/unitekno) to GitHub funding settings and prominent README badges.
 - Added source/license/support links to the shared settings and login pages, project/retained license files to packaging, Go dependency notices to container builds, and a corresponding-source release checklist.
+
+### Upgrade and testing notes
+
+- HA: back up the add-on, refresh the add-on store, then update to `2.8.0-beta.4` and restart. Existing options and `/data` are kept; the two new turn-detection options default to the values above, so no configuration change is required.
+- Docker: fetch the updated source, preserve `.env` and the mounted data directory, then run `docker compose -f docker-compose.standalone.yml up --build -d` from `stackchan-server`. Containers are built from source; no prebuilt registry image is published. Existing containers do not update merely because GitHub changed.
+- macOS: the independently versioned `macos-v0.1.1` universal DMG remains the current download; this HA/container release does not replace that artifact.
+- If a compatible base URL was written without the trailing `/v1` to work around the 404s, both spellings now resolve to the same request paths, so no edit is needed either way.
+- Not verified: the server-side turn detection is covered by unit tests only. No physical device running factory firmware in `auto` mode was available, and live AI-provider, HA Supervisor/Ingress and real audio checks remain outstanding. The pre-existing vet warnings in `internal/web_socket/web_socket.go` are outside this release.
 
 ## 2.8.0-beta.3 (Beta)
 
