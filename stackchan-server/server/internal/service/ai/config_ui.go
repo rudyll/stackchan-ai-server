@@ -122,6 +122,20 @@ func settingsUpdateError(values map[string]string) string {
 		if key == "conversation_history_enabled" && value != "true" && value != "false" {
 			return "conversation_history_enabled must be true or false"
 		}
+		if key == "compatible_server_vad" && value != "true" && value != "false" {
+			return "compatible_server_vad must be true or false"
+		}
+		if key == "compatible_vad_silence_ms" && strings.TrimSpace(value) != "" {
+			n, err := strconv.Atoi(value)
+			if err != nil || n < 200 || n > 5000 {
+				return "compatible_vad_silence_ms must be between 200 and 5000"
+			}
+		}
+		if key == "openai_base_url" && strings.TrimSpace(value) != "" {
+			if _, err := realtimeDialURLFor(value, "probe"); err != nil {
+				return err.Error()
+			}
+		}
 		switch key {
 		case "conversation_history_days", "conversation_context_messages", "conversation_idle_seconds":
 			lower, upper := 0, 300

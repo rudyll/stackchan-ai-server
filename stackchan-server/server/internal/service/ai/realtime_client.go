@@ -16,6 +16,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -25,7 +26,48 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-const realtimeEndpoint = "wss://api.openai.com/v1/realtime"
+const defaultRealtimeEndpoint = "wss://api.openai.com/v1/realtime"
+
+// realtimeDialURL resolves the Realtime WebSocket URL for one session. Setting
+// ai.openai_base_url points the realtime path at any host that speaks the OpenAI
+// Realtime protocol; an https/http base is upgraded to wss/ws and a REST-style
+// base (".../v1") gets the "/realtime" suffix appended, so both spellings work.
+//
+// Wire compatibility is the provider's responsibility: an endpoint that only
+// resembles the OpenAI Realtime protocol will connect and then fail on the
+// session events below.
+func realtimeDialURL(ctx context.Context, model string) (string, error) {
+	return realtimeDialURLFor(aiString(ctx, "openai_base_url", ""), model)
+}
+
+// realtimeDialURLFor is the pure form, so the settings API can validate a base
+// URL before saving it.
+func realtimeDialURLFor(baseURL, model string) (string, error) {
+	raw := strings.TrimSpace(baseURL)
+	if raw == "" {
+		raw = defaultRealtimeEndpoint
+	}
+	parsed, err := url.Parse(strings.TrimRight(raw, "/"))
+	if err != nil || parsed.Host == "" {
+		return "", fmt.Errorf("ai.openai_base_url must be an http(s) or ws(s) URL")
+	}
+	switch parsed.Scheme {
+	case "https":
+		parsed.Scheme = "wss"
+	case "http":
+		parsed.Scheme = "ws"
+	case "wss", "ws":
+	default:
+		return "", fmt.Errorf("ai.openai_base_url must be an http(s) or ws(s) URL")
+	}
+	if !strings.HasSuffix(parsed.Path, "/realtime") {
+		parsed.Path += "/realtime"
+	}
+	query := parsed.Query()
+	query.Set("model", model)
+	parsed.RawQuery = query.Encode()
+	return parsed.String(), nil
+}
 
 // openaiRealtimeSession manages one OpenAI Realtime WS connection.
 // It is long-lived: one per device WS connection, so conversation history is
@@ -75,7 +117,11 @@ func dialOpenAIRealtimeSession(
 	hdr := http.Header{
 		"Authorization": []string{"Bearer " + apiKey},
 	}
-	conn, resp, err := websocket.DefaultDialer.DialContext(ctx, realtimeEndpoint+"?model="+model, hdr)
+	endpoint, err := realtimeDialURL(ctx, model)
+	if err != nil {
+		return nil, err
+	}
+	conn, resp, err := websocket.DefaultDialer.DialContext(ctx, endpoint, hdr)
 	if err != nil {
 		// Surface HTTP status when available — helps tell auth (401), wrong
 		// model (404), and rate limits (429) apart from network errors.

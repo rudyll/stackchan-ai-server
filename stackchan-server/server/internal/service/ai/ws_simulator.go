@@ -68,6 +68,15 @@ type wsSession struct {
 	providerClosed   int32      // atomic: 1 when OnClose triggered conn.Close()
 	listenStopped    time.Time  // latency baseline for the current user turn
 	firstAudioLogged int32
+
+	// vad is non-nil only for providers without their own VAD (server_vad.go).
+	vad *serverVAD
+
+	// Incoming audio counters, reported by audioStatsLoop. They make "no audio
+	// at all" distinguishable from "audio arriving but no turn" in the log.
+	audioFrames   int64 // atomic
+	audioBytes    int64 // atomic
+	ignoredFrames int64 // atomic: frames dropped because the session is not listening
 }
 
 // HandleWS upgrades the connection and runs a Xiaozhi v3 protocol session
@@ -211,10 +220,12 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 			enc := s.opusEnc
 			s.mu.Unlock()
 			if enc == nil {
+				// Turn ended without audio (empty transcript, provider error).
 				s.activity.playbackDone(time.Now())
 				if aware, ok := s.rt.(PlaybackStateAware); ok {
 					aware.InterruptPlayback()
 				}
+				s.rearmListening(ctx)
 				return
 			}
 			// Flush remaining PCM that didn't fill a complete 60ms frame.
@@ -244,6 +255,11 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.rt = rt
+	if aware, ok := rt.(ServerVADAware); ok && aware.NeedsServerVAD() && aiBool(ctx, "compatible_server_vad", true) {
+		silenceMs := aiInt(ctx, "compatible_vad_silence_ms", serverVADSilenceMsDefault)
+		s.vad = newServerVAD(silenceMs, serverVADMinSpeechMs)
+		g.Log().Infof(ctx, "[WS] device=%s server VAD enabled silence=%dms", deviceID, silenceMs)
+	}
 	defer func() {
 		s.mu.Lock()
 		if s.prebufferTimer != nil {
@@ -256,6 +272,7 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 	go s.pacingLoop(ctx)
 	go s.pingLoop(ctx)
 	go s.idleLoop(ctx)
+	go s.audioStatsLoop(ctx)
 	s.run(ctx)
 	cancel()
 
@@ -292,6 +309,7 @@ func (s *wsSession) pacingLoop(ctx context.Context) {
 					if aware, ok := s.rt.(PlaybackStateAware); ok {
 						aware.SetPlaybackBusy(false)
 					}
+					s.rearmListening(ctx)
 				} else {
 					s.activity.responding(time.Now())
 					_ = s.sendAudio(frame)
@@ -364,16 +382,23 @@ func (s *wsSession) run(ctx context.Context) {
 			listening := s.isListening
 			s.mu.Unlock()
 			if !listening {
+				atomic.AddInt64(&s.ignoredFrames, 1)
 				continue
 			}
 			pcm, err := decodeOpusFrame(s.opusDec, data[4:4+payloadSize])
 			if err != nil {
 				continue
 			}
+			atomic.AddInt64(&s.audioFrames, 1)
+			atomic.AddInt64(&s.audioBytes, int64(payloadSize))
 			if !s.activity.audio(time.Now(), pcm) {
 				return
 			}
 			_ = s.rt.AppendAudio(pcm)
+			if s.vad.observe(pcm) {
+				g.Log().Infof(ctx, "[WS] device=%s server VAD end of speech", s.deviceID)
+				s.commitTurn(ctx, "server_vad")
+			}
 			continue
 		}
 
@@ -395,6 +420,7 @@ func (s *wsSession) run(ctx context.Context) {
 			s.handleListen(ctx, msg)
 		case "abort":
 			s.activity.playbackDone(time.Now())
+			s.vad.reset()
 			_ = s.rt.CancelResponse()
 			s.mu.Lock()
 			s.opusEnc = nil
@@ -443,6 +469,7 @@ func (s *wsSession) handleListen(ctx context.Context, msg map[string]any) {
 	case "detect":
 		s.activity.wake(time.Now())
 		// Wake word: cancel in-progress response and unblock device VAD.
+		s.vad.reset()
 		_ = s.rt.CancelResponse()
 		s.mu.Lock()
 		s.opusEnc = nil
@@ -459,7 +486,8 @@ func (s *wsSession) handleListen(ctx context.Context, msg map[string]any) {
 		_ = s.sendJSON(map[string]any{"type": "tts", "state": "stop"})
 
 	case "start":
-		if mode, _ := msg["mode"].(string); mode == "manual" {
+		mode, _ := msg["mode"].(string)
+		if mode == "manual" {
 			s.activity.wake(time.Now())
 		}
 		if s.activity.expired(time.Now()) {
@@ -473,28 +501,84 @@ func (s *wsSession) handleListen(ctx context.Context, msg map[string]any) {
 		} else {
 			s.opusDec = dec
 		}
+		s.vad.reset()
 		s.mu.Lock()
 		s.isListening = true
 		s.mu.Unlock()
-		g.Log().Infof(ctx, "[WS] device=%s listening started", s.deviceID)
+		// The mode decides who ends the turn: "manual" means the device sends
+		// listen:stop, "auto"/"realtime" leave it to the server.
+		g.Log().Infof(ctx, "[WS] device=%s listening started mode=%q server_vad=%t", s.deviceID, mode, s.vad != nil)
 
 	case "stop":
-		s.mu.Lock()
-		wasListening := s.isListening
-		s.isListening = false
-		s.mu.Unlock()
-		if !wasListening {
+		s.commitTurn(ctx, "listen_stop")
+	}
+}
+
+// commitTurn ends the current user turn and hands the buffered audio to the
+// provider. Either the device's listen:stop or the server-side detector gets
+// here first; the loser finds the session no longer listening and does nothing.
+// Listening stays off until playback finishes, so a device that keeps streaming
+// while the reply plays cannot feed the speaker's own output into the next turn.
+func (s *wsSession) commitTurn(ctx context.Context, trigger string) {
+	s.mu.Lock()
+	wasListening := s.isListening
+	s.isListening = false
+	s.mu.Unlock()
+	if !wasListening {
+		return
+	}
+	s.vad.reset()
+	if !s.activity.commit(time.Now()) {
+		return
+	}
+	s.mu.Lock()
+	s.listenStopped = time.Now()
+	s.mu.Unlock()
+	atomic.StoreInt32(&s.firstAudioLogged, 0)
+	_ = s.rt.CommitAudio()
+	g.Log().Infof(ctx, "[WS] device=%s listening stopped (committed trigger=%s)", s.deviceID, trigger)
+}
+
+// rearmListening resumes listening after a server-VAD turn. Firmware in auto
+// mode is expected to announce listen:start again, but a build that stays silent
+// must not go deaf for the rest of the session. Devices that drive their own
+// turns (listen:stop) keep waiting for their next listen:start.
+func (s *wsSession) rearmListening(ctx context.Context) {
+	if s.vad == nil || s.activity.expired(time.Now()) {
+		return
+	}
+	s.vad.reset()
+	s.mu.Lock()
+	alreadyListening := s.isListening
+	s.isListening = true
+	s.mu.Unlock()
+	if !alreadyListening {
+		g.Log().Infof(ctx, "[WS] device=%s listening resumed for the next turn", s.deviceID)
+	}
+}
+
+// audioStatsLoop reports incoming microphone traffic. Control messages alone
+// cannot tell "no audio arrived" apart from "audio arrived but no turn started",
+// which is exactly the pair that has to be distinguished when a pipeline stalls.
+func (s *wsSession) audioStatsLoop(ctx context.Context) {
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+	var lastFrames, lastBytes, lastIgnored int64
+	for {
+		select {
+		case <-ctx.Done():
 			return
+		case <-ticker.C:
+			frames := atomic.LoadInt64(&s.audioFrames)
+			payloadBytes := atomic.LoadInt64(&s.audioBytes)
+			ignored := atomic.LoadInt64(&s.ignoredFrames)
+			if frames == lastFrames && ignored == lastIgnored {
+				continue
+			}
+			g.Log().Infof(ctx, "[WS] device=%s audio in frames=%d bytes=%d ignored=%d (+%d frames +%d bytes +%d ignored)",
+				s.deviceID, frames, payloadBytes, ignored, frames-lastFrames, payloadBytes-lastBytes, ignored-lastIgnored)
+			lastFrames, lastBytes, lastIgnored = frames, payloadBytes, ignored
 		}
-		if !s.activity.commit(time.Now()) {
-			return
-		}
-		s.mu.Lock()
-		s.listenStopped = time.Now()
-		s.mu.Unlock()
-		atomic.StoreInt32(&s.firstAudioLogged, 0)
-		_ = s.rt.CommitAudio()
-		g.Log().Infof(ctx, "[WS] device=%s listening stopped (committed)", s.deviceID)
 	}
 }
 

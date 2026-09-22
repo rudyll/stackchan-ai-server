@@ -103,13 +103,14 @@ func aiBool(ctx context.Context, key string, fallback bool) bool {
 }
 
 var settingsUIKeys = []string{
-	"provider", "openai_api_key", "openai_realtime_model", "openai_tts_voice",
+	"provider", "openai_api_key", "openai_base_url", "openai_realtime_model", "openai_tts_voice",
 	"gemini_api_key", "gemini_model", "gemini_voice", "gemini_enable_tools", "gemini_enable_search",
 	"tokenhub_base_url", "tokenhub_api_key", "openrouter_api_key", "openrouter_base_url",
 	"compatible_base_url", "compatible_api_key", "compatible_model", "compatible_stt_model", "compatible_tts_model", "compatible_tts_voice",
 	"stt_base_url", "stt_api_key", "stt_model", "llm_base_url", "llm_api_key", "llm_model",
 	"tts_base_url", "tts_api_key", "tts_model", "tts_voice", "device_profiles",
 	"audio_prebuffer_ms", "audio_prebuffer_max_wait_ms",
+	"compatible_server_vad", "compatible_vad_silence_ms",
 	"background_tasks_enabled", "background_agent_base_url", "background_agent_api_key",
 	"background_agent_model", "background_agent_timeout_seconds", "background_agent_prompt", "system_prompt",
 	"standalone_ha_enabled", "standalone_ha_url", "standalone_ha_token",
@@ -149,6 +150,10 @@ func settingsForUI(ctx context.Context) map[string]string {
 	}
 	values["standalone_ha_token_configured"] = strconv.FormatBool(strings.TrimSpace(aiString(ctx, "standalone_ha_token", "")) != "")
 	values["conversation_history_enabled"] = strconv.FormatBool(aiBool(ctx, "conversation_history_enabled", false))
+	// Normalized so the GUI's select and number input always start on a valid
+	// value instead of an empty one.
+	values["compatible_server_vad"] = strconv.FormatBool(aiBool(ctx, "compatible_server_vad", true))
+	values["compatible_vad_silence_ms"] = strconv.Itoa(min(5000, max(200, aiInt(ctx, "compatible_vad_silence_ms", serverVADSilenceMsDefault))))
 	values["conversation_history_days"] = strconv.Itoa(int(historyRetention(ctx) / (24 * time.Hour)))
 	values["conversation_context_messages"] = strconv.Itoa(min(100, max(0, aiInt(ctx, "conversation_context_messages", 20))))
 	values["conversation_idle_seconds"] = strconv.Itoa(conversationIdleSeconds(ctx))

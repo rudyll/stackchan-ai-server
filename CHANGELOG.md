@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Fixed the turn-based pipeline never starting a turn with firmware that listens in `auto` mode: the server now detects the end of speech itself, so `openai_compatible`, `tokenhub` and `openrouter` work on stock devices that never send `listen:stop`. A device's own `listen:stop` still ends the turn when it arrives first. New `compatible_server_vad` (default on) and `compatible_vad_silence_ms` (default 800 ms) options.
+- Fixed compatible base URLs ending in `/v1` producing `/v1/v1/...` request paths, which made every STT, LLM and TTS call fail against an endpoint copied from the settings hint, including the built-in OpenRouter default. Both spellings are now accepted, and model discovery uses the same rule.
+- Added a configurable `openai_base_url` for the realtime provider, so any endpoint implementing the OpenAI Realtime protocol can be used instead of `api.openai.com`. Third-party realtime endpoints are untested.
+- Added incoming-audio reporting (frame/byte counters every 10 seconds, plus the listening mode the device announced) so a stalled pipeline can be told apart from missing audio, and made a turn that produces no audio report its end instead of leaving the device waiting.
 - Adopted AGPL-3.0-only for the current combined project, retaining original third-party notices and all previously granted MIT permissions. Existing HA beta.3 and macOS 0.1.1 release artifacts are unchanged.
 - Added bilingual voluntary-sponsorship and contribution policies. Sponsorship is not a condition of commercial use, a royalty, a copyright transfer, a support contract or a commercial-license exception.
 - Added the maintainer-confirmed PayPal link (paypal.me/unitekno) to GitHub funding settings and prominent README badges.

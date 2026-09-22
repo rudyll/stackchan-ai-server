@@ -158,6 +158,7 @@ Pick **one** AI provider via `ai_provider` and fill in only its API key. The oth
 | `system_prompt` | | Custom personality/instructions for the assistant. |
 | **OpenAI** (when `ai_provider=openai`) | | |
 | `openai_api_key` | ✅ | Your OpenAI API key from [platform.openai.com](https://platform.openai.com). |
+| `openai_base_url` | | Realtime WebSocket base URL. Default: `wss://api.openai.com/v1/realtime`. Any endpoint that implements the OpenAI Realtime protocol can be used; `https` is converted to `wss` and a missing `/realtime` suffix is added. Third-party realtime endpoints are untested — a host that only resembles the protocol will connect and then fail on session events. |
 | `openai_realtime_model` | | Realtime model name (free text). Default: `gpt-realtime`. Other model IDs may be entered when available to your account. |
 | `openai_tts_voice` | | Realtime voice. Default: `alloy`. Built-in voices include `alloy`, `ash`, `ballad`, `coral`, `echo`, `sage`, `shimmer`, `verse`, `marin`, and `cedar`. |
 | **Gemini** (when `ai_provider=gemini`) | | |
@@ -171,6 +172,8 @@ Pick **one** AI provider via `ai_provider` and fill in only its API key. The oth
 | `llm_*` | | Optional independent LLM Base URL, API Key, and model. |
 | `tts_*` | | Optional independent TTS Base URL, API Key, model, and voice. |
 | `compatible_*` | | Backward-compatible fallback values for all three stages when their stage-specific values are blank. |
+| `compatible_server_vad` | | Let the server decide when the user stopped speaking. Default: on. Required for firmware that listens in `auto` mode and never sends `listen:stop`; the device's own `listen:stop` still ends a turn when it arrives first. |
+| `compatible_vad_silence_ms` | | Trailing silence that ends a turn. Default: `800` ms, range 200–5000. Raise it if turns are cut off mid-sentence; lower it for faster replies. |
 | TokenHub | | Select `tokenhub`; set `tokenhub_base_url` and `tokenhub_api_key`, then configure stage-specific `stt_*`, `llm_*`, and `tts_*` fields as needed. |
 | OpenRouter | | Select `openrouter`; set `openrouter_api_key` and configure the LLM model plus STT/TTS fields. The base URL is set automatically. |
 | Generic compatible endpoint | | Select `openai_compatible`; use the GUI's `llm_*`, `stt_*`, and `tts_*` fields. Legacy `compatible_*` values remain as fallbacks. |
@@ -181,7 +184,7 @@ Pick **one** AI provider via `ai_provider` and fill in only its API key. The oth
 | `background_agent_model` | ✅ when enabled | Chat Completions model for background work; do not use a Realtime audio model. |
 | `background_agent_timeout_seconds` | | Per-task timeout. Default: 300 seconds. |
 
-The add-on logs `[LAT]` timings from device `listen:stop` to STT, LLM, TTS start, and first audio. Use these real measurements to compare providers.
+The add-on logs `[LAT]` timings from the end of the user's turn to STT, LLM, TTS start, and first audio. Use these real measurements to compare providers. It also reports incoming microphone traffic (`audio in frames=… bytes=… ignored=…`) every 10 seconds and the listening mode the device announced, which separates "no audio arrived" from "audio arrived but no turn started".
 
 ### Local history and wake-word standby (standalone)
 
@@ -217,7 +220,7 @@ The first backend uses an OpenAI-compatible Chat Completions model with the exis
 
 `openai` and `gemini` are native bidirectional realtime audio integrations. They require the respective OpenAI Realtime or Gemini Live API key. From mainland China, their overseas endpoints can add latency or intermittent audio delivery; real performance depends on the network route, not only the selected model.
 
-`tokenhub`, `openrouter`, and `openai_compatible` use the turn-based HTTP pipeline. Configure `stt_*`, `llm_*`, and `tts_*` separately to mix providers. Each stage's endpoint must support its matching OpenAI-style endpoint: `/v1/audio/transcriptions`, `/v1/chat/completions`, or `/v1/audio/speech`. A TokenHub account that supplies only text chat is suitable for the LLM stage, but needs separate STT and TTS providers. OpenRouter routing and an OpenAI-compatible label likewise do not guarantee low mainland-China latency.
+`tokenhub`, `openrouter`, and `openai_compatible` use the turn-based HTTP pipeline. Configure `stt_*`, `llm_*`, and `tts_*` separately to mix providers. Each stage's endpoint must support its matching OpenAI-style endpoint: `/v1/audio/transcriptions`, `/v1/chat/completions`, or `/v1/audio/speech`. Base URLs may be written with or without the trailing `/v1`; both spellings reach the same paths. End of turn comes from whichever arrives first, the device's `listen:stop` or the server-side silence detection (`compatible_server_vad`), so firmware that leaves the decision to the server works too. A TokenHub account that supplies only text chat is suitable for the LLM stage, but needs separate STT and TTS providers. OpenRouter routing and an OpenAI-compatible label likewise do not guarantee low mainland-China latency.
 
 For the best chance of a smooth mainland-China deployment, use local or domestic STT and TTS with a domestic LLM. The independent stage settings support this combination; leave a stage blank only when the legacy `compatible_*` endpoint can provide it.
 

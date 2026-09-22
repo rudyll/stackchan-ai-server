@@ -157,6 +157,7 @@ docker compose -f docker-compose.standalone.yml logs --no-color --tail=50 stackc
 | `system_prompt` | | 助手的自定义角色设定或指令。 |
 | **OpenAI**（当 `ai_provider=openai`） | | |
 | `openai_api_key` | ✅ | OpenAI API Key，在 [platform.openai.com](https://platform.openai.com) 获取。 |
+| `openai_base_url` | | Realtime WebSocket 地址，默认 `wss://api.openai.com/v1/realtime`。任何实现 OpenAI Realtime 协议的端点均可填写：`https` 会自动转为 `wss`，缺少 `/realtime` 时自动补全。第三方 realtime 端点未经验证——只是“看起来像”该协议的服务能连上，但会在会话事件阶段失败。 |
 | `openai_realtime_model` | | Realtime 模型名（自由输入），默认 `gpt-realtime`。账号可用的其他模型 ID 也可直接填写。 |
 | `openai_tts_voice` | | Realtime 声音，默认 `alloy`。内置声音包括 `alloy`、`ash`、`ballad`、`coral`、`echo`、`sage`、`shimmer`、`verse`、`marin` 和 `cedar`。 |
 | **Gemini**（当 `ai_provider=gemini`） | | |
@@ -170,6 +171,8 @@ docker compose -f docker-compose.standalone.yml logs --no-color --tail=50 stackc
 | `llm_*` | | 可选的独立 LLM Base URL、API Key 和模型。 |
 | `tts_*` | | 可选的独立 TTS Base URL、API Key、模型和音色。 |
 | `compatible_*` | | 三段均未单独填写时的向后兼容回退值。 |
+| `compatible_server_vad` | | 由服务端判断用户何时说完，默认开启。固件以 `auto` 模式监听、不发送 `listen:stop` 时必须依赖它；设备若先发来 `listen:stop`，仍以设备为准。 |
+| `compatible_vad_silence_ms` | | 判定说完所需的静音时长，默认 `800` 毫秒，范围 200–5000。句子被截断就调大，想更快回应就调小。 |
 | TokenHub | | 选择 `tokenhub`，填写 `tokenhub_base_url`、`tokenhub_api_key`，再按需要配置 `stt_*`、`llm_*`、`tts_*` 三段字段。 |
 | OpenRouter | | 选择 `openrouter`，填写 `openrouter_api_key`，再配置 LLM 模型和 STT/TTS 字段；Base URL 自动使用 `https://openrouter.ai/api/v1`。 |
 | 通用兼容端点 | | 选择 `openai_compatible`，在 GUI 中使用 `llm_*`、`stt_*`、`tts_*` 字段；旧的 `compatible_*` 仍作为回退值保留。 |
@@ -180,7 +183,7 @@ docker compose -f docker-compose.standalone.yml logs --no-color --tail=50 stackc
 | `background_agent_model` | 启用时 ✅ | 后台 Chat Completions 模型，不可填写 Realtime 音频模型。 |
 | `background_agent_timeout_seconds` | | 单项任务超时，默认 300 秒。 |
 
-每次语音完成后，插件日志会输出 `[LAT]`，包含从设备 `listen:stop` 到 STT、LLM、TTS 开始和首个音频包的毫秒数，可据此比较小智、Realtime 和兼容管线的实际差异。
+每次语音完成后，插件日志会输出 `[LAT]`，包含从本轮说话结束到 STT、LLM、TTS 开始和首个音频包的毫秒数，可据此比较小智、Realtime 和兼容管线的实际差异。日志还会每 10 秒汇报上行音频（`audio in frames=… bytes=… ignored=…`）以及设备声明的监听模式，用来区分“完全没收到音频”和“收到音频但没有触发回合”。
 
 ### 本地历史与唤醒待机（Standalone）
 
@@ -210,7 +213,7 @@ Standalone 默认在回复音频发送完成、静默 15 秒后关闭语音通�
 
 `openai` 和 `gemini` 是原生的双向实时音频接入，分别需要 OpenAI Realtime 或 Gemini Live API Key。在中国内地访问其海外端点时，跨境网络可能增加延迟或造成音频 chunk 间歇到达；实际体验取决于网络路由，不只取决于模型。
 
-`tokenhub`、`openrouter` 和 `openai_compatible` 使用逐句 HTTP 管线。现在可分别配置 `stt_*`、`llm_*`、`tts_*` 来混用提供者；每段端点须分别支持 `/v1/audio/transcriptions`、`/v1/chat/completions` 或 `/v1/audio/speech`。仅提供文本 Chat 的 TokenHub 账号可承担 LLM 段，但还需要单独配置 STT 与 TTS；OpenRouter 的路由和“OpenAI-compatible”标签也不保证中国内地低延迟。
+`tokenhub`、`openrouter` 和 `openai_compatible` 使用逐句 HTTP 管线。现在可分别配置 `stt_*`、`llm_*`、`tts_*` 来混用提供者；每段端点须分别支持 `/v1/audio/transcriptions`、`/v1/chat/completions` 或 `/v1/audio/speech`；Base URL 带不带结尾的 `/v1` 都可以，两种写法访问同一路径。回合结束以设备 `listen:stop` 和服务端静音判定（`compatible_server_vad`）中先到者为准，因此把判断交给服务端的固件也能正常对话。仅提供文本 Chat 的 TokenHub 账号可承担 LLM 段，但还需要单独配置 STT 与 TTS；OpenRouter 的路由和“OpenAI-compatible”标签也不保证中国内地低延迟。
 
 想优先获得小智那种顺畅体验，较合理的方向是“本地或国内 STT + 国内 LLM + 本地或国内 TTS”。现在已可通过独立三段设置实现这种组合；只有某段留空时，才回退使用旧 `compatible_*` 端点。
 

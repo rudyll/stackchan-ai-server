@@ -89,3 +89,36 @@ func TestDispatchHAToolWithoutConnectionReturnsError(t *testing.T) {
 		t.Fatal("expected standalone HA tool call to return an error")
 	}
 }
+
+func TestRealtimeDialURLForAcceptsCompatibleEndpoints(t *testing.T) {
+	tests := []struct {
+		name    string
+		baseURL string
+		want    string
+	}{
+		{name: "empty falls back to OpenAI", baseURL: "", want: "wss://api.openai.com/v1/realtime?model=gpt-realtime"},
+		{name: "https base is upgraded and suffixed", baseURL: "https://provider.test/api/paas/v4", want: "wss://provider.test/api/paas/v4/realtime?model=gpt-realtime"},
+		{name: "http base becomes ws", baseURL: "http://127.0.0.1:9000/v1", want: "ws://127.0.0.1:9000/v1/realtime?model=gpt-realtime"},
+		{name: "full wss endpoint is kept", baseURL: "wss://provider.test/v1/realtime", want: "wss://provider.test/v1/realtime?model=gpt-realtime"},
+		{name: "trailing slash is ignored", baseURL: "https://provider.test/v1/", want: "wss://provider.test/v1/realtime?model=gpt-realtime"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := realtimeDialURLFor(test.baseURL, "gpt-realtime")
+			if err != nil {
+				t.Fatalf("realtimeDialURLFor() error = %v", err)
+			}
+			if got != test.want {
+				t.Fatalf("realtimeDialURLFor() = %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
+func TestRealtimeDialURLForRejectsUnusableBaseURL(t *testing.T) {
+	for _, baseURL := range []string{"api.openai.com", "ftp://provider.test/v1", "wss:///v1"} {
+		if _, err := realtimeDialURLFor(baseURL, "gpt-realtime"); err == nil {
+			t.Fatalf("realtimeDialURLFor(%q) accepted an unusable base URL", baseURL)
+		}
+	}
+}

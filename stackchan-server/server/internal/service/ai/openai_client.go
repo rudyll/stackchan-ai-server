@@ -49,7 +49,7 @@ type toolCall struct {
 }
 
 func newOpenAIClient(baseURL, apiKey, model, sttModel, ttsModel, ttsVoice, sysPrompt string) *openAIClient {
-	baseURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
+	baseURL = normalizeOpenAIBaseURL(baseURL)
 	if baseURL == "" {
 		baseURL = "https://api.openai.com"
 	}
@@ -69,6 +69,16 @@ func newOpenAIClient(baseURL, apiKey, model, sttModel, ttsModel, ttsVoice, sysPr
 		sysPrompt: sysPrompt,
 		http:      &http.Client{},
 	}
+}
+
+// normalizeOpenAIBaseURL accepts both spellings of a compatible endpoint. The
+// settings UI hints at ".../v1" and model discovery appends "/models" to that,
+// while the request helpers below add the full "/v1/..." path. Without this
+// trim, a base URL copied from the UI hint would produce
+// "/v1/v1/audio/transcriptions" and every stage would answer 404.
+func normalizeOpenAIBaseURL(baseURL string) string {
+	baseURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
+	return strings.TrimSuffix(baseURL, "/v1")
 }
 
 func (c *openAIClient) doRequest(ctx context.Context, method, path string, body io.Reader, contentType string) ([]byte, error) {

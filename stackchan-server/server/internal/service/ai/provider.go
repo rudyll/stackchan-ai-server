@@ -118,6 +118,14 @@ type PlaybackStateAware interface {
 	InterruptPlayback()
 }
 
+// ServerVADAware is implemented by providers that cannot detect the end of an
+// utterance themselves. ws_simulator then runs its own detector, so firmware
+// listening in auto mode — which never sends listen:stop — still completes a
+// turn.
+type ServerVADAware interface {
+	NeedsServerVAD() bool
+}
+
 // AsyncDeliveryAware gates persisted result announcements until the Xiaozhi
 // hello handshake has completed on a newly connected device.
 type AsyncDeliveryAware interface {

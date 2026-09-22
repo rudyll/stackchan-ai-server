@@ -208,8 +208,12 @@ func supportsGeminiLive(methods []string) bool {
 	return false
 }
 
+// modelsEndpoint accepts a base URL with or without the trailing "/v1", the
+// same way the runtime client does (normalizeOpenAIBaseURL). Discovery and the
+// voice pipeline must agree, otherwise a base URL that passes the model check
+// still returns 404 on every conversation.
 func modelsEndpoint(baseURL string) (string, error) {
-	baseURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
+	baseURL = normalizeOpenAIBaseURL(baseURL)
 	if baseURL == "" {
 		return "", fmt.Errorf("model endpoint base URL is required")
 	}
@@ -217,7 +221,7 @@ func modelsEndpoint(baseURL string) (string, error) {
 	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
 		return "", fmt.Errorf("model endpoint base URL must be an http(s) URL")
 	}
-	return baseURL + "/models", nil
+	return baseURL + "/v1/models", nil
 }
 
 func fetchJSON(ctx context.Context, client *http.Client, endpoint, apiKey string, target any) error {

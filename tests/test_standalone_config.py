@@ -30,6 +30,9 @@ class StandaloneConfigTest(unittest.TestCase):
             "STACKCHAN_SYSTEM_PROMPT",
             "STACKCHAN_AUDIO_PREBUFFER_MS",
             "STACKCHAN_AUDIO_PREBUFFER_MAX_WAIT_MS",
+            "STACKCHAN_OPENAI_BASE_URL",
+            "STACKCHAN_COMPATIBLE_SERVER_VAD",
+            "STACKCHAN_COMPATIBLE_VAD_SILENCE_MS",
         ):
             self.assertIn(key, content)
 
@@ -48,6 +51,11 @@ class StandaloneConfigTest(unittest.TestCase):
             "STACKCHAN_STT_BASE_URL",
             "STACKCHAN_LLM_BASE_URL",
             "STACKCHAN_TTS_BASE_URL",
+            # Turn detection and the realtime base URL must reach the container
+            # too, otherwise the options exist only in the add-on runtime.
+            "STACKCHAN_OPENAI_BASE_URL",
+            "STACKCHAN_COMPATIBLE_SERVER_VAD",
+            "STACKCHAN_COMPATIBLE_VAD_SILENCE_MS",
         ):
             self.assertIn(key, compose)
             self.assertIn(key, launcher)

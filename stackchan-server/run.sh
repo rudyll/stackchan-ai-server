@@ -15,6 +15,7 @@ STANDALONE_HA_URL=$(get standalone_ha_url "")
 STANDALONE_HA_TOKEN=$(get standalone_ha_token "")
 AI_PROVIDER=$(get ai_provider "openai")
 OPENAI_KEY=$(get openai_api_key "")
+OPENAI_BASE_URL=$(get openai_base_url "")
 OPENAI_RT_MODEL=$(get openai_realtime_model "gpt-realtime")
 OPENAI_VOICE=$(get openai_tts_voice "alloy")
 GEMINI_KEY=$(get gemini_api_key "")
@@ -43,6 +44,8 @@ TTS_MODEL=$(get tts_model "")
 TTS_VOICE=$(get tts_voice "")
 AUDIO_PREBUFFER_MS=$(get audio_prebuffer_ms "300")
 AUDIO_PREBUFFER_MAX_WAIT_MS=$(get audio_prebuffer_max_wait_ms "900")
+COMPATIBLE_SERVER_VAD=$(get compatible_server_vad "true")
+COMPATIBLE_VAD_SILENCE_MS=$(get compatible_vad_silence_ms "800")
 BACKGROUND_TASKS_ENABLED=$(get background_tasks_enabled "false")
 BACKGROUND_AGENT_BASE_URL=$(get background_agent_base_url "https://api.openai.com")
 BACKGROUND_AGENT_API_KEY=$(get background_agent_api_key "")
@@ -98,6 +101,7 @@ ai:
   ha_mcp_token: "${HA_MCP_TOKEN}"
   provider: "${AI_PROVIDER}"
   openai_api_key: "${OPENAI_KEY}"
+  openai_base_url: "${OPENAI_BASE_URL}"
   openai_realtime_model: "${OPENAI_RT_MODEL}"
   openai_tts_voice: "${OPENAI_VOICE}"
   gemini_api_key: "${GEMINI_KEY}"
@@ -126,6 +130,8 @@ ai:
   tts_voice: "${TTS_VOICE}"
   audio_prebuffer_ms: ${AUDIO_PREBUFFER_MS}
   audio_prebuffer_max_wait_ms: ${AUDIO_PREBUFFER_MAX_WAIT_MS}
+  compatible_server_vad: ${COMPATIBLE_SERVER_VAD}
+  compatible_vad_silence_ms: ${COMPATIBLE_VAD_SILENCE_MS}
   background_tasks_enabled: ${BACKGROUND_TASKS_ENABLED}
   background_agent_base_url: "${BACKGROUND_AGENT_BASE_URL}"
   background_agent_api_key: "${BACKGROUND_AGENT_API_KEY}"

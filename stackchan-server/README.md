@@ -129,6 +129,7 @@ The HA add-on intercepts the OTA check on port 443 and redirects the device to t
 | `standalone_ha_token` | HA Long-Lived Access Token for the standalone bridge; never returned by the settings API. |
 | `ai_provider` | `openai`, `gemini`, `tokenhub`, `openrouter`, or `openai_compatible` |
 | `openai_api_key` | OpenAI API key (required when provider is `openai`) |
+| `openai_base_url` | Realtime WebSocket base URL. Empty uses OpenAI; any endpoint implementing the OpenAI Realtime protocol can be set (untested against third-party services). |
 | `openai_realtime_model` | OpenAI Realtime model to use |
 | `openai_tts_voice` | Voice for OpenAI TTS output |
 | `gemini_api_key` | Google AI API key (required when provider is `gemini`) |
@@ -136,6 +137,8 @@ The HA add-on intercepts the OTA check on port 443 and redirects the device to t
 | `gemini_voice` | Voice for Gemini audio output |
 | `gemini_enable_tools` | Enable HA device control tools for Gemini. Add-on default: on; standalone default: off. |
 | `gemini_enable_search` | Enable Google Search grounding for Gemini (default: off). **⚠️ Mutually exclusive with `gemini_enable_tools`** — Gemini does not support grounding and function calling at the same time. Enabling both will cause connection errors (1011). To use web search, set `gemini_enable_tools=false`. |
+| `compatible_server_vad` | Turn-based pipeline only: let the server detect the end of speech, needed for firmware that never sends `listen:stop` (default: on). |
+| `compatible_vad_silence_ms` | Trailing silence that ends a turn, 200–5000 ms (default: 800). |
 | `system_prompt` | System prompt sent to the AI. Controls language, personality, and control behaviour. |
 
 ## License

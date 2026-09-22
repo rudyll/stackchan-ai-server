@@ -62,6 +62,7 @@ LOCAL_HOST="${STACKCHAN_LOCAL_HOST:?Set STACKCHAN_LOCAL_HOST to the Docker host 
 WS_PORT=$(port_value "${STACKCHAN_WS_PORT:-}" 12800)
 AI_PROVIDER="${STACKCHAN_AI_PROVIDER:-openai}"
 OPENAI_KEY="${STACKCHAN_OPENAI_API_KEY:-}"
+OPENAI_BASE_URL="${STACKCHAN_OPENAI_BASE_URL:-}"
 OPENAI_RT_MODEL="${STACKCHAN_OPENAI_REALTIME_MODEL:-gpt-realtime}"
 OPENAI_VOICE="${STACKCHAN_OPENAI_TTS_VOICE:-alloy}"
 GEMINI_KEY="${STACKCHAN_GEMINI_API_KEY:-}"
@@ -97,6 +98,8 @@ TTS_MODEL="${STACKCHAN_TTS_MODEL:-}"
 TTS_VOICE="${STACKCHAN_TTS_VOICE:-}"
 AUDIO_PREBUFFER_MS=$(int_value "${STACKCHAN_AUDIO_PREBUFFER_MS:-}" 300)
 AUDIO_PREBUFFER_MAX_WAIT_MS=$(int_value "${STACKCHAN_AUDIO_PREBUFFER_MAX_WAIT_MS:-}" 900)
+COMPATIBLE_SERVER_VAD=$(bool_value "${STACKCHAN_COMPATIBLE_SERVER_VAD:-}" true)
+COMPATIBLE_VAD_SILENCE_MS=$(int_value "${STACKCHAN_COMPATIBLE_VAD_SILENCE_MS:-}" 800)
 BACKGROUND_TASKS_ENABLED=$(bool_value "${STACKCHAN_BACKGROUND_TASKS_ENABLED:-}" false)
 BACKGROUND_AGENT_BASE_URL="${STACKCHAN_BACKGROUND_AGENT_BASE_URL:-https://api.openai.com}"
 BACKGROUND_AGENT_API_KEY="${STACKCHAN_BACKGROUND_AGENT_API_KEY:-}"
@@ -155,6 +158,7 @@ ai:
   settings_auth_token: $(yaml_string "$SETTINGS_AUTH_TOKEN")
   provider: $(yaml_string "$AI_PROVIDER")
   openai_api_key: $(yaml_string "$OPENAI_KEY")
+  openai_base_url: $(yaml_string "$OPENAI_BASE_URL")
   openai_realtime_model: $(yaml_string "$OPENAI_RT_MODEL")
   openai_tts_voice: $(yaml_string "$OPENAI_VOICE")
   gemini_api_key: $(yaml_string "$GEMINI_KEY")
@@ -183,6 +187,8 @@ ai:
   tts_voice: $(yaml_string "$TTS_VOICE")
   audio_prebuffer_ms: ${AUDIO_PREBUFFER_MS}
   audio_prebuffer_max_wait_ms: ${AUDIO_PREBUFFER_MAX_WAIT_MS}
+  compatible_server_vad: ${COMPATIBLE_SERVER_VAD}
+  compatible_vad_silence_ms: ${COMPATIBLE_VAD_SILENCE_MS}
   background_tasks_enabled: ${BACKGROUND_TASKS_ENABLED}
   background_agent_base_url: $(yaml_string "$BACKGROUND_AGENT_BASE_URL")
   background_agent_api_key: $(yaml_string "$BACKGROUND_AGENT_API_KEY")

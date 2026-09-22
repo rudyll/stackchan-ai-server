@@ -5,10 +5,12 @@ SPDX-License-Identifier: MIT
 
 package ai
 
-// The OpenAI-compatible pipeline intentionally waits for listen:stop before
-// uploading audio. Most compatible endpoints expose HTTP/SSE chat APIs rather
-// than the bidirectional Realtime WebSocket protocol, so pretending otherwise
-// would make interruption and latency behaviour unreliable.
+// The OpenAI-compatible pipeline uploads audio once the turn ends. Most
+// compatible endpoints expose HTTP/SSE chat APIs rather than the bidirectional
+// Realtime WebSocket protocol, so pretending otherwise would make interruption
+// and latency behaviour unreliable. End of turn is whichever comes first: the
+// device's listen:stop, or the protocol layer's own silence detection — see
+// server_vad.go, without which firmware in auto mode never completes a turn.
 
 import (
 	"context"
@@ -60,6 +62,10 @@ func dialCompatibleSession(ctx context.Context, cfg compatibleConfig, ha *haWSCl
 	}, nil
 }
 
+// NeedsServerVAD reports that this provider has no VAD of its own, so the
+// protocol layer must decide when the user stopped speaking.
+func (s *compatibleSession) NeedsServerVAD() bool { return true }
+
 func (s *compatibleSession) AppendAudio(pcm []int16) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -89,6 +95,16 @@ func (s *compatibleSession) CommitAudio() error {
 }
 
 func (s *compatibleSession) completeTurn(ctx context.Context, pcm []int16) {
+	// Every turn must report an end, including the ones that produce no audio.
+	// Otherwise the protocol layer keeps waiting for a playback completion that
+	// never arrives and the device stays deaf for the rest of the session.
+	spoke := false
+	defer func() {
+		if !spoke && s.cb.OnStop != nil {
+			s.cb.OnStop()
+		}
+	}()
+
 	text, err := s.sttClient.Transcribe(ctx, pcmToWAV(pcm, 16000))
 	if err != nil {
 		g.Log().Warningf(gctx.New(), "[COMPAT] transcription: %v", err)
@@ -116,6 +132,8 @@ func (s *compatibleSession) completeTurn(ctx context.Context, pcm []int16) {
 	if s.cb.OnText != nil {
 		s.cb.OnText(reply)
 	}
+	// The speaking phase reports its own end through OnStop below.
+	spoke = true
 	if s.cb.OnStart != nil {
 		s.cb.OnStart()
 	}

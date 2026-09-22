@@ -57,19 +57,32 @@ func (a *conversationActivity) wake(now time.Time) {
 	}
 }
 
+// speechEnergyFloor is the mean amplitude below which a 16kHz frame counts as
+// microphone silence rather than an utterance.
+const speechEnergyFloor = 400
+
+// frameIsSpeech reports whether one decoded PCM frame carries speech. The idle
+// keeper and the server-side end-of-turn detector share this definition so they
+// can never disagree about whether the user is talking.
+func frameIsSpeech(pcm []int16) bool {
+	if len(pcm) == 0 {
+		return false
+	}
+	var energy int64
+	for _, sample := range pcm {
+		energy += int64(sample) * int64(sample)
+	}
+	return energy/int64(len(pcm)) > speechEnergyFloor*speechEnergyFloor
+}
+
 func (a *conversationActivity) audio(now time.Time, pcm []int16) bool {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if a.expiredLocked(now) {
 		return false
 	}
-	// A small energy floor distinguishes microphone silence from an utterance.
 	// Ambient speech/noise inside the follow-up window can still count as speech.
-	var energy int64
-	for _, sample := range pcm {
-		energy += int64(sample) * int64(sample)
-	}
-	if len(pcm) > 0 && energy/int64(len(pcm)) > 400*400 {
+	if frameIsSpeech(pcm) {
 		a.heardSpeech = true
 		if !a.busy {
 			a.deadline = now.Add(a.timeout)

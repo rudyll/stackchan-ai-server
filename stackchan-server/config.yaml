@@ -26,6 +26,7 @@ options:
   ha_mcp_token: ""
   ai_provider: "openai"
   openai_api_key: ""
+  openai_base_url: ""
   openai_realtime_model: "gpt-realtime"
   openai_tts_voice: "alloy"
   gemini_api_key: ""
@@ -54,6 +55,8 @@ options:
   tts_voice: ""
   audio_prebuffer_ms: 300
   audio_prebuffer_max_wait_ms: 900
+  compatible_server_vad: true
+  compatible_vad_silence_ms: 800
   background_tasks_enabled: false
   background_agent_base_url: "https://api.openai.com"
   background_agent_api_key: ""
@@ -68,6 +71,7 @@ schema:
   ha_mcp_token: str
   ai_provider: list(openai|gemini|tokenhub|openrouter|openai_compatible)
   openai_api_key: str?
+  openai_base_url: str?
   openai_realtime_model: str
   openai_tts_voice: list(alloy|ash|ballad|coral|echo|sage|shimmer|verse|marin|cedar)
   gemini_api_key: str?
@@ -96,6 +100,8 @@ schema:
   tts_voice: str?
   audio_prebuffer_ms: list(0|120|180|240|300|360|480|600)
   audio_prebuffer_max_wait_ms: list(300|500|700|900|1200|1500)
+  compatible_server_vad: bool
+  compatible_vad_silence_ms: int(200,5000)
   background_tasks_enabled: bool
   background_agent_base_url: str?
   background_agent_api_key: str?

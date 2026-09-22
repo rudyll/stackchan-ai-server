@@ -245,3 +245,43 @@ func TestWriteSettingsPreservesConcurrentUpdates(t *testing.T) {
 		}
 	}
 }
+
+func TestSettingsUpdateAcceptsTurnDetectionAndRealtimeBaseURL(t *testing.T) {
+	valid := map[string]string{
+		"compatible_server_vad":     "false",
+		"compatible_vad_silence_ms": "1200",
+		"openai_base_url":           "https://provider.test/api/paas/v4",
+	}
+	if got := settingsUpdateError(valid); got != "" {
+		t.Fatalf("settingsUpdateError(valid) = %q, want no error", got)
+	}
+	// An empty value clears the setting and must stay acceptable.
+	if got := settingsUpdateError(map[string]string{"openai_base_url": "", "compatible_vad_silence_ms": ""}); got != "" {
+		t.Fatalf("settingsUpdateError(cleared) = %q, want no error", got)
+	}
+
+	invalid := []map[string]string{
+		{"compatible_server_vad": "yes"},
+		{"compatible_vad_silence_ms": "50"},
+		{"compatible_vad_silence_ms": "9000"},
+		{"compatible_vad_silence_ms": "soon"},
+		{"openai_base_url": "api.openai.com"},
+		{"openai_base_url": "ftp://provider.test/v1"},
+	}
+	for _, values := range invalid {
+		if settingsUpdateError(values) == "" {
+			t.Fatalf("settingsUpdateError(%v) accepted an unusable value", values)
+		}
+	}
+}
+
+func TestSettingsForUINormalizesTurnDetectionDefaults(t *testing.T) {
+	t.Setenv("STACKCHAN_DATA_DIR", t.TempDir())
+	values := settingsForUI(context.Background())
+	if values["compatible_server_vad"] != "true" {
+		t.Fatalf("compatible_server_vad = %q, want the enabled default", values["compatible_server_vad"])
+	}
+	if values["compatible_vad_silence_ms"] != strconv.Itoa(serverVADSilenceMsDefault) {
+		t.Fatalf("compatible_vad_silence_ms = %q, want %d", values["compatible_vad_silence_ms"], serverVADSilenceMsDefault)
+	}
+}
