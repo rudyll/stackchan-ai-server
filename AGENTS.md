@@ -18,6 +18,7 @@ This file supplements the shared global agent guidance with rules specific to th
 ## Documentation and releases
 
 - Keep `README.md`, `README.zh.md`, and `CHANGELOG.md` aligned with user-visible configuration changes.
+- Write public project text in the first person singular. Issue and pull request replies, release notes and support answers say "I", never "we" or "our": Rudy is the sole maintainer and the only visible author.
 - Record substantial architecture decisions in `docs/`. Keep local handoff records under `docs/context/` when continuity is needed.
 - Every user-facing add-on release must update `stackchan-server/config.yaml` and `CHANGELOG.md`, then follow this order: merge/push final `main`, create a matching `v<version>` tag on that commit, publish a non-draft GitHub Release with matching notes, and verify the remote manifest, tag target, Release state, and notes.
 
